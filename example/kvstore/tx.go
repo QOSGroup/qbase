@@ -29,35 +29,32 @@ func (kv KvstoreTx) ValidateData() bool {
 }
 
 func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
-
 	logger := ctx.Logger()
+
 	kvMapper := ctx.Mapper(KvMapperName).(*KvMapper)
 	qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
 	accMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
 
-	key := string(kv.Key)
-	value := kvMapper.GetKey(key)
-
+	logger.Info("kvMapper", kvMapper)
 	logger.Info("qcpMapper", qcpMapper)
 	logger.Info("accMapper", accMapper)
 
+	key := string(kv.Key)
+	value := kvMapper.GetKey(key)
 	logger.Info("origin is: ", key, "=", value)
 
 	kvMapper.SaveKV(key, string(kv.Value))
-
 	value = kvMapper.GetKey(key)
-
 	logger.Info("after is: ", key, value)
 
 	//不使用cdc编码存储数据:
 	clearKey := "lllllll"
-
 	store := kvMapper.GetStore()
 	store.Set([]byte(clearKey), []byte("11111"))
-
-	logger.Info("clear value: %s", store.Get([]byte(clearKey)))
+	logger.Info("clearing value: %s", store.Get([]byte(clearKey)))
 
 	store.Delete([]byte(clearKey))
+	logger.Info("cleared value: %s", store.Get([]byte(clearKey)))
 
 	return
 }
