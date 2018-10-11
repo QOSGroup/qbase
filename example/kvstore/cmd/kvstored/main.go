@@ -28,10 +28,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	var baseapp = baseabci.NewBaseApp("kvstore", logger, db)
-	registerKVCdc(baseapp.GetCdc())
+	var baseapp = baseabci.NewBaseApp("kvstore", logger, db, registerKVCdc)
 
-	baseapp.RegisterAccountMapper(func() account.Account {
+	baseapp.RegisterAccount(func() account.Account {
 		return &account.BaseAccount{}
 	})
 
@@ -39,7 +38,7 @@ func main() {
 	var kvMapper = kvstore.NewKvMapper(mainStore)
 	baseapp.RegisterSeedMapper(kvMapper)
 
-	if err := baseapp.LoadLatestVersion(mainStore); err != nil {
+	if err := baseapp.LoadLatestVersion(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

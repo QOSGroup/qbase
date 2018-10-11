@@ -46,7 +46,7 @@ func (app *BaseApp) registerQcpMapper() {
 }
 
 //RegisterQcpMapper 注册AccountMapper
-func (app *BaseApp) RegisterAccountMapper(proto func() account.Account) {
+func (app *BaseApp) RegisterAccount(proto func() account.Account) {
 	if app.sealed {
 		panic("RegisterAccountMapper() on sealed BaseApp")
 	}

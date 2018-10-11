@@ -2,7 +2,6 @@ package baseabci
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"runtime/debug"
@@ -66,7 +65,11 @@ type BaseApp struct {
 var _ abci.Application = (*BaseApp)(nil)
 
 // NewBaseApp returns a reference to an initialized BaseApp.
-func NewBaseApp(name string, logger log.Logger, db dbm.DB, options ...func(*BaseApp)) *BaseApp {
+func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
+
+	if registerCodecFunc != nil {
+		registerCodecFunc(cdc)
+	}
 
 	txDecoder := types.GetTxDecoder(cdc)
 
@@ -117,21 +120,21 @@ func (app *BaseApp) mountStore(key store.StoreKey, typ store.StoreType) {
 }
 
 // load latest application version
-func (app *BaseApp) LoadLatestVersion(mainKey store.StoreKey) error {
+func (app *BaseApp) LoadLatestVersion() error {
 	err := app.cms.LoadLatestVersion()
 	if err != nil {
 		return err
 	}
-	return app.initFromStore(mainKey)
+	return app.initFromStore()
 }
 
 // load application version
-func (app *BaseApp) LoadVersion(version int64, mainKey store.StoreKey) error {
+func (app *BaseApp) LoadVersion(version int64) error {
 	err := app.cms.LoadVersion(version)
 	if err != nil {
 		return err
 	}
-	return app.initFromStore(mainKey)
+	return app.initFromStore()
 }
 
 // the last CommitID of the multistore
@@ -145,18 +148,9 @@ func (app *BaseApp) LastBlockHeight() int64 {
 }
 
 // initializes the remaining logic from app.cms
-func (app *BaseApp) initFromStore(mainKey store.StoreKey) error {
-	// main store should exist.
-	// TODO: we don't actually need the main store here
-	main := app.cms.GetKVStore(mainKey)
-	if main == nil {
-		return errors.New("baseapp expects MultiStore with 'main' KVStore")
-	}
-	// Needed for `gaiad export`, which inits from store but never calls initchain
+func (app *BaseApp) initFromStore() error {
 	app.setCheckState(abci.Header{})
-
 	app.Seal()
-
 	return nil
 }
 
