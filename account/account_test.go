@@ -8,6 +8,7 @@ import (
 
 	"testing"
 )
+
 func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.Address) {
 	key := ed25519.GenPrivKey()
 	pub := key.PubKey()
@@ -39,6 +40,4 @@ func TestAccountMarshal(t *testing.T) {
 	err = cdc.UnmarshalBinary(add_binary[:len(add_binary)/2], &another_json)
 	require.NotNil(t, err)
 
-
 }
-
