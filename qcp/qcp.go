@@ -1,8 +1,8 @@
 package qcp
 
 const (
-	QCP_FROM      = "qcp.From"
-	QCP_TO        = "qcp.To"
-	QCP_SEQUENCE  = "qcp.Sequence"
-	QCP_HASHBYTES = "qcp.hashbytes"
+	QcpFrom      = "qcp.From"
+	QcpTo        = "qcp.To"
+	QcpSequence  = "qcp.Sequence"
+	QcpHashBytes = "qcp.hashbytes"
 )

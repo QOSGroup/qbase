@@ -19,13 +19,13 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-func defaultContext(key store.StoreKey) context.Context {
+func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
 	// latestVersion也是int64经过amino编码后存储在相应键值下的
 	cms.LoadLatestVersion()
-	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
+	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), mapperMap)
 	return ctx
 }
 
@@ -33,12 +33,10 @@ func TestAccountMapperGetSet(t *testing.T) {
 	seedMapper := NewAccountMapper(ProtoBaseAccount)
 	seedMapper.SetCodec(cdc)
 
-	ctx := defaultContext(seedMapper.GetStoreKey())
-
 	mapperMap := make(map[string]mapper.IMapper)
 	mapperMap[seedMapper.Name()] = seedMapper
 
-	ctx = ctx.WithRegisteredMap(mapperMap)
+	ctx := defaultContext(seedMapper.GetStoreKey(), mapperMap)
 
 	mapper, _ := ctx.Mapper(AccountMapperName).(*AccountMapper)
 

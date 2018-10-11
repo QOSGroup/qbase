@@ -14,10 +14,10 @@ type Account interface {
 	SetNonce(nonce uint64) error
 }
 
-type BaseAccount struct{
+type BaseAccount struct {
 	AccountAddress types.Address `json:"account_address"` // account address
-	Publickey      crypto.PubKey  `json:"public_key"`		// public key
-	Nonce          uint64         `json:"nonce"`			// identifies tx_status of an account
+	Publickey      crypto.PubKey `json:"public_key"`      // public key
+	Nonce          uint64        `json:"nonce"`           // identifies tx_status of an account
 }
 
 func ProtoBaseAccount() Account {

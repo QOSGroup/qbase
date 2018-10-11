@@ -25,12 +25,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	qcpMapper.SetCodec(cdc)
 
 	storeKey := qcpMapper.GetStoreKey()
-	ctx := defaultContext(storeKey)
 
 	mapper := make(map[string]mapper.IMapper)
 	mapper[qcpMapper.Name()] = qcpMapper
 
-	ctx = ctx.WithRegisteredMap(mapper)
+	ctx := defaultContext(storeKey, mapper)
 
 	qcpMapper, _ = ctx.Mapper(qcpMapper.Name()).(*QcpMapper)
 
@@ -102,12 +101,11 @@ func defaultCdc() *go_amino.Codec {
 	return cdc
 }
 
-func defaultContext(key store.StoreKey) context.Context {
+func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-
-	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
+	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), mapperMap)
 	return ctx
 }

@@ -50,7 +50,8 @@ func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger 
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
 	c = c.WithSigningValidators(nil)
-	c = c.WithRegisteredMap(registeSeedMapper)
+	c = c.withRegisteredMap(registeSeedMapper)
+	c = c.copyKVStoreMapperFromSeed()
 	return c
 }
 
@@ -114,12 +115,9 @@ func (c Context) WithUint64(key interface{}, value uint64) Context {
 }
 
 func (c Context) Mapper(name string) mapper.IMapper {
-	registeredMapper := c.Value(contextKeyRegisteredMapper).(map[string]mapper.IMapper)
+	registeredMapper := c.Value(contextKeyCurrentRegisteredMapper).(map[string]mapper.IMapper)
 	if mapper, ok := registeredMapper[name]; ok {
-		cpyMapper := mapper.Copy()
-		store := c.KVStore(mapper.GetStoreKey())
-		cpyMapper.SetStore(store)
-		return cpyMapper
+		return mapper
 	}
 	return nil
 }
@@ -159,6 +157,7 @@ const (
 	contextKeyBlockTxIndex       // tx在block中的索引
 	contextKeyTxQcpResultHandler //处理TxQcpResult回调函数
 	contextKeyRegisteredMapper   //注册的mapper
+	contextKeyCurrentRegisteredMapper
 )
 
 // NOTE: Do not expose MultiStore.
@@ -206,7 +205,8 @@ func (c Context) TxQcpResultHandler() func(ctx Context, itx interface{}) types.R
 }
 
 func (c Context) WithMultiStore(ms store.MultiStore) Context {
-	return c.withValue(contextKeyMultiStore, ms)
+	newCtx := c.withValue(contextKeyMultiStore, ms)
+	return newCtx.copyKVStoreMapperFromSeed()
 }
 
 func (c Context) WithBlockHeader(header abci.Header) Context {
@@ -236,8 +236,31 @@ func (c Context) WithSigningValidators(SigningValidators []abci.SigningValidator
 	return c.withValue(contextKeySigningValidators, SigningValidators)
 }
 
-func (c Context) WithRegisteredMap(registeSeedMapper map[string]mapper.IMapper) Context {
+//
+func (c Context) withRegisteredMap(registeSeedMapper map[string]mapper.IMapper) Context {
 	return c.withValue(contextKeyRegisteredMapper, registeSeedMapper)
+}
+
+//mapper与store有关，当store变化时，需要创建基于当前store的mapper
+func (c Context) copyKVStoreMapperFromSeed() Context {
+	mapperWithStore := make(map[string]mapper.IMapper)
+
+	v := c.Value(contextKeyRegisteredMapper)
+	if v == nil {
+		return c
+	}
+
+	registeredMapper := v.(map[string]mapper.IMapper)
+	if len(registeredMapper) > 0 {
+		for name, mapper := range registeredMapper {
+			cpyMapper := mapper.Copy()
+			store := c.KVStore(mapper.GetStoreKey())
+			cpyMapper.SetStore(store)
+			mapperWithStore[name] = cpyMapper
+		}
+	}
+
+	return c.withValue(contextKeyCurrentRegisteredMapper, mapperWithStore)
 }
 
 func (c Context) WithGasMeter(meter types.GasMeter) Context {
