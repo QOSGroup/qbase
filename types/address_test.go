@@ -14,10 +14,8 @@ var invalidStrs = []string{
 	"hello, world!",
 	"0xAA",
 	"AAA",
-	PREF_QOS_ADD + "AB0C",
-	PREF_QOS_ADD + "1234",
-	PRIF_QOS_PUBKEY + "5678",
-	PRIF_QOS_PUBKEY + "BBAB",
+	PREF_ADD + "AB0C",
+	PREF_ADD + "1234",
 }
 
 func testMarshal(t *testing.T, original interface{}, res interface{}, marshal func() ([]byte, error), unmarshal func([]byte) error) {
