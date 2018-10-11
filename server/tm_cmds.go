@@ -2,10 +2,10 @@ package server
 
 import (
 	"fmt"
+	"github.com/QOSGroup/qbase/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
@@ -47,16 +47,10 @@ func ShowValidatorCmd(ctx *Context) *cobra.Command {
 				return printlnJSON(valPubKey)
 			}
 
-			pubkey, err := sdk.Bech32ifyConsPub(valPubKey)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(pubkey)
 			return nil
 		},
 	}
-	cmd.Flags().Bool(FlagJson, false, "get machine parseable output")
+	cmd.Flags().Bool(FlagJson, true, "get machine parseable output")
 	return &cmd
 }
 
@@ -68,7 +62,7 @@ func ShowAddressCmd(ctx *Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := ctx.Config
 			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorFile())
-			valAddr := (sdk.ValAddress)(privValidator.Address)
+			valAddr := (types.Address)(privValidator.Address)
 
 			if viper.GetBool(FlagJson) {
 				return printlnJSON(valAddr)
