@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/QOSGroup/qbase/example/inittest"
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/rpc/client"
 )
@@ -14,8 +12,6 @@ func main() {
 
 	key := "a"
 	val := "Long live imuge!"
-
-	fmt.Println(hexutil.Encode([]byte(key)))
 
 	cdc := inittest.MakeCodec()
 
