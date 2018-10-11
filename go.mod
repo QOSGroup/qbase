@@ -7,7 +7,6 @@ require (
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be // indirect
 	github.com/btcsuite/btcutil v0.0.0-20180706230648-ab6388e0c60a // indirect
-	github.com/cosmos/cosmos-sdk v0.24.2
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebuchman/fail-test v0.0.0-20170303061230-95f809107225 // indirect
 	github.com/fortytw2/leaktest v1.2.0 // indirect
