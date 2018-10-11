@@ -1,10 +1,11 @@
-package inittest
+package app
 
 import (
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
-	"github.com/QOSGroup/qbase/store"
+	"github.com/QOSGroup/qbase/example/basecoin/tx"
+	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -15,33 +16,27 @@ import (
 )
 
 const (
-	appName = "inittest"
+	appName = "basecoin"
 )
 
-type InitTestApp struct {
+type BaseCoinApp struct {
 	*baseabci.BaseApp
 }
 
-func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *InitTestApp {
+func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 
 	baseApp := baseabci.NewBaseApp(appName, logger, db, registerCdc)
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
-	app := &InitTestApp{
+	app := &BaseCoinApp{
 		BaseApp: baseApp,
 	}
 
-	// Set InitChainer
+	//设置 InitChainer
 	app.SetInitChainer(app.initChainer)
 
 	//账户mapper
-	app.RegisterAccount(func() account.Account {
-		return &QOSAccount{}
-	})
-
-	baseStore := store.NewKVStoreKey("base")
-	txMapper := NewTxMapper(baseStore)
-	app.RegisterSeedMapper(txMapper)
+	app.RegisterAccount(types.NewAppAccount)
 
 	// Mount stores and load the latest state.
 	err := app.LoadLatestVersion()
@@ -52,28 +47,24 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *InitTestApp {
 }
 
 // 初始配置
-func (app *InitTestApp) initChainer(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
-	baseMapper := ctx.Mapper(TX_MAPPER_NAME)
-	accountMapper := ctx.Mapper(account.AccountMapperName)
+	accountMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
 
-	//保存CA和初始账户
 	stateJSON := req.AppStateBytes
-	genesisState := &GenesisState{}
-	err := app.GetCdc().UnmarshalJSON(stateJSON, genesisState)
+	genesisState := &types.GenesisState{}
+	err := accountMapper.GetCodec().UnmarshalJSON(stateJSON, genesisState)
 	if err != nil {
 		panic(err)
 	}
-	//保存CA
-	baseMapper.SetObject([]byte("rootca"), genesisState.CAPubKey.Bytes())
 
-	//保存账户
+	//保存初始账户
 	for _, gacc := range genesisState.Accounts {
-		acc, err := gacc.ToQosAccount()
+		acc, err := gacc.ToAppAccount()
 		if err != nil {
 			panic(err)
 		}
-		accountMapper.SetObject([]byte(acc.BaseAccount.AccountAddress), app.GetCdc().MustMarshalBinaryBare(acc))
+		accountMapper.SetAccount(acc)
 	}
 
 	return abci.ResponseInitChain{}
@@ -89,6 +80,6 @@ func MakeCodec() *amino.Codec {
 }
 
 func registerCdc(cdc *amino.Codec) {
-	cdc.RegisterConcrete(&InitTestTx{}, "inittest/InitTestTx", nil)
-	cdc.RegisterConcrete(&QOSAccount{}, "inittest/QOSAccount", nil)
+	cdc.RegisterConcrete(&types.AppAccount{}, "basecoin/AppAccount", nil)
+	cdc.RegisterConcrete(&tx.SendTx{}, "basecoin/SendTx", nil)
 }

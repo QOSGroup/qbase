@@ -1,4 +1,4 @@
-package inittest
+package types
 
 import (
 	"encoding/json"
@@ -6,14 +6,34 @@ import (
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/server"
-	serverconfig "github.com/QOSGroup/qbase/server/config"
+	"github.com/QOSGroup/qbase/server/config"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
-// 创世配置app_state
+type AppAccount struct {
+	account.BaseAccount `json:"base_account"`
+	Coins               Coins `json:"coins"`
+}
+
+func NewAppAccount() account.Account {
+	return &AppAccount{
+		BaseAccount: account.BaseAccount{},
+		Coins:       []Coin{},
+	}
+}
+
+func (acc *AppAccount) GetCoins() Coins {
+	return acc.Coins
+}
+
+func (acc *AppAccount) SetCoins(coins Coins) error {
+	acc.Coins = coins
+	return nil
+}
+
 // QOS初始状态
 type GenesisState struct {
 	CAPubKey crypto.PubKey     `json:"ca_pub_key"`
@@ -23,34 +43,31 @@ type GenesisState struct {
 // 初始账户
 type GenesisAccount struct {
 	Address types.Address `json:"address"`
-	Qos     types.BigInt  `json:"qos"`
-	QscList []*QSC   `json:"qsc"`
+	Coins   Coins         `json:"coins"`
 }
 
-// 给定 QOSAccount 创建 GenesisAccount
-func NewGenesisAccount(aa *QOSAccount) *GenesisAccount {
+// 给定 AppAccpunt 创建 GenesisAccount
+func NewGenesisAccount(aa *AppAccount) *GenesisAccount {
 	return &GenesisAccount{
 		Address: aa.BaseAccount.GetAddress(),
-		Qos:     aa.Qos,
-		QscList: aa.QscList,
+		Coins:   aa.Coins,
 	}
 }
 
-// 给定 GenesisAccount 创建 QOSAccount
-func (ga *GenesisAccount) ToQosAccount() (acc *QOSAccount, err error) {
-	return &QOSAccount{
+// 给定 GenesisAccount 创建 AppAccpunt
+func (ga *GenesisAccount) ToAppAccount() (acc *AppAccount, err error) {
+	return &AppAccount{
 		BaseAccount: account.BaseAccount{
 			AccountAddress: ga.Address,
 		},
-		Qos:     ga.Qos,
-		QscList: ga.QscList,
+		Coins: ga.Coins,
 	}, nil
 }
 
-func InitTestAppInit() server.AppInit {
+func InitBaseCoinInit() server.AppInit {
 	return server.AppInit{
-		AppGenTx:    InitTestAppGenTx,
-		AppGenState: InitTestAppGenStateJSON,
+		AppGenTx:    InitBaseCoinGenTx,
+		AppGenState: InitBaseCoinGenStateJSON,
 	}
 }
 
@@ -59,7 +76,7 @@ type BaseCoinGenTx struct {
 }
 
 // Generate a genesis transaction
-func InitTestAppGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig serverconfig.GenTx) (
+func InitBaseCoinGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.GenTx) (
 	appGenTx, cliPrint json.RawMessage, validator tmtypes.GenesisValidator, err error) {
 
 	var addr types.Address
@@ -91,7 +108,7 @@ func InitTestAppGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig serverconf
 	return
 }
 
-func InitTestAppGenStateJSON(cdc *amino.Codec, appGenTxs []json.RawMessage) (appState json.RawMessage, err error) {
+func InitBaseCoinGenStateJSON(cdc *amino.Codec, appGenTxs []json.RawMessage) (appState json.RawMessage, err error) {
 
 	if len(appGenTxs) != 1 {
 		err = errors.New("must provide a single genesis transaction")
@@ -105,16 +122,11 @@ func InitTestAppGenStateJSON(cdc *amino.Codec, appGenTxs []json.RawMessage) (app
 	}
 
 	appState = json.RawMessage(fmt.Sprintf(`{
-  "ca_pub_key": {
-    "type": "tendermint/PubKeyEd25519",
-    "value": "MpVfPwWAwh/d53kj5ZfNCxdQ69yUFuz19J5ygCByGCc="
-  },
   "accounts": [{
     "address": "%s",
-	"qos": "100000000",
-    "qsc": [
+    "coins": [
       {
-        "coin_name":"qstar",
+        "name":"qstar",
         "amount":"100000000"
       }
     ]
