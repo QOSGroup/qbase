@@ -4,7 +4,7 @@ go:
   - 1.11.x
 
 before_install:
-  - go mod tidy
+  - true
 
 script:
   - go test -race -coverprofile=coverage.txt -covermode=atomic
