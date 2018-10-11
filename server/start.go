@@ -41,7 +41,7 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 	}
 
 	// core flags for the ABCI application
-	cmd.Flags().Bool(flagWithTendermint, true, "Run abci app embedded in-process with tendermint")
+	cmd.Flags().Bool(flagWithTendermint, false, "Run abci app embedded in-process with tendermint")
 	cmd.Flags().String(flagAddress, "tcp://0.0.0.0:26658", "Listen address")
 	cmd.Flags().String(flagTraceStore, "", "Enable KVStore tracing to an output file")
 	cmd.Flags().String(flagPruning, "syncable", "Pruning strategy: syncable, nothing, everything")
