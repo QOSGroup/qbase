@@ -45,43 +45,67 @@ func (tx *TxStd) GetSignData() []byte {
 	}
 
 	ret := tx.ITx.GetSignData()
-	for _, sgn := range tx.Signature {
-		ret = Sig2Byte(sgn)
-	}
-
 	ret = append(ret, []byte(tx.ChainID)...)
 	ret = append(ret, types.Int2Byte(tx.MaxGas.Int64())...)
 	return ret
 }
 
+//签名：每个签名者外部调用此方法
+func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) bool {
+	if tx.ITx == nil {
+		return false
+	}
+
+	sigdata := append(tx.GetSignData(), types.Int2Byte(nonce)...)
+	prvdata, errprv := privkey.Sign(sigdata)
+	if errprv != nil {
+		return false
+	}
+	sig := Signature{privkey.PubKey(),
+		prvdata,
+		int64(nonce)}
+	tx.Signature = append(tx.Signature, sig)
+	return true
+}
+
 //构建结构体
+//调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
 func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
 	rTx = new(TxStd)
 	rTx.ITx = itx
 	rTx.ChainID = cid
 	rTx.MaxGas = mgas
+
 	return
 }
 
 //函数：Signature结构转化为 []byte
-func Sig2Byte(sgn Signature) []byte {
-	var ret = []byte{}
-	ret = append(ret, []byte(sgn.Pubkey.Bytes())...)
+func Sig2Byte(sgn Signature) (ret []byte) {
+	if sgn.Pubkey == nil {
+		//_, file, line, _ := runtime.Caller(1)
+		//log.Panicf("[%s](%d): pubkey is nil", file, line)
+		return nil
+	}
+	ret = append(ret, sgn.Pubkey.Bytes()...)
 	ret = append(ret, sgn.Signature...)
 	ret = append(ret, types.Int2Byte(sgn.Nonce)...)
-	return ret
+	return
 }
 
-func CopyTxStd(dst *TxStd, src *TxStd) {
+func CopyTxStd(dst *TxStd, src *TxStd) bool {
 	if src == nil || dst == nil {
 		log.Panic("Input struct can't be nil")
-		return
+		return false
 	}
 
 	dst.MaxGas = src.MaxGas
 	dst.ChainID = src.ChainID
-	dst.Signature = src.Signature
+	for _, sg := range src.Signature {
+		sig := Signature{sg.Pubkey, sg.Signature, sg.Nonce}
+		dst.Signature = append(dst.Signature, sig)
+	}
 	dst.ITx = src.ITx
+	return true
 }
 
 //ValidateBasicData  对txStd进行基础的数据校验
