@@ -20,6 +20,7 @@ qbase是QOS通用区块链应用框架，基于此框架开发QOS公链和联盟
 
 ## Examples
 * [kvstore](https://github.com/QOSGroup/qbase/blob/master/example/kvstore)
+* [basecoin](https://github.com/QOSGroup/qbase/tree/master/example/basecoin)
 
 ## Quick Start
 * 创建一个新abci
