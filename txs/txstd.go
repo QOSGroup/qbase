@@ -1,6 +1,7 @@
 package txs
 
 import (
+	"fmt"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -86,7 +87,7 @@ func CopyTxStd(dst *TxStd, src *TxStd) {
 
 //ValidateBasicData  对txStd进行基础的数据校验
 //tx.ITx == QcpTxResult时 不校验签名相关信息
-func (tx *TxStd) ValidateBasicData(isCheckTx bool) (err types.Error) {
+func (tx *TxStd) ValidateBasicData(isCheckTx bool, currentChaindID string) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("no itx in txStd")
 	}
@@ -97,6 +98,10 @@ func (tx *TxStd) ValidateBasicData(isCheckTx bool) (err types.Error) {
 
 	if tx.ChainID == "" {
 		return types.ErrInternal("no chainId in txStd")
+	}
+
+	if tx.ChainID != currentChaindID {
+		return types.ErrInternal(fmt.Sprintf("chainId not match. expect: %s , actual: %s", currentChaindID, tx.ChainID))
 	}
 
 	if tx.MaxGas.LT(types.ZeroInt()) {
