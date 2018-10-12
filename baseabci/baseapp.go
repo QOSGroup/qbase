@@ -52,7 +52,7 @@ type BaseApp struct {
 
 	//TODO: may be nil , 做校验
 	txQcpResultHandler  TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
-	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， app启动时初始化
+	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
 
 	//注册的mapper
 	registerMappers map[string]mapper.IMapper
@@ -302,21 +302,26 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result types.Result
 	var itx, err = app.txDecoder(txBytes)
+
 	if err != nil {
-		result = err.Result()
-	} else {
-		// 初始化context相关数据
-		ctx := app.checkState.ctx.WithTxBytes(txBytes)
-		switch tx := itx.(type) {
-		case *txs.TxStd:
-			result = app.checkTxStd(ctx, tx)
-		case *txs.TxQcp:
-			result = app.checkTxQcp(ctx, tx)
-		default:
-			result = types.ErrInternal("not support itx type").Result()
-		}
+		return toResponseCheckTx(err.Result())
 	}
 
+	// 初始化context相关数据
+	ctx := app.checkState.ctx.WithTxBytes(txBytes)
+	switch tx := itx.(type) {
+	case *txs.TxStd:
+		result = app.checkTxStd(ctx, tx)
+	case *txs.TxQcp:
+		result = app.checkTxQcp(ctx, tx)
+	default:
+		result = types.ErrInternal("not support itx type").Result()
+	}
+
+	return toResponseCheckTx(result)
+}
+
+func toResponseCheckTx(result types.Result) abci.ResponseCheckTx {
 	return abci.ResponseCheckTx{
 		Code:      uint32(result.Code),
 		Data:      result.Data,
@@ -338,13 +343,13 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	}()
 
 	//1. 校验txStd基础信息
-	err := tx.ValidateBasicData(true)
+	err := tx.ValidateBasicData(true, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}
 
 	//2. 校验签名
-	_, res := app.ValidateTxStdUserSignatureAndNonce(ctx, tx)
+	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx)
 	if !res.IsOK() {
 		return res
 	}
@@ -352,14 +357,78 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	return
 }
 
-func (app *BaseApp) ValidateTxStdUserSignatureAndNonce(ctx ctx.Context, tx *txs.TxStd) (newctx ctx.Context, result types.Result) {
-	// TODO 细化操作
+func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd) (newctx ctx.Context, result types.Result) {
 	//accountMapper 未设置时， 不做签名校验
-	if getAccountMapper(ctx) == nil {
+	accounMapper := getAccountMapper(cctx)
+
+	if accounMapper == nil {
 		app.Logger.Info("accountMapper not setup....")
 		return
 	}
 
+	//签名者为空则不校验签名
+	signers := tx.ITx.GetSigner()
+	if len(signers) == 0 {
+		return
+	}
+
+	signatures := tx.Signature
+	signerAccount := make([]account.Account, len(signers))
+	for _, addr := range signers {
+		acc := accounMapper.GetAccount(addr)
+		if acc == nil {
+			acc = accounMapper.NewAccountWithAddress(addr)
+		}
+		signerAccount = append(signerAccount, acc)
+	}
+
+	//校验account address,nonce是否与签名中一致. 并设置account pubkey
+	for i := 0; i < len(signatures); i++ {
+		acc := signerAccount[i]
+		signature := signatures[i]
+
+		if signature.Pubkey != nil {
+			pubkeyAddress := types.Address(signature.Pubkey.Address())
+			if bytes.Equal(pubkeyAddress, acc.GetAddress()) {
+				result = types.ErrInternal(fmt.Sprintf("invalid address. expect: %s, got: %s", acc.GetAddress(), pubkeyAddress)).Result()
+				return
+			}
+		}
+
+		if uint64(signature.Nonce) != acc.GetNonce() {
+			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce(), signature.Nonce)).Result()
+			return
+		}
+
+		if acc.GetPubicKey() == nil {
+			if signature.Pubkey == nil {
+				result = types.ErrInternal(fmt.Sprintf("signature missing pubkey")).Result()
+				return
+			}
+			acc.SetPublicKey(signature.Pubkey)
+		}
+	}
+
+	//校验签名并增加账户nonce
+	for i := 0; i < len(signatures); i++ {
+		acc := signerAccount[i]
+		signature := signatures[i]
+		pubkey := acc.GetPubicKey()
+		//1. 根据账户nonce及tx生成signData
+		signBytes := append(tx.GetSignData(), types.Int2Byte(int64(acc.GetNonce()))...)
+		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
+			result = types.ErrInternal(fmt.Sprintf("signature verification failed")).Result()
+			return
+		}
+
+		//acccount nonce increment
+		acc.SetNonce(acc.GetNonce() + 1)
+		accounMapper.SetAccount(acc)
+
+		signerAccount[i] = acc
+	}
+
+	newctx = cctx.WithValue(ctx.ContextKeySigners, signerAccount)
 	return
 }
 
@@ -400,7 +469,7 @@ func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (r
 	pubkey := qcpTx.Sig.Pubkey
 	truestPubkey := getQcpMapper(ctx).GetChainInTruestPubKey(qcpTx.From)
 
-	if truestPubkey != nil && pubkey != nil && bytes.Compare(pubkey.Bytes(), truestPubkey.Bytes()) != 0 {
+	if truestPubkey != nil && pubkey != nil && !bytes.Equal(pubkey.Bytes(), truestPubkey.Bytes()) {
 		return types.ErrInvalidPubKey("qcpTx's signer is not valid").Result()
 	}
 
@@ -425,14 +494,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	var itx, err = app.txDecoder(txBytes)
 	if err != nil {
 		result = err.Result()
-		return abci.ResponseDeliverTx{
-			Code:      uint32(result.Code),
-			Data:      result.Data,
-			Log:       result.Log,
-			GasWanted: result.GasWanted,
-			GasUsed:   result.GasUsed,
-			Tags:      result.Tags,
-		}
+		return toResponseDeliverTx(result)
 	}
 
 	//初始化context相关数据
@@ -468,9 +530,9 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		}
 		if crossTxQcp != nil {
 			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.Payload, crossTxQcp.To, false, app.signerForCrossTxQcp)
-			result.Tags = result.Tags.AppendTag("qcp.From", []byte(txQcp.From)).
-				AppendTag("qcp.To", []byte(txQcp.To)).
-				AppendTag("qcp.Sequence", types.Int2Byte(txQcp.Sequence))
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
+				AppendTag(qcp.QcpTo, []byte(txQcp.To)).
+				AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence))
 			// .AppendTag("qcp.HashBytes",)
 		}
 	}
@@ -485,8 +547,8 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 			Info:                result.Log,
 		}
 
-		result.Tags = result.Tags.AppendTag("From", []byte(ctx.ChainID())).
-			AppendTag("To", []byte(originFrom))
+		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
+			AppendTag(qcp.QcpTo, []byte(originFrom))
 
 		txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
 
@@ -498,11 +560,15 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		}
 
 		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, payload, originFrom, true, nil)
-		result.Tags = result.Tags.AppendTag("Sequence", types.Int2Byte(txQcp.Sequence))
+		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence))
 		// .AppendTag("HashBytes",)
 	}
 
 	// Tell the blockchain engine (i.e. Tendermint).
+	return toResponseDeliverTx(result)
+}
+
+func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 	return abci.ResponseDeliverTx{
 		Code:      uint32(result.Code),
 		Data:      result.Data,
@@ -524,12 +590,12 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}()
 
 	//1. 校验基础数据
-	err := tx.ValidateBasicData(false)
+	err := tx.ValidateBasicData(false, ctx.ChainID())
 	if err != nil {
 		return err.Result(), nil
 	}
 	//2. 校验签名
-	newctx, res := app.ValidateTxStdUserSignatureAndNonce(ctx, tx)
+	newctx, res := app.validateTxStdUserSignatureAndNonce(ctx, tx)
 	if !res.IsOK() {
 		return res, nil
 	}
@@ -641,12 +707,18 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 }
 
-//TODO: 待优化
 func getQcpMapper(ctx ctx.Context) *qcp.QcpMapper {
-	return ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
+	mapper := ctx.Mapper(qcp.QcpMapperName)
+	if mapper == nil {
+		return nil
+	}
+	return mapper.(*qcp.QcpMapper)
 }
 
-//TODO: 待优化
 func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
-	return ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	mapper := ctx.Mapper(account.AccountMapperName)
+	if mapper == nil {
+		return nil
+	}
+	return mapper.(*account.AccountMapper)
 }

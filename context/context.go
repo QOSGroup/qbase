@@ -160,6 +160,9 @@ const (
 	contextKeyCurrentRegisteredMapper
 )
 
+//ContextKeySigners 用于保存tx中签名的账户
+const ContextKeySigners contextKey = 99999
+
 // NOTE: Do not expose MultiStore.
 // MultiStore exposes all the keys.
 // Instead, pass the context and the store key.
