@@ -55,13 +55,13 @@ func AddressStoreKey(addr types.Address) []byte {
 
 // 从存储中获得账户
 func (mapper *AccountMapper) GetAccount(addr types.Address) (acc Account) {
-	mapper.GetObject(AddressStoreKey(addr), &acc)
+	mapper.Get(AddressStoreKey(addr), &acc)
 	return acc
 }
 
 // 存储账户
 func (mapper *AccountMapper) SetAccount(acc Account) {
-	mapper.SetObject(AddressStoreKey(acc.GetAddress()), acc)
+	mapper.Set(AddressStoreKey(acc.GetAddress()), acc)
 }
 
 // 遍历并用闭包批量处理所存储的全部账户
