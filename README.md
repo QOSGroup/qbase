@@ -28,4 +28,4 @@ qbase是QOS通用区块链应用框架，基于此框架开发QOS公链和联盟
 
 ## 已实现区块链应用
 * [qos](https://github.com/QOSGroup/qos)，QOS公链，支持双层代币和跨链交易
-* [qstart](https://github.com/QOSGroup/qstrart)，星云联盟链
+* [qstars](https://github.com/QOSGroup/qstars)，星云联盟链
