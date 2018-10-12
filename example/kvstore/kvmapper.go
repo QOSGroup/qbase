@@ -30,10 +30,10 @@ func (mapper *KvMapper) Name() string {
 var _ mapper.IMapper = (*KvMapper)(nil)
 
 func (mapper *KvMapper) SaveKV(key string, value string) {
-	mapper.BaseMapper.SetObject([]byte(key), value)
+	mapper.BaseMapper.Set([]byte(key), value)
 }
 
 func (mapper *KvMapper) GetKey(key string) (v string) {
-	mapper.BaseMapper.GetObject([]byte(key), &v)
+	mapper.BaseMapper.Get([]byte(key), &v)
 	return
 }

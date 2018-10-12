@@ -51,12 +51,12 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 	v1 := []byte("addressaaa")
 
 	var v string
-	exsits := baseMapper.GetObject(k1, &v)
+	exsits := baseMapper.Get(k1, &v)
 	require.Equal(t, false, exsits)
 
-	baseMapper.SetObject(k1, v1)
+	baseMapper.Set(k1, v1)
 
-	exsits = baseMapper.GetObject(k1, &v)
+	exsits = baseMapper.Get(k1, &v)
 	require.Equal(t, true, exsits)
 
 	key := ed25519.GenPrivKey()

@@ -42,47 +42,47 @@ func (mapper *QcpMapper) Name() string {
 //TODO: test case
 func (mapper *QcpMapper) GetChainInTruestPubKey(inChain string) (pubkey crypto.PubKey) {
 	key := fmt.Sprintf(inPubkeyKey, inChain)
-	mapper.GetObject([]byte(key), &pubkey)
+	mapper.Get([]byte(key), &pubkey)
 	return
 }
 
 //TODO: test case
 func (mapper *QcpMapper) SetChainInTruestPubKey(inChain string, pubkey crypto.PubKey) {
 	key := fmt.Sprintf(inPubkeyKey, inChain)
-	mapper.SetObject([]byte(key), pubkey)
+	mapper.Set([]byte(key), pubkey)
 }
 
 func (mapper *QcpMapper) GetMaxChainOutSequence(outChain string) (seq int64) {
 	key := fmt.Sprintf(outSequenceKey, outChain)
-	mapper.GetObject([]byte(key), &seq)
+	mapper.Get([]byte(key), &seq)
 	return
 }
 
 func (mapper *QcpMapper) SetMaxChainOutSequence(outChain string, sequence int64) {
 	key := fmt.Sprintf(outSequenceKey, outChain)
-	mapper.SetObject([]byte(key), sequence)
+	mapper.Set([]byte(key), sequence)
 }
 
 func (mapper *QcpMapper) GetChainOutTxs(outChain string, sequence int64) (txQcp *txs.TxQcp) {
 	key := fmt.Sprintf(outSequenceTxKey, outChain, sequence)
-	mapper.GetObject([]byte(key), txQcp)
+	mapper.Get([]byte(key), txQcp)
 	return
 }
 
 func (mapper *QcpMapper) SetChainOutTxs(outChain string, sequence int64, txQcp *txs.TxQcp) {
 	key := fmt.Sprintf(outSequenceTxKey, outChain, sequence)
-	mapper.SetObject([]byte(key), *txQcp)
+	mapper.Set([]byte(key), *txQcp)
 }
 
 func (mapper *QcpMapper) GetMaxChainInSequence(inChain string) (seq int64) {
 	key := fmt.Sprintf(inSequenceKey, inChain)
-	mapper.GetObject([]byte(key), &seq)
+	mapper.Get([]byte(key), &seq)
 	return
 }
 
 func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence int64) {
 	key := fmt.Sprintf(inSequenceKey, inChain)
-	mapper.SetObject([]byte(key), sequence)
+	mapper.Set([]byte(key), sequence)
 }
 
 //TODO: test case
