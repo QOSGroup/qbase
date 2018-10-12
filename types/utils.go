@@ -1,6 +1,8 @@
 package types
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"regexp"
 )
@@ -35,16 +37,16 @@ func MustSortJSON(toSortJSON []byte) []byte {
 
 //函数：int64 转化为 []byte
 func Int2Byte(in int64) []byte {
-	var ret = []byte{}
-
-	return ret
+	var ret = bytes.NewBuffer([]byte{})
+	binary.Write(ret, binary.BigEndian, in)
+	return ret.Bytes()
 }
 
 //函数：bool 转化为 []byte
 func Bool2Byte(in bool) []byte {
-	var ret = []byte{}
-
-	return ret
+	var ret = bytes.NewBuffer([]byte{})
+	binary.Write(ret, binary.BigEndian, in)
+	return ret.Bytes()
 }
 
 //功能：检查 QscName 的合法性
