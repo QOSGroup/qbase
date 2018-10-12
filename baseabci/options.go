@@ -42,33 +42,33 @@ func (app *BaseApp) registerQcpMapper() {
 		panic("RegisterQcpMapper() on sealed BaseApp")
 	}
 	mapper := qcp.NewQcpMapper()
-	app.RegisterSeedMapper(mapper)
+	app.RegisterMapper(mapper)
 }
 
 //RegisterQcpMapper 注册AccountMapper
-func (app *BaseApp) RegisterAccount(proto func() account.Account) {
+func (app *BaseApp) RegisterAccountProto(proto func() account.Account) {
 	if app.sealed {
-		panic("RegisterAccountMapper() on sealed BaseApp")
+		panic("RegisterAccountProto() on sealed BaseApp")
 	}
 	mapper := account.NewAccountMapper(proto)
-	app.RegisterSeedMapper(mapper)
+	app.RegisterMapper(mapper)
 }
 
-func (app *BaseApp) RegisterSeedMapper(seedMapper mapper.IMapper) {
+func (app *BaseApp) RegisterMapper(seedMapper mapper.IMapper) {
 	if app.sealed {
-		panic("RegisterSeedMapper() on sealed BaseApp")
+		panic("RegisterMapper() on sealed BaseApp")
 	}
 
 	key := seedMapper.GetStoreKey()
 	kvKey := key.(*store.KVStoreKey)
 	app.mountStoresIAVL(kvKey)
 
-	if _, ok := app.registerSeedMappers[seedMapper.Name()]; ok {
+	if _, ok := app.registerMappers[seedMapper.Name()]; ok {
 		panic("Register dup mapper")
 	}
 
 	seedMapper.SetCodec(app.cdc)
-	app.registerSeedMappers[seedMapper.Name()] = seedMapper
+	app.registerMappers[seedMapper.Name()] = seedMapper
 }
 
 func (app *BaseApp) Seal()          { app.sealed = true }

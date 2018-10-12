@@ -30,13 +30,13 @@ func main() {
 
 	var baseapp = baseabci.NewBaseApp("kvstore", logger, db, registerKVCdc)
 
-	baseapp.RegisterAccount(func() account.Account {
+	baseapp.RegisterAccountProto(func() account.Account {
 		return &account.BaseAccount{}
 	})
 
 	var mainStore = store.NewKVStoreKey("kv")
 	var kvMapper = kvstore.NewKvMapper(mainStore)
-	baseapp.RegisterSeedMapper(kvMapper)
+	baseapp.RegisterMapper(kvMapper)
 
 	if err := baseapp.LoadLatestVersion(); err != nil {
 		fmt.Println(err)
