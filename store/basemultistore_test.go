@@ -3,12 +3,11 @@ package store
 import (
 	"testing"
 
+	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	dbm "github.com/tendermint/tendermint/libs/db"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const useDebugDB = false
@@ -17,7 +16,7 @@ func TestStoreType(t *testing.T) {
 	db := dbm.NewMemDB()
 	store := NewCommitMultiStore(db)
 	store.MountStoreWithDB(
-		sdk.NewKVStoreKey("store1"), StoreTypeIAVL, db)
+		NewKVStoreKey("store1"), StoreTypeIAVL, db)
 
 }
 
@@ -25,9 +24,9 @@ func TestStoreMount(t *testing.T) {
 	db := dbm.NewMemDB()
 	store := NewCommitMultiStore(db)
 
-	key1 := sdk.NewKVStoreKey("store1")
-	key2 := sdk.NewKVStoreKey("store2")
-	dup1 := sdk.NewKVStoreKey("store1")
+	key1 := NewKVStoreKey("store1")
+	key2 := NewKVStoreKey("store2")
+	dup1 := NewKVStoreKey("store1")
 
 	require.NotPanics(t, func() { store.MountStoreWithDB(key1, StoreTypeIAVL, db) })
 	require.NotPanics(t, func() { store.MountStoreWithDB(key2, StoreTypeIAVL, db) })
@@ -156,34 +155,34 @@ func TestMultiStoreQuery(t *testing.T) {
 	// Test bad path.
 	query := abci.RequestQuery{Path: "/key", Data: k, Height: ver}
 	qres := multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeUnknownRequest), types.ABCICodeType(qres.Code))
 
 	query.Path = "h897fy32890rf63296r92"
 	qres = multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeUnknownRequest), types.ABCICodeType(qres.Code))
 
 	// Test invalid store name.
 	query.Path = "/garbage/key"
 	qres = multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeUnknownRequest), types.ABCICodeType(qres.Code))
 
 	// Test valid query with data.
 	query.Path = "/store1/key"
 	qres = multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeOK), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeOK), types.ABCICodeType(qres.Code))
 	require.Equal(t, v, qres.Value)
 
 	// Test valid but empty query.
 	query.Path = "/store2/key"
 	query.Prove = true
 	qres = multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeOK), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeOK), types.ABCICodeType(qres.Code))
 	require.Nil(t, qres.Value)
 
 	// Test store2 data.
 	query.Data = k2
 	qres = multi.Query(query)
-	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeOK), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, types.ToABCICode(types.CodespaceRoot, types.CodeOK), types.ABCICodeType(qres.Code))
 	require.Equal(t, v2, qres.Value)
 }
 
@@ -193,11 +192,11 @@ func TestMultiStoreQuery(t *testing.T) {
 func newMultiStoreWithMounts(db dbm.DB) *baseMultiStore {
 	store := NewCommitMultiStore(db)
 	store.MountStoreWithDB(
-		sdk.NewKVStoreKey("store1"), StoreTypeIAVL, nil)
+		NewKVStoreKey("store1"), StoreTypeIAVL, nil)
 	store.MountStoreWithDB(
-		sdk.NewKVStoreKey("store2"), StoreTypeIAVL, nil)
+		NewKVStoreKey("store2"), StoreTypeIAVL, nil)
 	store.MountStoreWithDB(
-		sdk.NewKVStoreKey("store3"), StoreTypeIAVL, nil)
+		NewKVStoreKey("store3"), StoreTypeIAVL, nil)
 	return store
 }
 
