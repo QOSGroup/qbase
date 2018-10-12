@@ -1,6 +1,7 @@
 package txs
 
 import (
+	"github.com/tendermint/tendermint/crypto"
 	"log"
 
 	"github.com/QOSGroup/qbase/types"
@@ -57,16 +58,32 @@ func (tx *TxQcp) GetSigData() []byte {
 	return ret
 }
 
+func (tx *TxQcp) SignTx(prvkey crypto.PrivKey, nonce int64) bool {
+	data := append(tx.GetSigData(), types.Int2Byte(nonce)...)
+	if data == nil {
+		return false
+	}
+	prvdata, err := prvkey.Sign(data)
+	if err != nil {
+		return false
+	}
+
+	tx.Sig.Pubkey = prvkey.PubKey()
+	tx.Sig.Nonce = nonce
+	tx.Sig.Signature = prvdata
+	return true
+}
+
 //构建TxQCP结构体
-func NewTxQCP(payLoad *TxStd, from string, to string, seq int64, sig Signature,
+func NewTxQCP(payLoad *TxStd, from string, to string, seq int64,
 	bkheigh int64, tidx int64, isResult bool) (rTx *TxQcp) {
 
 	rTx = new(TxQcp)
-	CopyTxStd(&rTx.Payload ,payLoad)
+	CopyTxStd(&rTx.Payload, payLoad)
 	rTx.From = from
 	rTx.To = to
 	rTx.Sequence = seq
-	rTx.Sig = sig
+	//rTx.Sig = sig
 	rTx.BlockHeight = bkheigh
 	rTx.TxIndx = tidx
 	rTx.IsResult = isResult
