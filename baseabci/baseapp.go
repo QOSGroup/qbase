@@ -55,7 +55,7 @@ type BaseApp struct {
 	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， app启动时初始化
 
 	//注册的mapper
-	registerSeedMappers map[string]mapper.IMapper
+	registerMappers map[string]mapper.IMapper
 
 	cdc *go_amino.Codec
 	// flag for sealing
@@ -74,13 +74,13 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	txDecoder := types.GetTxDecoder(cdc)
 
 	app := &BaseApp{
-		Logger:              logger,
-		name:                name,
-		db:                  db,
-		cms:                 store.NewCommitMultiStore(db),
-		txDecoder:           txDecoder,
-		cdc:                 cdc,
-		registerSeedMappers: make(map[string]mapper.IMapper),
+		Logger:          logger,
+		name:            name,
+		db:              db,
+		cms:             store.NewCommitMultiStore(db),
+		txDecoder:       txDecoder,
+		cdc:             cdc,
+		registerMappers: make(map[string]mapper.IMapper),
 	}
 
 	for _, option := range options {
@@ -157,9 +157,9 @@ func (app *BaseApp) initFromStore() error {
 // NewContext returns a new Context with the correct store, the given header, and nil txBytes.
 func (app *BaseApp) NewContext(isCheckTx bool, header abci.Header) ctx.Context {
 	if isCheckTx {
-		return ctx.NewContext(app.checkState.ms, header, true, app.Logger, app.registerSeedMappers)
+		return ctx.NewContext(app.checkState.ms, header, true, app.Logger, app.registerMappers)
 	}
-	return ctx.NewContext(app.deliverState.ms, header, false, app.Logger, app.registerSeedMappers)
+	return ctx.NewContext(app.deliverState.ms, header, false, app.Logger, app.registerMappers)
 }
 
 type state struct {
@@ -175,7 +175,7 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
 		ms:  ms,
-		ctx: ctx.NewContext(ms, header, true, app.Logger, app.registerSeedMappers),
+		ctx: ctx.NewContext(ms, header, true, app.Logger, app.registerMappers),
 	}
 }
 
@@ -183,7 +183,7 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.deliverState = &state{
 		ms:  ms,
-		ctx: ctx.NewContext(ms, header, false, app.Logger, app.registerSeedMappers),
+		ctx: ctx.NewContext(ms, header, false, app.Logger, app.registerMappers),
 	}
 
 	//注入txQcpResultHandler

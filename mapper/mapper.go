@@ -12,7 +12,7 @@ type IMapper interface {
 	GetStoreKey() store.StoreKey
 	GetCodec() *go_amino.Codec
 	SetCodec(cdc *go_amino.Codec)
-	GetObject(key []byte, ptr interface{})
+	GetObject(key []byte, ptr interface{}) (exsits bool)
 	SetObject(key []byte, val interface{})
 	SetStore(store store.KVStore)
 	GetStore() store.KVStore
@@ -49,13 +49,16 @@ func (baseMapper *BaseMapper) GetStoreKey() store.StoreKey {
 	return baseMapper.key
 }
 
-func (baseMapper *BaseMapper) GetObject(key []byte, ptr interface{}) {
+func (baseMapper *BaseMapper) GetObject(key []byte, ptr interface{}) (exsits bool) {
 	bz := baseMapper.store.Get(key)
 	if bz == nil {
+		exsits = false
 		ptr = nil
 		return
 	}
+	exsits = true
 	baseMapper.DecodeObject(bz, ptr)
+	return
 }
 
 func (baseMapper *BaseMapper) SetObject(key []byte, val interface{}) {

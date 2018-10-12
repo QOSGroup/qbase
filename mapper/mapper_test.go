@@ -5,10 +5,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/QOSGroup/qbase/store"
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
+	dbm "github.com/tendermint/tendermint/libs/db"
 )
 
 type mockInterface interface {
@@ -34,7 +36,28 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 	cdc.RegisterInterface((*mockInterface)(nil), nil)
 
 	var baseMapper *BaseMapper
-	baseMapper = &BaseMapper{cdc: cdc}
+	storeKey := store.NewKVStoreKey("base")
+
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db)
+	cms.MountStoreWithDB(storeKey, store.StoreTypeIAVL, db)
+	cms.LoadLatestVersion()
+
+	cms.GetStore(storeKey)
+
+	baseMapper = &BaseMapper{cdc: cdc, store: cms.GetStore(storeKey).(store.KVStore)}
+
+	k1 := []byte("account")
+	v1 := []byte("addressaaa")
+
+	var v string
+	exsits := baseMapper.GetObject(k1, &v)
+	require.Equal(t, false, exsits)
+
+	baseMapper.SetObject(k1, v1)
+
+	exsits = baseMapper.GetObject(k1, &v)
+	require.Equal(t, true, exsits)
 
 	key := ed25519.GenPrivKey()
 	pub := key.PubKey()

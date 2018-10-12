@@ -36,7 +36,7 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 	app.SetInitChainer(app.initChainer)
 
 	//账户mapper
-	app.RegisterAccount(types.NewAppAccount)
+	app.RegisterAccountProto(types.NewAppAccount)
 
 	// Mount stores and load the latest state.
 	err := app.LoadLatestVersion()
