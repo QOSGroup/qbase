@@ -30,7 +30,7 @@ func TestInt2Byte(t *testing.T) {
 		t.Error("Int2Byte error")
 		return
 	}
-	fmt.Print("small: %s, large: %s", bysmall, bylarge)
+	fmt.Printf("small: %s, large: %s", string(bysmall), string(bylarge))
 }
 
 func TestCheckQsc(t *testing.T) {
@@ -38,7 +38,7 @@ func TestCheckQsc(t *testing.T) {
 	strErr := "qsc$df3"
 	strErr1 := "qsc34567891"
 
-	if CheckQsc(strOk) && !CheckQsc(strErr) && CheckQsc(strErr1) {
+	if CheckQsc(strOk) && !CheckQsc(strErr) && !CheckQsc(strErr1) {
 		fmt.Print("CheckQsc right")
 		return
 	}
