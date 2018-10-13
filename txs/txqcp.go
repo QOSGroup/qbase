@@ -1,10 +1,9 @@
 package txs
 
 import (
-	"github.com/tendermint/tendermint/crypto"
-	"log"
-
+	"fmt"
 	"github.com/QOSGroup/qbase/types"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 //功能：
@@ -44,22 +43,22 @@ func (tx *TxQcp) Type() string {
 func (tx *TxQcp) GetSigData() []byte {
 	ret := tx.Payload.GetSignData()
 	if ret == nil {
-		log.Panic("GetSigData() is nil in TxQcp")
+		fmt.Print("GetSigData() is nil in TxQcp")
 		return nil
 	}
 
 	ret = append(ret, []byte(tx.From)...)
 	ret = append(ret, []byte(tx.To)...)
 	ret = append(ret, types.Int2Byte(tx.Sequence)...)
-	ret = append(ret, Sig2Byte(tx.Sig)...)
 	ret = append(ret, types.Int2Byte(tx.BlockHeight)...)
 	ret = append(ret, types.Int2Byte(tx.TxIndx)...)
 	ret = append(ret, types.Bool2Byte(tx.IsResult)...)
+
 	return ret
 }
 
-func (tx *TxQcp) SignTx(prvkey crypto.PrivKey, nonce int64) bool {
-	data := append(tx.GetSigData(), types.Int2Byte(nonce)...)
+func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) bool {
+	data := tx.GetSigData()
 	if data == nil {
 		return false
 	}
@@ -69,8 +68,9 @@ func (tx *TxQcp) SignTx(prvkey crypto.PrivKey, nonce int64) bool {
 	}
 
 	tx.Sig.Pubkey = prvkey.PubKey()
-	tx.Sig.Nonce = nonce
+	tx.Sig.Nonce = 0 //nonce shouldn't be used in TxQcp.Sig, use TxQcp.Sequence.
 	tx.Sig.Signature = prvdata
+
 	return true
 }
 
@@ -83,10 +83,10 @@ func NewTxQCP(payLoad *TxStd, from string, to string, seq int64,
 	rTx.From = from
 	rTx.To = to
 	rTx.Sequence = seq
-	//rTx.Sig = sig
 	rTx.BlockHeight = bkheigh
 	rTx.TxIndx = tidx
 	rTx.IsResult = isResult
+
 	return
 }
 
