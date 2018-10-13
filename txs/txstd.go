@@ -5,7 +5,6 @@ import (
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/tendermint/crypto"
-	"log"
 )
 
 //功能：抽象具体的Tx结构体
@@ -48,6 +47,7 @@ func (tx *TxStd) GetSignData() []byte {
 	ret := tx.ITx.GetSignData()
 	ret = append(ret, []byte(tx.ChainID)...)
 	ret = append(ret, types.Int2Byte(tx.MaxGas.Int64())...)
+
 	return ret
 }
 
@@ -58,14 +58,15 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) bool {
 	}
 
 	sigdata := append(tx.GetSignData(), types.Int2Byte(nonce)...)
-	prvdata, errprv := privkey.Sign(sigdata)
-	if errprv != nil {
+	prvdata, err := privkey.Sign(sigdata)
+	if err != nil {
 		return false
 	}
 	sig := Signature{privkey.PubKey(),
 		prvdata,
 		int64(nonce)}
 	tx.Signature = append(tx.Signature, sig)
+
 	return true
 }
 
@@ -84,18 +85,18 @@ func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
 func Sig2Byte(sgn Signature) (ret []byte) {
 	if sgn.Pubkey == nil {
 		//_, file, line, _ := runtime.Caller(1)
-		//log.Panicf("[%s](%d): pubkey is nil", file, line)
+		//fmt.Printf("[%s](%d): pubkey is nil", file, line)
 		return nil
 	}
 	ret = append(ret, sgn.Pubkey.Bytes()...)
 	ret = append(ret, sgn.Signature...)
 	ret = append(ret, types.Int2Byte(sgn.Nonce)...)
+
 	return
 }
 
 func CopyTxStd(dst *TxStd, src *TxStd) bool {
 	if src == nil || dst == nil {
-		log.Panic("Input struct can't be nil")
 		return false
 	}
 
@@ -106,6 +107,7 @@ func CopyTxStd(dst *TxStd, src *TxStd) bool {
 		dst.Signature = append(dst.Signature, sig)
 	}
 	dst.ITx = src.ITx
+
 	return true
 }
 

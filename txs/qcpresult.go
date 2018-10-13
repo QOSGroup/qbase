@@ -22,13 +22,14 @@ func (tx *QcpTxResult) ValidateData() bool {
 	if tx.Extends == nil || len(tx.Extends) == 0 || types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
 		ret = false
 	}
+
 	return ret
 }
 
 //功能：tx执行
 //备注：用户根据tx.QcpOriginalSequence,需自行实现此接口
 func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) {
-	result = ctx.TxQcpResultHandler()(ctx,tx)
+	result = ctx.TxQcpResultHandler()(ctx, tx)
 	return
 }
 
@@ -47,7 +48,7 @@ func (tx *QcpTxResult) CalcGas() types.BigInt {
 //功能：获取gas付费人
 //备注：返回空(因暂时gas为0，无人需要付gas)
 func (tx *QcpTxResult) GetGasPayer() types.Address {
-	return types.Address{}
+	return nil
 }
 
 //获取签名字段
@@ -57,6 +58,7 @@ func (tx *QcpTxResult) GetSignData() []byte {
 	ret = append(ret, types.Int2Byte(tx.GasUsed.Int64())...)
 	ret = append(ret, types.Int2Byte(tx.QcpOriginalSequence)...)
 	ret = append(ret, []byte(tx.Info)...)
+
 	return ret
 }
 
@@ -68,7 +70,7 @@ func NewQcpTxResult(code int64, ext []tcommon.KVPair, seq int64, gasusd types.Bi
 	rTx.GasUsed = gasusd
 	rTx.Info = info
 
-	for _,kv := range ext {
+	for _, kv := range ext {
 		rTx.Extends = append(rTx.Extends, kv)
 	}
 
@@ -86,5 +88,6 @@ func Extends2Byte(ext []tcommon.KVPair) (ret []byte) {
 		ret = append(ret, kv.GetKey()...)
 		ret = append(ret, kv.GetValue()...)
 	}
+
 	return ret
 }
