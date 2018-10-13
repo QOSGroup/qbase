@@ -25,9 +25,9 @@ func newQcpTxResult() (ret *QcpTxResult) {
 }
 
 func newTxStd(tx ITx) (ret *TxStd) {
-	txstd := NewTxStd(tx, "qsc1", types.NewInt(100))
-	signer := txstd.ITx.GetSigner()
-	err := txstd.ValidateBasicData(true)
+	ret = NewTxStd(tx, "qsc1", types.NewInt(100))
+	signer := ret.ITx.GetSigner()
+	err := ret.ValidateBasicData(true)
 	if err != nil {
 		fmt.Print("TxStd ValidateData Error")
 		return nil
@@ -35,6 +35,10 @@ func newTxStd(tx ITx) (ret *TxStd) {
 
 	accmapper := account.NewAccountMapper(account.ProtoBaseAccount)
 
+	if signer == nil {
+		ret.Signature = []Signature{}
+		return
+	}
 	//填充 txstd.Signature[]
 	for _, sg := range signer {
 		prvKey := ed25519.GenPrivKey()
@@ -43,7 +47,7 @@ func newTxStd(tx ITx) (ret *TxStd) {
 			fmt.Printf("GetNonce() for address(%s) error", string(sg))
 			return nil
 		}
-		if !txstd.SignTx(prvKey, int64(nonce)) {
+		if !ret.SignTx(prvKey, int64(nonce)) {
 			fmt.Printf("SignTx(addr:%s) error", string(sg))
 			return nil
 		}
@@ -94,7 +98,7 @@ func TestTxQcp(t *testing.T) {
 		return
 	}
 	txStd := newTxStd(txResult)
-	if txResult == nil {
+	if txStd == nil {
 		t.Error("New TxStd error!")
 		return
 	}

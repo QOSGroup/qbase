@@ -65,7 +65,7 @@ func Bool2Byte(in bool) []byte {
 func CheckQsc(qscName string) bool {
 	ret := len(qscName) > 10 || len(qscName) < 3
 	reg := regexp.MustCompile(`[^(a-z 1-9 A-Z _)]`)
-	ret = ret && !reg.Match([]byte(qscName))
+	ret = !ret && !reg.Match([]byte(qscName))
 
 	return ret
 }
