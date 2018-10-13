@@ -82,7 +82,7 @@ func TestNewTxStd(t *testing.T) {
 	}
 
 	txStd := newTxStd(txResult)
-	if txResult == nil {
+	if txStd == nil {
 		t.Error("New TxStd error!")
 		return
 	}
@@ -108,7 +108,7 @@ func TestTxQcp(t *testing.T) {
 	require.NotNil(t, txqcp)
 	err := txqcp.ValidateBasicData(true, "qsc1")
 	if err != nil {
-		t.Errorf("TxQCP ValidateData Error")
+		fmt.Print("TxQCP ValidateData Error")
 	}
 	data := txqcp.GetSigData()
 	require.NotNil(t, data)
