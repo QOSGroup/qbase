@@ -112,7 +112,6 @@ func (tx *TxStd) ValidateBasicData(isCheckTx bool, currentChaindID string) (err 
 	if !ok {
 
 		singers := tx.ITx.GetSigner()
-		//TODO: 仅供测试用
 		if len(singers) == 0 {
 			return
 		}
