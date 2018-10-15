@@ -71,7 +71,6 @@ func NewQcpTxResult(code int64, ext *[]tcommon.KVPair, sequence int64, gasused t
 		sequence,
 		info,
 	}
-
 	return rTx
 }
 
