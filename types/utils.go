@@ -62,9 +62,9 @@ func Bool2Byte(in bool) []byte {
 
 //功能：检查 QscName 的合法性
 //备注：合法（3-10个字符，数字-字母-下划线）
-func CheckQsc(qscName string) bool {
+func CheckQscName(qscName string) bool {
 	ret := len(qscName) > 10 || len(qscName) < 3
-	reg := regexp.MustCompile(`[^(a-z 1-9 A-Z _)]`)
+	reg := regexp.MustCompile(`[^(a-z 0-9 A-Z _)]`)
 	ret = !ret && !reg.Match([]byte(qscName))
 
 	return ret
