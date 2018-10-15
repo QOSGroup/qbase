@@ -55,7 +55,7 @@ type BaseApp struct {
 	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， app启动时初始化
 
 	//注册自定义查询处理
-	customQueryHandlers map[string]CustomQueryHandler
+	customQueryHandler CustomQueryHandler
 	//注册的mapper
 	registerMappers map[string]mapper.IMapper
 
@@ -76,14 +76,13 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	txDecoder := types.GetTxDecoder(cdc)
 
 	app := &BaseApp{
-		Logger:              logger,
-		name:                name,
-		db:                  db,
-		cms:                 store.NewCommitMultiStore(db),
-		txDecoder:           txDecoder,
-		cdc:                 cdc,
-		customQueryHandlers: make(map[string]CustomQueryHandler),
-		registerMappers:     make(map[string]mapper.IMapper),
+		Logger:          logger,
+		name:            name,
+		db:              db,
+		cms:             store.NewCommitMultiStore(db),
+		txDecoder:       txDecoder,
+		cdc:             cdc,
+		registerMappers: make(map[string]mapper.IMapper),
 	}
 
 	for _, option := range options {
@@ -256,17 +255,13 @@ func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 }
 
 func handlerCustomQuery(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
-	if len(path) < 2 || path[1] == "" {
-		return types.ErrUnknownRequest("No route for custom query specified").QueryResult()
-	}
 
-	handler, ok := app.customQueryHandlers[path[1]]
-	if !ok {
-		return types.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
+	if app.customQueryHandler == nil {
+		return types.ErrUnknownRequest("custom query handler not register").QueryResult()
 	}
 
 	ctx := ctx.NewContext(app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.Logger, app.registerMappers)
-	bz, err := handler(ctx, path[2:], req)
+	bz, err := app.customQueryHandler(ctx, path[1:], req)
 
 	if err != nil {
 		return abci.ResponseQuery{
