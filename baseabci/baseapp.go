@@ -54,6 +54,8 @@ type BaseApp struct {
 	txQcpResultHandler  TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
 	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
 
+	//注册自定义查询处理
+	customQueryHandler CustomQueryHandler
 	//注册的mapper
 	registerMappers map[string]mapper.IMapper
 
@@ -244,10 +246,35 @@ func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	switch path[0] {
 	case "store":
 		return handleQueryStore(app, path, req)
+	case "custom":
+		return handlerCustomQuery(app, path, req)
 	}
 
 	msg := "unknown query path"
 	return types.ErrUnknownRequest(msg).QueryResult()
+}
+
+func handlerCustomQuery(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
+
+	if app.customQueryHandler == nil {
+		return types.ErrUnknownRequest("custom query handler not register").QueryResult()
+	}
+
+	ctx := ctx.NewContext(app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.Logger, app.registerMappers)
+	bz, err := app.customQueryHandler(ctx, path[1:], req)
+
+	if err != nil {
+		return abci.ResponseQuery{
+			Code: uint32(err.ABCICode()),
+			Log:  err.ABCILog(),
+		}
+	}
+
+	return abci.ResponseQuery{
+		Code:  uint32(types.ABCICodeOK),
+		Value: bz,
+	}
+
 }
 
 func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {

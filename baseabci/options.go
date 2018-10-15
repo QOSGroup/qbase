@@ -71,6 +71,13 @@ func (app *BaseApp) RegisterMapper(seedMapper mapper.IMapper) {
 	app.registerMappers[seedMapper.Name()] = seedMapper
 }
 
+func (app *BaseApp) RegisterCustomQueryHandler(handler CustomQueryHandler) {
+	if app.sealed {
+		panic("RegisterCustomQueryHandler() on sealed BaseApp")
+	}
+	app.customQueryHandler = handler
+}
+
 func (app *BaseApp) Seal()          { app.sealed = true }
 func (app *BaseApp) IsSealed() bool { return app.sealed }
 func (app *BaseApp) enforceSeal() {
