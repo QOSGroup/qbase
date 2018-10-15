@@ -39,7 +39,7 @@ func newTxStd(tx ITx) (ret *TxStd) {
 		ret.Signature = []Signature{}
 		return
 	}
-	//填充 txstd.Signature[]
+	// 填充 txstd.Signature[]
 	for _, sg := range signer {
 		prvKey := ed25519.GenPrivKey()
 		nonce, err := accmapper.GetNonce(sg)
@@ -90,7 +90,6 @@ func TestNewTxStd(t *testing.T) {
 	fmt.Printf("TxStd type: %s", txStd.Type())
 }
 
-//TxQcp test
 func TestTxQcp(t *testing.T) {
 	txResult := newQcpTxResult()
 	if txResult == nil {

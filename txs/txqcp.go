@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 )
 
-//功能：
+// 功能：
 type TxQcp struct {
 	Payload     TxStd     `json:"payload"`     //TxStd结构
 	From        string    `json:"from"`        //qscName
@@ -18,28 +18,13 @@ type TxQcp struct {
 	IsResult    bool      `json:"isresult"`    //是否为Result
 }
 
-//Type: just for implements types.Tx
+// Type: just for implements types.Tx
 func (tx *TxQcp) Type() string {
 	return "txqcp"
 }
 
-//------------------------------------
-//package example;
-//
-//enum FOO { X = 17; };
-//
-//message Test {
-//	required string label = 1;
-//	optional int32 type = 2 [default=77];
-//	repeated int64 reps = 3;
-//	optional group OptionalGroup = 4 {
-//	required string RequiredField = 5;
-//	}
-//}
-//-----------------------------------
-
-//功能：获取 TxQcp 的签名字段
-//返回：字段拼接后的 []byte
+// 功能：获取 TxQcp 的签名字段
+// 返回：字段拼接后的 []byte
 func (tx *TxQcp) GetSigData() []byte {
 	ret := tx.Payload.GetSignData()
 	if ret == nil {
@@ -68,13 +53,13 @@ func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) bool {
 	}
 
 	tx.Sig.Pubkey = prvkey.PubKey()
-	tx.Sig.Nonce = 0 //nonce shouldn't be used in TxQcp.Sig, use TxQcp.Sequence.
+	tx.Sig.Nonce = 0 // nonce shouldn't be used in TxQcp.Sig, use TxQcp.Sequence.
 	tx.Sig.Signature = prvdata
 
 	return true
 }
 
-//构建TxQCP结构体
+// 构建TxQCP结构体
 func NewTxQCP(payLoad *TxStd, from string, to string, seq int64,
 	bkheigh int64, tidx int64, isResult bool) (rTx *TxQcp) {
 
@@ -90,10 +75,10 @@ func NewTxQCP(payLoad *TxStd, from string, to string, seq int64,
 	return
 }
 
-//ValidateBasicData 校验txQcp基础数据是否合法
+// ValidateBasicData 校验txQcp基础数据是否合法
 func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChaindID string) (err types.Error) {
-	//1. From To Sequence Sig 不为空
-	//2. to == current.chainId
+	// 1. From To Sequence Sig 不为空
+	// 2. to == current.chainId
 
 	if tx.From == "" || tx.To == "" || tx.Sequence == 0 || tx.Sig.Signature == nil {
 		return types.ErrInternal("txQcp's basic data is not valid")

@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 )
 
-//功能：抽象具体的Tx结构体
+// 功能：抽象具体的Tx结构体
 type ITx interface {
 	ValidateData() bool                                                 //检测
 	Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) //执行, crossTxQcps: 需要跨链处理的TxQcp
@@ -16,7 +16,7 @@ type ITx interface {
 	GetSignData() []byte                                                //获取签名字段
 }
 
-//标准Tx结构体
+// 标准Tx结构体
 type TxStd struct {
 	ITx       ITx          `json:"itx"`      //ITx接口，将被具体Tx结构实例化
 	Signature []Signature  `json:"sigature"` //签名数组
@@ -24,19 +24,19 @@ type TxStd struct {
 	MaxGas    types.BigInt `json:"maxgas"`   //Gas消耗的最大值
 }
 
-//签名结构体
+// 签名结构体
 type Signature struct {
 	Pubkey    crypto.PubKey `json:"pubkey"`    //可选
 	Signature []byte        `json:"signature"` //签名内容
 	Nonce     int64         `json:"nonce"`     //nonce的值
 }
 
-//Type: just for implements types.Tx
+// Type: just for implements types.Tx
 func (tx *TxStd) Type() string {
 	return "txstd"
 }
 
-//将需要签名的字段拼接成 []byte
+// 将需要签名的字段拼接成 []byte
 func (tx *TxStd) GetSignData() []byte {
 	if tx.ITx == nil {
 		panic("ITx shouldn't be nil in TxStd.GetSignData()")
@@ -50,7 +50,7 @@ func (tx *TxStd) GetSignData() []byte {
 	return ret
 }
 
-//签名：每个签名者外部调用此方法
+// 签名：每个签名者外部调用此方法
 func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) bool {
 	if tx.ITx == nil {
 		return false
@@ -69,8 +69,8 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) bool {
 	return true
 }
 
-//构建结构体
-//调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
+// 构建结构体
+// 调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
 func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
 	rTx = new(TxStd)
 	rTx.ITx = itx
@@ -80,11 +80,9 @@ func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
 	return
 }
 
-//函数：Signature结构转化为 []byte
+// 函数：Signature结构转化为 []byte
 func Sig2Byte(sgn Signature) (ret []byte) {
 	if sgn.Pubkey == nil {
-		//_, file, line, _ := runtime.Caller(1)
-		//fmt.Printf("[%s](%d): pubkey is nil", file, line)
 		return nil
 	}
 	ret = append(ret, sgn.Pubkey.Bytes()...)
@@ -110,8 +108,8 @@ func CopyTxStd(dst *TxStd, src *TxStd) bool {
 	return true
 }
 
-//ValidateBasicData  对txStd进行基础的数据校验
-//tx.ITx == QcpTxResult时 不校验签名相关信息
+// ValidateBasicData  对txStd进行基础的数据校验
+// tx.ITx == QcpTxResult时 不校验签名相关信息
 func (tx *TxStd) ValidateBasicData(isCheckTx bool) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("no itx in txStd")
