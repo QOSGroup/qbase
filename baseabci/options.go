@@ -6,7 +6,6 @@ import (
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/store"
 	"github.com/tendermint/tendermint/crypto"
-	"regexp"
 )
 
 func (app *BaseApp) SetName(name string) {
@@ -72,18 +71,11 @@ func (app *BaseApp) RegisterMapper(seedMapper mapper.IMapper) {
 	app.registerMappers[seedMapper.Name()] = seedMapper
 }
 
-var isAlphaNumeric = regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
-
-func (app *BaseApp) RegisterCustomQueryHandler(route string, handler CustomQueryHandler) {
+func (app *BaseApp) RegisterCustomQueryHandler(handler CustomQueryHandler) {
 	if app.sealed {
 		panic("RegisterCustomQueryHandler() on sealed BaseApp")
 	}
-
-	if !isAlphaNumeric(route) {
-		panic("route can only contain alphanumberic characters")
-	}
-
-	app.customQueryHandlers[route] = handler
+	app.customQueryHandler = handler
 }
 
 func (app *BaseApp) Seal()          { app.sealed = true }
