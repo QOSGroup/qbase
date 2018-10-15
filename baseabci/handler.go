@@ -16,6 +16,11 @@ type BeginBlockHandler func(ctx ctx.Context, req abci.RequestBeginBlock) abci.Re
 type EndBlockHandler func(ctx ctx.Context, req abci.RequestEndBlock) abci.ResponseEndBlock
 
 // -------------------------------------------------------------------------------------------------------------------------
+//CustomQueryHandler 自定义路径查询
+//ex: path: "/custom/qcp/a/b/c":
+//调用app.RegisterCustomQueryHandler('qcp',handler)
+//handler中route为切片:[a,b,c]
+type CustomQueryHandler func(ctx ctx.Context, route []string, req abci.RequestQuery) (res []byte, err types.Error)
 
 //TxQcpResultHandler qcpTx result 回调函数，在TxQcpResult.Exec中调用
 //Important!: txQcpResult 类型为 *txs.QcpTxResult
