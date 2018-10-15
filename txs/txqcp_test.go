@@ -10,13 +10,14 @@ import (
 	"testing"
 )
 
-func newQcpTxResult() (ret *QcpTxResult) {
-	var ext []common.KVPair
-	ext = append(ext, common.KVPair{[]byte("k0"), []byte("v0")})
-	ext = append(ext, common.KVPair{[]byte("k1"), []byte("v1")})
+func newQcpTxResult() (txqcpresult *QcpTxResult) {
+	ext := []common.KVPair{
+		{[]byte("k0"), []byte("v0")},
+		{[]byte("k1"), []byte("v1")},
+	}
 
-	ret = NewQcpTxResult(0, ext, 10, types.NewInt(10), "qcp result info")
-	if !ret.ValidateData() {
+	txqcpresult = NewQcpTxResult(0, &ext, 10, types.NewInt(10), "qcp result info")
+	if !txqcpresult.ValidateData() {
 		fmt.Print("QcpTxResult ValidateData Error")
 		return nil
 	}
@@ -24,33 +25,41 @@ func newQcpTxResult() (ret *QcpTxResult) {
 	return
 }
 
-func newTxStd(tx ITx) (ret *TxStd) {
-	ret = NewTxStd(tx, "qsc1", types.NewInt(100))
-	signer := ret.ITx.GetSigner()
-	err := ret.ValidateBasicData(true)
+func newTxStd(tx ITx) (txstd *TxStd) {
+	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
+	signer := txstd.ITx.GetSigner()
+	err := txstd.ValidateBasicData(true, "qsc1")
 	if err != nil {
-		fmt.Print("TxStd ValidateData Error")
 		return nil
 	}
 
-	accmapper := account.NewAccountMapper(account.ProtoBaseAccount)
-
+	// no signer, no signature
 	if signer == nil {
-		ret.Signature = []Signature{}
+		txstd.Signature = []Signature{}
 		return
 	}
-	//填充 txstd.Signature[]
+
+	accmapper := account.NewAccountMapper(account.ProtoBaseAccount)
+	// 填充 txstd.Signature[]
 	for _, sg := range signer {
 		prvKey := ed25519.GenPrivKey()
 		nonce, err := accmapper.GetNonce(sg)
 		if err != nil {
-			fmt.Printf("GetNonce() for address(%s) error", string(sg))
 			return nil
 		}
-		if !ret.SignTx(prvKey, int64(nonce)) {
-			fmt.Printf("SignTx(addr:%s) error", string(sg))
+
+		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce))
+		if signbyte == nil || errsign != nil {
 			return nil
 		}
+
+		signdata := Signature{
+			prvKey.PubKey(),
+			signbyte,
+			int64(nonce),
+		}
+
+		txstd.Signature = append(txstd.Signature, signdata)
 	}
 
 	return
@@ -58,58 +67,52 @@ func newTxStd(tx ITx) (ret *TxStd) {
 
 func TestNewQcpTxResult(t *testing.T) {
 	txResult := newQcpTxResult()
-	if txResult == nil {
-		fmt.Print("New QcpTxResult error")
-		return
-	}
+	require.NotNil(t, txResult)
 
-	if txResult.GetSigner() == nil {
-		fmt.Print("No signer!")
-	}
+	signer := txResult.GetSigner()
+	require.NotNil(t, signer)
 
-	if txResult.GetGasPayer() == nil {
-		fmt.Print("No payer")
-	}
+	gaspayer := txResult.GetGasPayer()
+	require.NotNil(t, gaspayer)
 
-	fmt.Printf("gas(%d)", txResult.CalcGas().Int64())
+	gas := txResult.CalcGas().Int64() < 0
+	require.Equal(t, gas, false)
 }
 
 func TestNewTxStd(t *testing.T) {
 	txResult := newQcpTxResult()
-	if txResult == nil {
-		t.Error("New QcpTx error!")
-		return
-	}
+	require.NotNil(t, txResult)
 
 	txStd := newTxStd(txResult)
-	if txStd == nil {
-		t.Error("New TxStd error!")
-		return
-	}
+	require.NotNil(t, txStd)
 
-	fmt.Printf("TxStd type: %s", txStd.Type())
+	txtype := txStd.Type()
+	require.Equal(t, txtype, "txstd")
 }
 
-//TxQcp test
 func TestTxQcp(t *testing.T) {
 	txResult := newQcpTxResult()
-	if txResult == nil {
-		t.Error("New QcpTx error!")
-		return
-	}
+	require.NotNil(t, txResult)
+
 	txStd := newTxStd(txResult)
-	if txStd == nil {
-		t.Error("New TxStd error!")
-		return
-	}
+	require.NotNil(t, txStd)
 
 	txqcp := NewTxQCP(txStd, "qsc1", "qos", 1, 13452345, 2, false)
-	txqcp.SignTx(ed25519.GenPrivKey())
 	require.NotNil(t, txqcp)
-	err := txqcp.ValidateBasicData(true, "qsc1")
-	if err != nil {
-		fmt.Print("TxQCP ValidateData Error")
+
+	prvkey := ed25519.GenPrivKey()
+	signbyte, err := txqcp.SignTx(prvkey)
+	require.NotNil(t, signbyte)
+	require.Nil(t, err)
+	txqcp.Sig = Signature{
+		prvkey.PubKey(),
+		signbyte,
+		txqcp.Sequence,
 	}
+
+	err = txqcp.ValidateBasicData(true, "qsc1")
+	require.Nil(t, err)
+
 	data := txqcp.GetSigData()
 	require.NotNil(t, data)
 }
