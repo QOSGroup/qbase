@@ -23,7 +23,7 @@ func main() {
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 
-	server.AddCommands(ctx, cdc, rootCmd, types.InitBaseCoinInit(),
+	server.AddCommands(ctx, cdc, rootCmd, types.BaseCoinInit(),
 		server.ConstructAppCreator(newApp, "basecoin"))
 
 	rootDir := os.ExpandEnv("$HOME/.basecoind")

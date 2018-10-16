@@ -36,14 +36,22 @@ func (acc *AppAccount) SetCoins(coins Coins) error {
 
 // QOS初始状态
 type GenesisState struct {
-	CAPubKey crypto.PubKey     `json:"ca_pub_key"`
+	CAPubKey crypto.PubKey     `json:"pub_key"`
 	Accounts []*GenesisAccount `json:"accounts"`
+	QCP      []*GenesisQCP     `json:"qcp"`
 }
 
 // 初始账户
 type GenesisAccount struct {
 	Address types.Address `json:"address"`
 	Coins   Coins         `json:"coins"`
+}
+
+// 初始QCP配置
+type GenesisQCP struct {
+	Name    string        `json:"name"`
+	ChainId string        `json:"chain_id"`
+	PubKey  crypto.PubKey `json:"pub_key"`
 }
 
 // 给定 AppAccpunt 创建 GenesisAccount
@@ -64,10 +72,10 @@ func (ga *GenesisAccount) ToAppAccount() (acc *AppAccount, err error) {
 	}, nil
 }
 
-func InitBaseCoinInit() server.AppInit {
+func BaseCoinInit() server.AppInit {
 	return server.AppInit{
-		AppGenTx:    InitBaseCoinGenTx,
-		AppGenState: InitBaseCoinGenStateJSON,
+		AppGenTx:    BaseCoinAppGenTx,
+		AppGenState: BaseCoinAppGenState,
 	}
 }
 
@@ -76,7 +84,7 @@ type BaseCoinGenTx struct {
 }
 
 // Generate a genesis transaction
-func InitBaseCoinGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.GenTx) (
+func BaseCoinAppGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.GenTx) (
 	appGenTx, cliPrint json.RawMessage, validator tmtypes.GenesisValidator, err error) {
 
 	var addr types.Address
@@ -108,7 +116,7 @@ func InitBaseCoinGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.Ge
 	return
 }
 
-func InitBaseCoinGenStateJSON(cdc *amino.Codec, appGenTxs []json.RawMessage) (appState json.RawMessage, err error) {
+func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs []json.RawMessage) (appState json.RawMessage, err error) {
 
 	if len(appGenTxs) != 1 {
 		err = errors.New("must provide a single genesis transaction")
@@ -122,16 +130,24 @@ func InitBaseCoinGenStateJSON(cdc *amino.Codec, appGenTxs []json.RawMessage) (ap
 	}
 
 	appState = json.RawMessage(fmt.Sprintf(`{
-  "accounts": [{
-    "address": "%s",
-    "coins": [
-      {
-        "name":"qstar",
-        "amount":"100000000"
-      }
-    ]
-  }]
-}`, genTx.Addr))
+		"qcp":[{
+			"name": "qstar",
+			"chain_id": "qstar",
+			"pub_key":{
+        		"type": "tendermint/PubKeyEd25519",
+        		"value": "ish2+qpPsoHxf7m+uwi8FOAWw6iMaDZgLKl1la4yMAs="
+			}
+		}],
+  		"accounts": [{
+    		"address": "%s",
+    		"coins": [
+      			{
+        			"name":"qstar",
+        			"amount":"100000000"
+      			}
+			]
+  		}]
+	}`, genTx.Addr))
 	return
 }
 
