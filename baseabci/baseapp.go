@@ -590,22 +590,22 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	var crossTxQcp *txs.TxQcp
 	result, crossTxQcp = tx.ITx.Exec(ctx)
 
-	if result.IsOK() {
-		msCache.Write()
-	}
-
 	//4. 根据crossTxQcp结果判断是否保存跨链结果
 	// crossTxQcp 不为空时，需要将跨链结果保存
 	if crossTxQcp != nil && app.txQcpSigner == nil {
 		app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
-		return
 	}
+
 	if crossTxQcp != nil {
 		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.Payload, crossTxQcp.To, false, app.txQcpSigner)
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
 			AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+	}
+
+	if result.IsOK() {
+		msCache.Write()
 	}
 
 	return
@@ -619,7 +619,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := &txs.QcpTxResult{
 				Code:                int64(result.Code),
-				Extends:             make([]cmn.KVPair, 5),
+				Extends:             make([]cmn.KVPair, 1),
 				GasUsed:             types.NewInt(result.GasUsed),
 				QcpOriginalSequence: tx.Sequence,
 				Info:                result.Log,
