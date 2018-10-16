@@ -33,6 +33,8 @@ type Signature struct {
 	Nonce     int64         `json:"nonce"`     //nonce的值
 }
 
+var _ types.Tx = (*TxStd)(nil)
+
 //Type: just for implements types.Tx
 func (tx *TxStd) Type() string {
 	return "txstd"

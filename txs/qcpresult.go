@@ -15,6 +15,8 @@ type QcpTxResult struct {
 	Info                string           `json:"info"`                //结果信息
 }
 
+var _ ITx = (*QcpTxResult)(nil)
+
 //功能：检测结构体字段的合法性
 //todo:QcpOriginalSequence 加入检测
 func (tx *QcpTxResult) ValidateData() bool {
@@ -28,7 +30,7 @@ func (tx *QcpTxResult) ValidateData() bool {
 //功能：tx执行
 //备注：用户根据tx.QcpOriginalSequence,需自行实现此接口
 func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) {
-	result = ctx.TxQcpResultHandler()(ctx,tx)
+	result = ctx.TxQcpResultHandler()(ctx, tx)
 	return
 }
 
@@ -68,7 +70,7 @@ func NewQcpTxResult(code int64, ext []tcommon.KVPair, seq int64, gasusd types.Bi
 	rTx.GasUsed = gasusd
 	rTx.Info = info
 
-	for _,kv := range ext {
+	for _, kv := range ext {
 		rTx.Extends = append(rTx.Extends, kv)
 	}
 

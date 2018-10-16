@@ -18,6 +18,8 @@ type TxQcp struct {
 	IsResult    bool      `json:"isresult"`    //是否为Result
 }
 
+var _ types.Tx = (*TxQcp)(nil)
+
 //Type: just for implements types.Tx
 func (tx *TxQcp) Type() string {
 	return "txqcp"
@@ -62,7 +64,7 @@ func NewTxQCP(payLoad *TxStd, from string, to string, seq int64, sig Signature,
 	bkheigh int64, tidx int64, isResult bool) (rTx *TxQcp) {
 
 	rTx = new(TxQcp)
-	CopyTxStd(&rTx.Payload ,payLoad)
+	CopyTxStd(&rTx.Payload, payLoad)
 	rTx.From = from
 	rTx.To = to
 	rTx.Sequence = seq
