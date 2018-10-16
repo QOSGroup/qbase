@@ -1,6 +1,7 @@
 package tx
 
 import (
+	"bytes"
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
 	bctypes "github.com/QOSGroup/qbase/example/basecoin/types"
@@ -12,7 +13,6 @@ type SendTx struct {
 	From      types.Address `json:"from"`
 	To        types.Address `json:"to"`
 	Coin      bctypes.Coin  `json:"coin"`
-	Timestamp int64         `json:timestamp`
 }
 
 func NewSendTx(from types.Address, to types.Address, coin bctypes.Coin) SendTx {
@@ -52,7 +52,7 @@ func (tx *SendTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *t
 }
 
 func (tx *SendTx) GetSigner() []types.Address {
-	return nil
+	return []types.Address{tx.From}
 }
 
 func (tx *SendTx) CalcGas() types.BigInt {
@@ -60,9 +60,13 @@ func (tx *SendTx) CalcGas() types.BigInt {
 }
 
 func (tx *SendTx) GetGasPayer() types.Address {
-	return nil
+	return tx.From
 }
 
 func (tx *SendTx) GetSignData() []byte {
-	return nil
+	var buf bytes.Buffer
+	buf.Write(tx.From)
+	buf.Write(tx.To)
+	buf.Write([]byte(tx.Coin.String()))
+	return buf.Bytes()
 }
