@@ -88,11 +88,11 @@ func (app *BaseApp) enforceSeal() {
 
 //-------------------------------------------------------------------
 
-func (app *BaseApp) InitTxQcpSigner(signer crypto.PrivKey) {
+func (app *BaseApp) RegisterTxQcpSigner(signer crypto.PrivKey) {
 	if app.sealed {
-		panic("InitTxQcpSigner() on sealed BaseApp")
+		panic("RegisterTxQcpSigner() on sealed BaseApp")
 	}
-	app.signerForCrossTxQcp = signer
+	app.txQcpSigner = signer
 }
 
 func (app *BaseApp) RegisterTxQcpResultHandler(txQcpResultHandler TxQcpResultHandler) {

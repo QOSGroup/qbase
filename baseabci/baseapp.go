@@ -51,8 +51,8 @@ type BaseApp struct {
 	//--------------------------------------------------------------
 
 	//TODO: may be nil , 做校验
-	txQcpResultHandler  TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
-	signerForCrossTxQcp crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
+	txQcpResultHandler TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
+	txQcpSigner        crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
 
 	//注册自定义查询处理
 	customQueryHandler CustomQueryHandler
@@ -384,6 +384,7 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	return
 }
 
+//校验txstd用户签名，签名通过后，增加用户none
 func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd) (newctx ctx.Context, result types.Result) {
 	//accountMapper 未设置时， 不做签名校验
 	accounMapper := getAccountMapper(cctx)
@@ -401,12 +402,12 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 	signatures := tx.Signature
 	signerAccount := make([]account.Account, len(signers))
-	for _, addr := range signers {
+	for i, addr := range signers {
 		acc := accounMapper.GetAccount(addr)
 		if acc == nil {
 			acc = accounMapper.NewAccountWithAddress(addr)
 		}
-		signerAccount = append(signerAccount, acc)
+		signerAccount[i] = acc
 	}
 
 	//校验account address,nonce是否与签名中一致. 并设置account pubkey
@@ -416,7 +417,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 		if signature.Pubkey != nil {
 			pubkeyAddress := types.Address(signature.Pubkey.Address())
-			if bytes.Equal(pubkeyAddress, acc.GetAddress()) {
+			if !bytes.Equal(pubkeyAddress, acc.GetAddress()) {
 				result = types.ErrInternal(fmt.Sprintf("invalid address. expect: %s, got: %s", acc.GetAddress(), pubkeyAddress)).Result()
 				return
 			}
@@ -478,7 +479,7 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 	//checkTx时仅校验 sequence > maxReceivedSeq
 	maxReceivedSeq := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
 	if tx.Sequence < maxReceivedSeq {
-		return types.ErrInvalidSequence("tx sequence is less then received sequence").Result()
+		return types.ErrInvalidSequence(fmt.Sprintf("tx sequence is less then received sequence. max is %d , got is %d", maxReceivedSeq, tx.Sequence)).Result()
 	}
 
 	//3. 校验签名
@@ -527,68 +528,13 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	//初始化context相关数据
 	ctx := app.deliverState.ctx.WithTxBytes(txBytes).WithSigningValidators(app.signedValidators)
 
-	isTxStd := false
-	isTxQcpResult := false
-	originSequence := int64(0)
-	originFrom := ""
-
-	var crossTxQcp *txs.TxQcp
-
 	switch tx := itx.(type) {
 	case *txs.TxStd:
-		isTxStd = true
-		result, crossTxQcp = app.deliverTxStd(ctx, tx)
+		result = app.deliverTxStd(ctx, tx)
 	case *txs.TxQcp:
-		if tx.IsResult {
-			isTxQcpResult = true
-		}
-		originSequence = tx.Sequence
-		originFrom = tx.From
-		result, crossTxQcp = app.deliverTxQcp(ctx, tx)
+		result = app.deliverTxQcp(ctx, tx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
-	}
-
-	if isTxStd {
-		// crossTxQcp 不为空时，需要将跨链结果保存
-		if crossTxQcp != nil && app.signerForCrossTxQcp == nil {
-			app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
-			return
-		}
-		if crossTxQcp != nil {
-			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.Payload, crossTxQcp.To, false, app.signerForCrossTxQcp)
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
-				AppendTag(qcp.QcpTo, []byte(txQcp.To)).
-				AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence))
-			// .AppendTag("qcp.HashBytes",)
-		}
-	}
-
-	if !isTxStd && !isTxQcpResult {
-		//类型为TxQcp时，将所有结果进行保存
-		txQcpResult := &txs.QcpTxResult{
-			Code:                int64(result.Code),
-			Extends:             make([]cmn.KVPair, 5),
-			GasUsed:             types.NewInt(result.GasUsed),
-			QcpOriginalSequence: originSequence,
-			Info:                result.Log,
-		}
-
-		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
-			AppendTag(qcp.QcpTo, []byte(originFrom))
-
-		txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
-
-		payload := txs.TxStd{
-			ITx:       txQcpResult,
-			Signature: make([]txs.Signature, 0),
-			ChainID:   ctx.ChainID(),
-			MaxGas:    types.ZeroInt(),
-		}
-
-		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, payload, originFrom, true, nil)
-		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence))
-		// .AppendTag("HashBytes",)
 	}
 
 	// Tell the blockchain engine (i.e. Tendermint).
@@ -607,7 +553,7 @@ func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
-func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Result, crossTxQcp *txs.TxQcp) {
+func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Result) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -619,12 +565,12 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	//1. 校验基础数据
 	err := tx.ValidateBasicData(false, ctx.ChainID())
 	if err != nil {
-		return err.Result(), nil
+		return err.Result()
 	}
 	//2. 校验签名
 	newctx, res := app.validateTxStdUserSignatureAndNonce(ctx, tx)
 	if !res.IsOK() {
-		return res, nil
+		return res
 	}
 
 	if !newctx.IsZero() {
@@ -640,7 +586,23 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}
 
 	ctx = ctx.WithMultiStore(msCache)
+
+	var crossTxQcp *txs.TxQcp
 	result, crossTxQcp = tx.ITx.Exec(ctx)
+
+	//4. 根据crossTxQcp结果判断是否保存跨链结果
+	// crossTxQcp 不为空时，需要将跨链结果保存
+	if crossTxQcp != nil && app.txQcpSigner == nil {
+		app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
+	}
+
+	if crossTxQcp != nil {
+		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.Payload, crossTxQcp.To, false, app.txQcpSigner)
+		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
+			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
+			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
+			AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+	}
 
 	if result.IsOK() {
 		msCache.Write()
@@ -650,7 +612,36 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 }
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
-func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result, crossTxQcp *txs.TxQcp) {
+func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
+	defer func() {
+		//6. txQcp不为result时， 保存执行结果
+		if !tx.IsResult {
+			//类型为TxQcp时，将所有结果进行保存
+			txQcpResult := &txs.QcpTxResult{
+				Code:                int64(result.Code),
+				Extends:             make([]cmn.KVPair, 1),
+				GasUsed:             types.NewInt(result.GasUsed),
+				QcpOriginalSequence: tx.Sequence,
+				Info:                result.Log,
+			}
+
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
+				AppendTag(qcp.QcpTo, []byte(tx.From))
+
+			txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
+
+			payload := txs.TxStd{
+				ITx:       txQcpResult,
+				Signature: make([]txs.Signature, 0),
+				ChainID:   ctx.ChainID(),
+				MaxGas:    types.ZeroInt(),
+			}
+
+			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, payload, tx.From, true, nil)
+			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
+				AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+		}
+	}()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -662,14 +653,15 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	//1. 校验TxQcp基础数据
 	err := tx.ValidateBasicData(false, ctx.ChainID())
 	if err != nil {
-		return err.Result(), nil
+		result = err.Result()
+		return
 	}
 
 	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
 	// deliverTx时校验 sequence =  maxInSequence + 1
 	maxInSequence := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
 	if tx.Sequence != maxInSequence+1 {
-		result = types.ErrInvalidSequence("tx sequence is less then received sequence").Result()
+		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
 		return
 	}
 
@@ -683,7 +675,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		return
 	}
 
-	result, crossTxQcp = app.deliverTxStd(ctx, &tx.Payload)
+	//5. 执行内部txStd
+	result = app.deliverTxStd(ctx, &tx.Payload)
 	return
 }
 
