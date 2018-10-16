@@ -110,7 +110,7 @@ func TestTxQcp(t *testing.T) {
 		txqcp.Sequence,
 	}
 
-	err = txqcp.ValidateBasicData(true, "qsc1")
+	err = txqcp.ValidateBasicData(true, "qos")
 	require.Nil(t, err)
 
 	data := txqcp.GetSigData()
