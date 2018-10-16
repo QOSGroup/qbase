@@ -70,10 +70,12 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) (signedbyte []byte,
 // 构建结构体
 // 调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
 func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
-	rTx = new(TxStd)
-	rTx.ITx = itx
-	rTx.ChainID = cid
-	rTx.MaxGas = mgas
+	rTx = &TxStd{
+		itx,
+		[]Signature{},
+		cid,
+		mgas,
+	}
 
 	return
 }

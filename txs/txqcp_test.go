@@ -69,11 +69,8 @@ func TestNewQcpTxResult(t *testing.T) {
 	txResult := newQcpTxResult()
 	require.NotNil(t, txResult)
 
-	signer := txResult.GetSigner()
-	require.NotNil(t, signer)
-
-	gaspayer := txResult.GetGasPayer()
-	require.NotNil(t, gaspayer)
+	txResult.GetSigner()
+	txResult.GetGasPayer()
 
 	gas := txResult.CalcGas().Int64() < 0
 	require.Equal(t, gas, false)
