@@ -401,12 +401,12 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 	signatures := tx.Signature
 	signerAccount := make([]account.Account, len(signers))
-	for _, addr := range signers {
+	for i, addr := range signers {
 		acc := accounMapper.GetAccount(addr)
 		if acc == nil {
 			acc = accounMapper.NewAccountWithAddress(addr)
 		}
-		signerAccount = append(signerAccount, acc)
+		signerAccount[i] = acc
 	}
 
 	//校验account address,nonce是否与签名中一致. 并设置account pubkey
@@ -416,7 +416,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 		if signature.Pubkey != nil {
 			pubkeyAddress := types.Address(signature.Pubkey.Address())
-			if bytes.Equal(pubkeyAddress, acc.GetAddress()) {
+			if !bytes.Equal(pubkeyAddress, acc.GetAddress()) {
 				result = types.ErrInternal(fmt.Sprintf("invalid address. expect: %s, got: %s", acc.GetAddress(), pubkeyAddress)).Result()
 				return
 			}
