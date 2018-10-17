@@ -324,7 +324,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result types.Result
-	var itx, err = types.DecoderTx(app.cdc, txBytes)
+	var tx, err = types.DecoderTx(app.cdc, txBytes)
 
 	if err != nil {
 		return toResponseCheckTx(err.Result())
@@ -332,11 +332,11 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 
 	// 初始化context相关数据
 	ctx := app.checkState.ctx.WithTxBytes(txBytes)
-	switch tx := itx.(type) {
+	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.checkTxStd(ctx, tx)
+		result = app.checkTxStd(ctx, implTx)
 	case *txs.TxQcp:
-		result = app.checkTxQcp(ctx, tx)
+		result = app.checkTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
 	}
@@ -515,7 +515,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	// Decode the Tx.
 	var result types.Result
-	var itx, err = types.DecoderTx(app.cdc, txBytes)
+	var tx, err = types.DecoderTx(app.cdc, txBytes)
 	if err != nil {
 		result = err.Result()
 		return toResponseDeliverTx(result)
@@ -524,11 +524,11 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	//初始化context相关数据
 	ctx := app.deliverState.ctx.WithTxBytes(txBytes).WithSigningValidators(app.signedValidators)
 
-	switch tx := itx.(type) {
+	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.deliverTxStd(ctx, tx)
+		result = app.deliverTxStd(ctx, implTx)
 	case *txs.TxQcp:
-		result = app.deliverTxQcp(ctx, tx)
+		result = app.deliverTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
 	}
