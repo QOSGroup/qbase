@@ -9,18 +9,13 @@ type Tx interface {
 	Type() string
 }
 
-// TxDecoder unmarshals transaction bytes
-type TxDecoder func(txBytes []byte) (Tx, Error)
+func DecoderTx(cdc *go_amino.Codec, txBytes []byte) (Tx, Error) {
+	var tx Tx
+	err := cdc.UnmarshalBinaryBare(txBytes, &tx)
 
-func GetTxDecoder(cdc *go_amino.Codec) TxDecoder {
-	return func(txBytes []byte) (Tx, Error) {
-		var tx Tx
-		err := cdc.UnmarshalBinaryBare(txBytes, &tx)
-
-		if err != nil {
-			return nil, ErrInternal("txBytes decoder failed")
-		}
-
-		return tx, nil
+	if err != nil {
+		return nil, ErrInternal("txBytes decoder failed")
 	}
+
+	return tx, nil
 }

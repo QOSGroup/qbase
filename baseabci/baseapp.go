@@ -29,11 +29,10 @@ import (
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
-	Logger    log.Logger
-	name      string                 // application name from abci.Info
-	db        dbm.DB                 // common DB backend
-	cms       store.CommitMultiStore // Main (uncached) state
-	txDecoder types.TxDecoder        // unmarshal []byte into stdTx or qcpTx
+	Logger log.Logger
+	name   string                 // application name from abci.Info
+	db     dbm.DB                 // common DB backend
+	cms    store.CommitMultiStore // Main (uncached) state
 
 	// may be nil
 	initChainer  InitChainHandler  // initialize state with validators and state blob
@@ -73,14 +72,11 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 		registerCodecFunc(cdc)
 	}
 
-	txDecoder := types.GetTxDecoder(cdc)
-
 	app := &BaseApp{
 		Logger:          logger,
 		name:            name,
 		db:              db,
 		cms:             store.NewCommitMultiStore(db),
-		txDecoder:       txDecoder,
 		cdc:             cdc,
 		registerMappers: make(map[string]mapper.IMapper),
 	}
@@ -328,7 +324,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result types.Result
-	var itx, err = app.txDecoder(txBytes)
+	var itx, err = types.DecoderTx(app.cdc, txBytes)
 
 	if err != nil {
 		return toResponseCheckTx(err.Result())
@@ -519,7 +515,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	// Decode the Tx.
 	var result types.Result
-	var itx, err = app.txDecoder(txBytes)
+	var itx, err = types.DecoderTx(app.cdc, txBytes)
 	if err != nil {
 		result = err.Result()
 		return toResponseDeliverTx(result)
