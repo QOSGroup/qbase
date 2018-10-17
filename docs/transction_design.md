@@ -1,10 +1,10 @@
-# <font color=#0099ff>Transaction设计概要</font>
+# Transaction设计概要
 ![tx_struct](https://github.com/QOSGroup/static/blob/master/transaction_struct.jpg?raw=true)  
 	Transaction（下文记为 tx）设计时主要考虑几种应用情景：  
 	1，跨链传输tx，对应结构体：TxQcp  
 	2，链内标准tx, 对应结构体：TxStd  
-	3，具体功能tx, 对应结构体：参考"qos/transaction_design_qos.md"
-# <font color=#0099ff>TxStd & ITx</font>
+	3，具体功能tx, 对应结构体：参考[qos/transaction_design_qos.md](https://github.com/QOSGroup/qos/blob/master/docs/transaction_design_qos.md)
+# TxStd & ITx
 	公链提供几种基础的 tx，每种 tx 有自己的结构和执行逻辑：  
 
         1，创建 QSC，   结构：TxCreateQSC  
@@ -25,7 +25,7 @@
 		GetSignData()    //获取签名字段
 	}
 ```
-# <font color=#0099ff>TxQcp</font>
+# TxQcp
 跨链的tx需要更多信息，其结构 TxQcp 中除TxStd结构（Payload成员）外，还含有以下成员：  
 
 		From：		qsc的名字，描述来源
@@ -34,7 +34,7 @@
 		IsResult：	是否为执行结果，避免执行结果被作为 TxQcp 再次发送
 		BlockHeight: Tx所在block的高度
 		TxIndx：     Tx在block中的位置
-# <font color=#0099ff>QcpTxResult</font>
+# QcpTxResult
 功能：TxQcp在公链上的执行结果；
 
 	Code：	 执行结果(成功、失败等)
