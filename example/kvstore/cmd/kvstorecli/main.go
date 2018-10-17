@@ -11,14 +11,19 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
-// send: go run main.go -m send -k xxx -v xxx
-// query: go run main.go -m get -k xxx
-//
+// 查询Key值:
+//   1.  go run main.go -m get -k xxx
+//   2.  go run main.go -k xxx
+
+// 设置Key-Value键值对:
+//   1.  go run main.go -m set -k xxx -v xxx
+//   2.  go run main.go -m send -k xxx -v xxx
+
 func main() {
 
 	cdc := MakeCdc()
 
-	mode := flag.String("m", "", "client mode: get/send")
+	mode := flag.String("m", "", "client mode \n: get , set  or  send")
 	key := flag.String("k", "", "input key")
 	value := flag.String("v", "", "input value")
 
@@ -26,49 +31,27 @@ func main() {
 
 	http := client.NewHTTP("tcp://127.0.0.1:26657", "/websocket")
 
-	if *mode == "get" {
+	chainID := queryChainID(http, cdc)
+	fmt.Println(fmt.Sprintf("current chainID is %s.", chainID))
+
+	switch *mode {
+	case "get", "":
 		if *key == "" {
-			panic("usage: go run main.go -m get -key xxx ")
+			panic("usage: go run main.go -m get -k xxx ")
 		}
-
-		result, err := http.ABCIQuery("/store/kv/key", []byte(*key))
-		if err != nil {
-			panic(err)
-		}
-
-		queryValueBz := result.Response.GetValue()
-		var queryValue string
-		cdc.UnmarshalBinaryBare(queryValueBz, &queryValue)
-
-		fmt.Println(fmt.Sprintf("query kv is %s = %s", *key, queryValue))
-	}
-
-	if *mode == "send" {
+		v := getValue(*key, http, cdc)
+		fmt.Println(fmt.Sprintf("query kv result: %s=%s", *key, v))
+	case "send", "set":
 		if *key == "" || *value == "" {
-			panic("usage: go run main.go -m send  -key xxx -value xxx")
+			panic("usage: go run main.go -m set  -k xxx -v xxx")
 		}
 
-		txStd := wrapToStdTx(*key, *value)
-
-		tx, err := cdc.MarshalBinaryBare(txStd)
-		if err != nil {
-			panic("use cdc encode object fail")
-		}
-
-		_, err = http.BroadcastTxSync(tx)
-		if err != nil {
-			fmt.Println(err)
-			panic("BroadcastTxSync err")
-		}
-
-		fmt.Println(fmt.Sprintf("send kv is %s = %s", *key, *value))
+		sendKVTx(*key, *value, http, cdc)
+		fmt.Println(fmt.Sprintf("set kv: %s = %s", *key, *value))
+	default:
+		panic("wrong mode")
 	}
 
-}
-
-func wrapToStdTx(key string, value string) *txs.TxStd {
-	kv := kvstore.NewKvstoreTx([]byte(key), []byte(value))
-	return txs.NewTxStd(kv, "kv-chain", types.NewInt(int64(10000)))
 }
 
 func MakeCdc() *go_amino.Codec {
@@ -77,4 +60,52 @@ func MakeCdc() *go_amino.Codec {
 
 	cdc.RegisterConcrete(&kvstore.KvstoreTx{}, "kvstore/main/kvstoretx", nil)
 	return cdc
+}
+
+func getValue(key string, http *client.HTTP, cdc *go_amino.Codec) string {
+	result, err := http.ABCIQuery("/store/kv/key", []byte(key))
+	if err != nil {
+		panic(err)
+	}
+
+	queryValueBz := result.Response.GetValue()
+	if queryValueBz == nil {
+		return ""
+	}
+	var queryValue string
+	cdc.UnmarshalBinaryBare(queryValueBz, &queryValue)
+
+	return queryValue
+}
+
+func sendKVTx(k, v string, http *client.HTTP, cdc *go_amino.Codec) {
+	chainID := queryChainID(http, cdc)
+
+	txStd := wrapToStdTx(k, v, chainID)
+
+	tx, err := cdc.MarshalBinaryBare(txStd)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = http.BroadcastTxSync(tx)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func wrapToStdTx(key, value, chainID string) *txs.TxStd {
+	kv := kvstore.NewKvstoreTx([]byte(key), []byte(value))
+	return txs.NewTxStd(kv, chainID, types.NewInt(int64(10000)))
+}
+
+func queryChainID(http *client.HTTP, cdc *go_amino.Codec) string {
+	result, err := http.ABCIQuery("/app/chainID", []byte(""))
+	if err != nil {
+		panic(err)
+	}
+
+	var chainID string
+	cdc.UnmarshalBinaryBare(result.Response.GetValue(), &chainID)
+	return chainID
 }
