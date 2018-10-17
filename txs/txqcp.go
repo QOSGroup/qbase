@@ -8,7 +8,7 @@ import (
 
 // 功能：
 type TxQcp struct {
-	Payload     TxStd     `json:"payload"`     //TxStd结构
+	Payload     *TxStd    `json:"payload"`     //TxStd结构
 	From        string    `json:"from"`        //qscName
 	To          string    `json:"to"`          //qosName
 	Sequence    int64     `json:"sequence"`    //发送Sequence
@@ -61,7 +61,7 @@ func NewTxQCP(payLoad *TxStd, from string, to string, seqence int64,
 	blockheigh int64, txindex int64, isResult bool) (rTx *TxQcp) {
 
 	rTx = &TxQcp{
-		*payLoad,
+		payLoad,
 		from,
 		to,
 		seqence,

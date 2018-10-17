@@ -86,7 +86,7 @@ func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence int64) {
 }
 
 //TODO: test case
-func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, payload txs.TxStd, toChainID string, isResult bool, signer crypto.PrivKey) (txQcp *txs.TxQcp) {
+func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, payload *txs.TxStd, toChainID string, isResult bool, signer crypto.PrivKey) (txQcp *txs.TxQcp) {
 
 	maxSequence := mapper.GetMaxChainOutSequence(toChainID)
 
