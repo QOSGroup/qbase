@@ -648,14 +648,14 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 			txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
 
-			payload := &txs.TxStd{
+			txStd := &txs.TxStd{
 				ITx:       txQcpResult,
 				Signature: make([]txs.Signature, 0),
 				ChainID:   ctx.ChainID(),
 				MaxGas:    types.ZeroInt(),
 			}
 
-			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, payload, tx.From, true, nil)
+			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
 			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
 				AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
 		}
