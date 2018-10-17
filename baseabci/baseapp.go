@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/qcp"
-
 	"github.com/QOSGroup/qbase/mapper"
+	"github.com/QOSGroup/qbase/qcp"
+	"github.com/QOSGroup/qbase/version"
 
 	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/store"
@@ -59,6 +59,8 @@ type BaseApp struct {
 	registerMappers map[string]mapper.IMapper
 
 	cdc *go_amino.Codec
+
+	chainID string
 	// flag for sealing
 	sealed bool
 }
@@ -214,6 +216,9 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	app.setDeliverState(abci.Header{ChainID: req.ChainId})
 	app.setCheckState(abci.Header{ChainID: req.ChainId})
 
+	saveChainID(app.db, req.ChainId)
+	app.chainID = req.ChainId
+
 	if app.initChainer == nil {
 		return
 	}
@@ -239,6 +244,8 @@ func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return types.ErrUnknownRequest(msg).QueryResult()
 	}
 	switch path[0] {
+	case "app":
+		return handleQueryApp(app, path, req)
 	case "store":
 		return handleQueryStore(app, path, req)
 	case "custom":
@@ -246,6 +253,28 @@ func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	}
 
 	msg := "unknown query path"
+	return types.ErrUnknownRequest(msg).QueryResult()
+}
+
+func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
+	if len(path) >= 2 {
+		var result interface{}
+		switch path[1] {
+		case "version":
+			result = version.Version
+		case "chainID":
+			result = app.chainID
+		default:
+			result = types.ErrUnknownRequest(fmt.Sprintf("Unknown query: %s", path)).Result()
+		}
+
+		value := app.cdc.MustMarshalBinaryBare(result)
+		return abci.ResponseQuery{
+			Code:  uint32(types.ABCICodeOK),
+			Value: value,
+		}
+	}
+	msg := "Expected second parameter to be either simulate or version, neither was present"
 	return types.ErrUnknownRequest(msg).QueryResult()
 }
 
@@ -312,6 +341,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// set the signed validators for addition to context in deliverTx
 	app.signedValidators = req.LastCommitInfo.GetValidators()
+
 	return
 }
 
@@ -736,4 +766,19 @@ func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
 		return nil
 	}
 	return mapper.(*account.AccountMapper)
+}
+
+const chainIDKey = "_qb:chainID"
+
+func loadChainID(db dbm.DB) string {
+	v := db.Get([]byte(chainIDKey))
+	return string(v)
+}
+
+func saveChainID(db dbm.DB, chainID string) {
+	k := []byte(chainIDKey)
+	if db.Has(k) {
+		return
+	}
+	db.Set(k, []byte(chainID))
 }
