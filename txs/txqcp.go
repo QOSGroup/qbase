@@ -8,7 +8,7 @@ import (
 
 // 功能：
 type TxQcp struct {
-	Payload     *TxStd    `json:"payload"`     //TxStd结构
+	TxStd       *TxStd    `json:"payload"`     //TxStd结构
 	From        string    `json:"from"`        //qscName
 	To          string    `json:"to"`          //qosName
 	Sequence    int64     `json:"sequence"`    //发送Sequence
@@ -28,7 +28,7 @@ func (tx *TxQcp) Type() string {
 // 功能：获取 TxQcp 的签名字段
 // 返回：字段拼接后的 []byte
 func (tx *TxQcp) GetSigData() []byte {
-	ret := tx.Payload.GetSignData()
+	ret := tx.TxStd.GetSignData()
 	if ret == nil {
 		return nil
 	}

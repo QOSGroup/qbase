@@ -91,7 +91,7 @@ func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, payload *txs.TxSt
 	maxSequence := mapper.GetMaxChainOutSequence(toChainID)
 
 	txQcp = &txs.TxQcp{
-		Payload:     payload,
+		TxStd:       payload,
 		From:        ctx.ChainID(),
 		To:          toChainID,
 		Sequence:    maxSequence + 1,

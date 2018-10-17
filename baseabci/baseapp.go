@@ -592,7 +592,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}
 
 	if crossTxQcp != nil {
-		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.Payload, crossTxQcp.To, false, app.txQcpSigner)
+		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.TxStd, crossTxQcp.To, false, app.txQcpSigner)
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
@@ -671,7 +671,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	}
 
 	//5. 执行内部txStd
-	result = app.deliverTxStd(ctx, tx.Payload)
+	result = app.deliverTxStd(ctx, tx.TxStd)
 	return
 }
 
