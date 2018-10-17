@@ -370,7 +370,7 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	}()
 
 	//1. 校验txStd基础信息
-	err := tx.ValidateBasicData(true, ctx.ChainID())
+	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}
@@ -563,7 +563,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}()
 
 	//1. 校验基础数据
-	err := tx.ValidateBasicData(false, ctx.ChainID())
+	err := tx.ValidateBasicData(ctx, false, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}

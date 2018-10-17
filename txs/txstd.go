@@ -10,7 +10,7 @@ import (
 
 // 功能：抽象具体的Tx结构体
 type ITx interface {
-	ValidateData() bool                                                 //检测
+	ValidateData(ctx context.Context) bool                              //检测
 	Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) //执行, crossTxQcps: 需要跨链处理的TxQcp
 	GetSigner() []types.Address                                         //签名者
 	CalcGas() types.BigInt                                              //计算gas
@@ -25,6 +25,8 @@ type TxStd struct {
 	ChainID   string       `json:"chainid"`  //ChainID
 	MaxGas    types.BigInt `json:"maxgas"`   //Gas消耗的最大值
 }
+
+var _ types.Tx = (*TxStd)(nil)
 
 // 签名结构体
 type Signature struct {
@@ -94,12 +96,12 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 
 //ValidateBasicData  对txStd进行基础的数据校验
 //tx.ITx == QcpTxResult时 不校验签名相关信息
-func (tx *TxStd) ValidateBasicData(isCheckTx bool, currentChaindID string) (err types.Error) {
+func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("no itx in txStd")
 	}
 
-	if !tx.ITx.ValidateData() {
+	if !tx.ITx.ValidateData(ctx) {
 		return types.ErrInternal("invaild ITx data in txStd")
 	}
 
