@@ -26,7 +26,7 @@
 	}
 ```
 # TxQcp
-跨链的tx需要更多信息，其结构 TxQcp 中除TxStd结构（Payload成员）外，还含有以下成员：
+跨链的tx需要更多信息，其结构 TxQcp 中除TxStd结构外，还含有以下成员：
 
 		From：		qsc的名字，描述来源
 		To：		    qos名字，描述目的地
