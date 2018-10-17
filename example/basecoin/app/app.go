@@ -4,9 +4,11 @@ import (
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
+	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/qcp"
+	qbtypes "github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -33,10 +35,13 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 		BaseApp: baseApp,
 	}
 
-	//设置 InitChainer
+	// txResult handler
+	app.RegisterTxQcpResultHandler(resultTxHandler)
+
+	// 设置 InitChainer
 	app.SetInitChainer(app.initChainer)
 
-	//账户mapper
+	// 账户mapper
 	app.RegisterAccountProto(types.NewAppAccount)
 
 	// QCP mapper
@@ -92,4 +97,9 @@ func MakeCodec() *amino.Codec {
 func registerCdc(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&types.AppAccount{}, "basecoin/AppAccount", nil)
 	cdc.RegisterConcrete(&tx.SendTx{}, "basecoin/SendTx", nil)
+}
+
+func resultTxHandler(ctx ctx.Context, txQcpResult interface{}) qbtypes.Result {
+	// TODO
+	return qbtypes.Result{}
 }
