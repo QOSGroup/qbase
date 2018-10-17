@@ -31,7 +31,8 @@ func main() {
 
 	http := client.NewHTTP("tcp://127.0.0.1:26657", "/websocket")
 
-	chainID := queryChainID(http, cdc)
+	g, _ := http.Genesis()
+	chainID := g.Genesis.ChainID
 	fmt.Println(fmt.Sprintf("current chainID is %s.", chainID))
 
 	switch *mode {
@@ -46,7 +47,7 @@ func main() {
 			panic("usage: go run main.go -m set  -k xxx -v xxx")
 		}
 
-		sendKVTx(*key, *value, http, cdc)
+		sendKVTx(*key, *value, chainID, http, cdc)
 		fmt.Println(fmt.Sprintf("set kv: %s = %s", *key, *value))
 	default:
 		panic("wrong mode")
@@ -78,8 +79,7 @@ func getValue(key string, http *client.HTTP, cdc *go_amino.Codec) string {
 	return queryValue
 }
 
-func sendKVTx(k, v string, http *client.HTTP, cdc *go_amino.Codec) {
-	chainID := queryChainID(http, cdc)
+func sendKVTx(k, v, chainID string, http *client.HTTP, cdc *go_amino.Codec) {
 
 	txStd := wrapToStdTx(k, v, chainID)
 
@@ -97,15 +97,4 @@ func sendKVTx(k, v string, http *client.HTTP, cdc *go_amino.Codec) {
 func wrapToStdTx(key, value, chainID string) *txs.TxStd {
 	kv := kvstore.NewKvstoreTx([]byte(key), []byte(value))
 	return txs.NewTxStd(kv, chainID, types.NewInt(int64(10000)))
-}
-
-func queryChainID(http *client.HTTP, cdc *go_amino.Codec) string {
-	result, err := http.ABCIQuery("/app/chainID", []byte(""))
-	if err != nil {
-		panic(err)
-	}
-
-	var chainID string
-	cdc.UnmarshalBinaryBare(result.Response.GetValue(), &chainID)
-	return chainID
 }
