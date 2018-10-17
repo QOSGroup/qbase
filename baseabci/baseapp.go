@@ -86,7 +86,6 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	}
 
 	app.registerQcpMapper()
-
 	return app
 }
 
