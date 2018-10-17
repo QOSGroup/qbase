@@ -625,7 +625,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 			txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
 
-			payload := txs.TxStd{
+			payload := &txs.TxStd{
 				ITx:       txQcpResult,
 				Signature: make([]txs.Signature, 0),
 				ChainID:   ctx.ChainID(),
@@ -671,7 +671,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	}
 
 	//5. 执行内部txStd
-	result = app.deliverTxStd(ctx, &tx.Payload)
+	result = app.deliverTxStd(ctx, tx.Payload)
 	return
 }
 
