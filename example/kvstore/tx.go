@@ -14,6 +14,8 @@ type KvstoreTx struct {
 	Bytes []byte
 }
 
+var _ txs.ITx = (*KvstoreTx)(nil)
+
 func NewKvstoreTx(key []byte, value []byte) KvstoreTx {
 	return KvstoreTx{
 		Key:   key,
@@ -21,7 +23,7 @@ func NewKvstoreTx(key []byte, value []byte) KvstoreTx {
 	}
 }
 
-func (kv KvstoreTx) ValidateData() bool {
+func (kv KvstoreTx) ValidateData(ctx context.Context) bool {
 	if len(kv.Key) < 0 {
 		return false
 	}

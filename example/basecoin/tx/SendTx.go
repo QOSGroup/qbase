@@ -10,16 +10,18 @@ import (
 )
 
 type SendTx struct {
-	From      types.Address `json:"from"`
-	To        types.Address `json:"to"`
-	Coin      bctypes.Coin  `json:"coin"`
+	From types.Address `json:"from"`
+	To   types.Address `json:"to"`
+	Coin bctypes.Coin  `json:"coin"`
 }
+
+var _ txs.ITx = (*SendTx)(nil)
 
 func NewSendTx(from types.Address, to types.Address, coin bctypes.Coin) SendTx {
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
-func (tx *SendTx) ValidateData() bool {
+func (tx *SendTx) ValidateData(ctx context.Context) bool {
 	if len(tx.From) == 0 || len(tx.To) == 0 || !tx.Coin.IsNotNegative() {
 		return false
 	}

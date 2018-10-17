@@ -18,6 +18,8 @@ type TxQcp struct {
 	IsResult    bool      `json:"isresult"`    //是否为Result
 }
 
+var _ types.Tx = (*TxQcp)(nil)
+
 // Type: just for implements types.Tx
 func (tx *TxQcp) Type() string {
 	return "txqcp"

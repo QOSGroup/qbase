@@ -15,9 +15,11 @@ type QcpTxResult struct {
 	Info                string           `json:"info"`                //结果信息
 }
 
+var _ ITx = (*QcpTxResult)(nil)
+
 // 功能：检测结构体字段的合法性
 // todo:QcpOriginalSequence 加入检测
-func (tx *QcpTxResult) ValidateData() bool {
+func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
 	if tx.Extends == nil || len(tx.Extends) == 0 || types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
 		return false
 	}
