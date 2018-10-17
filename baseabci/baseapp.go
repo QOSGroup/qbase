@@ -59,8 +59,6 @@ type BaseApp struct {
 	registerMappers map[string]mapper.IMapper
 
 	cdc *go_amino.Codec
-
-	chainID string
 	// flag for sealing
 	sealed bool
 }
@@ -216,9 +214,6 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	app.setDeliverState(abci.Header{ChainID: req.ChainId})
 	app.setCheckState(abci.Header{ChainID: req.ChainId})
 
-	saveChainID(app.db, req.ChainId)
-	app.chainID = req.ChainId
-
 	if app.initChainer == nil {
 		return
 	}
@@ -262,8 +257,6 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abc
 		switch path[1] {
 		case "version":
 			result = version.Version
-		case "chainID":
-			result = app.chainID
 		default:
 			result = types.ErrUnknownRequest(fmt.Sprintf("Unknown query: %s", path)).Result()
 		}
@@ -766,19 +759,4 @@ func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
 		return nil
 	}
 	return mapper.(*account.AccountMapper)
-}
-
-const chainIDKey = "_qb:chainID"
-
-func loadChainID(db dbm.DB) string {
-	v := db.Get([]byte(chainIDKey))
-	return string(v)
-}
-
-func saveChainID(db dbm.DB, chainID string) {
-	k := []byte(chainIDKey)
-	if db.Has(k) {
-		return
-	}
-	db.Set(k, []byte(chainID))
 }
