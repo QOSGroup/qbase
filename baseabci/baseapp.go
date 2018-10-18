@@ -511,17 +511,25 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 
 //校验QcpTx签名是否正确
 func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (result types.Result) {
-	//1. 校验qcpTx签名者PubKey是否合法: TODO 需要区块链实现
+	//1. 校验qcpTx签名者PubKey是否合法:
 	pubkey := qcpTx.Sig.Pubkey
-	truestPubkey := getQcpMapper(ctx).GetChainInTruestPubKey(qcpTx.From)
+	trustPubkey := getQcpMapper(ctx).GetChainInTruestPubKey(qcpTx.From)
 
-	if truestPubkey != nil && pubkey != nil && !bytes.Equal(pubkey.Bytes(), truestPubkey.Bytes()) {
-		return types.ErrInvalidPubKey("qcpTx's signer is not valid").Result()
+	if trustPubkey == nil {
+		return types.ErrInvalidPubKey("trust pubkey not set. you should set one trustKey per chain").Result()
+	}
+
+	if pubkey == nil {
+		return types.ErrInvalidPubKey("pubkey is nil in signature").Result()
+	}
+
+	if !bytes.Equal(pubkey.Bytes(), trustPubkey.Bytes()) {
+		return types.ErrInvalidPubKey(fmt.Sprintf("pubkey is signature is not expect. Got: %X , Expect: %X", pubkey.Bytes(), trustPubkey.Bytes())).Result()
 	}
 
 	//2. 校验签名是否合法
-	signedBytes := qcpTx.GetSigData()
-	if !pubkey.VerifyBytes(signedBytes, qcpTx.Sig.Signature) {
+	sigBytes := qcpTx.GetSigData()
+	if !pubkey.VerifyBytes(sigBytes, qcpTx.Sig.Signature) {
 		return types.ErrUnauthorized("signature verification failed").Result()
 	}
 
