@@ -19,6 +19,8 @@ type AccountMapper struct {
 	proto func() Account
 }
 
+var _ mapper.IMapper = (*AccountMapper)(nil)
+
 // 用给定编码和原型生成mapper
 func NewAccountMapper(proto func() Account) *AccountMapper {
 	var accountMapper = AccountMapper{}

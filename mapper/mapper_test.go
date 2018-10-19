@@ -59,6 +59,11 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 	exsits = baseMapper.Get(k1, &v)
 	require.Equal(t, true, exsits)
 
+	baseMapper.Del(k1)
+
+	exsits = baseMapper.Get(k1, &v)
+	require.Equal(t, false, exsits)
+
 	key := ed25519.GenPrivKey()
 	pub := key.PubKey()
 
