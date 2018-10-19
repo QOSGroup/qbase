@@ -23,6 +23,8 @@ type QcpMapper struct {
 	*mapper.BaseMapper
 }
 
+var _ mapper.IMapper = (*QcpMapper)(nil)
+
 func NewQcpMapper() *QcpMapper {
 	var qcpMapper = QcpMapper{}
 	qcpMapper.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey(storeKey))

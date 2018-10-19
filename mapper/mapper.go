@@ -9,14 +9,17 @@ import (
 
 type IMapper interface {
 	Name() string
+	Copy() IMapper
 	GetStoreKey() store.StoreKey
-	GetCodec() *go_amino.Codec
-	SetCodec(cdc *go_amino.Codec)
+
 	Get(key []byte, ptr interface{}) (exsits bool)
 	Set(key []byte, val interface{})
+	Del(key []byte)
+
+	GetCodec() *go_amino.Codec
+	SetCodec(cdc *go_amino.Codec)
 	SetStore(store store.KVStore)
 	GetStore() store.KVStore
-	Copy() IMapper
 }
 
 type BaseMapper struct {
@@ -37,6 +40,10 @@ func (baseMapper *BaseMapper) Copy() *BaseMapper {
 	}
 }
 
+func (baseMapper *BaseMapper) isRegistered() bool {
+	return baseMapper.cdc != nil && baseMapper.store != nil
+}
+
 func (baseMapper *BaseMapper) GetStore() store.KVStore {
 	return baseMapper.store
 }
@@ -50,10 +57,14 @@ func (baseMapper *BaseMapper) GetStoreKey() store.StoreKey {
 }
 
 func (baseMapper *BaseMapper) Get(key []byte, ptr interface{}) (exsits bool) {
+
+	if !baseMapper.isRegistered() {
+		panic("mapper it's not prepared to work. you may forgot to register this mapper")
+	}
+
 	bz := baseMapper.store.Get(key)
 	if bz == nil {
 		exsits = false
-		ptr = nil
 		return
 	}
 	exsits = true
@@ -62,8 +73,22 @@ func (baseMapper *BaseMapper) Get(key []byte, ptr interface{}) (exsits bool) {
 }
 
 func (baseMapper *BaseMapper) Set(key []byte, val interface{}) {
+
+	if !baseMapper.isRegistered() {
+		panic("mapper it's not prepared to work. you may forgot to register this mapper")
+	}
+
 	bz := baseMapper.EncodeObject(val)
 	baseMapper.store.Set(key, bz)
+}
+
+func (baseMapper *BaseMapper) Del(key []byte) {
+
+	if !baseMapper.isRegistered() {
+		panic("mapper it's not prepared to work. you may forgot to register this mapper")
+	}
+
+	baseMapper.store.Delete(key)
 }
 
 func (baseMapper *BaseMapper) GetCodec() *go_amino.Codec {
