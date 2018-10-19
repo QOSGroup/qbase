@@ -17,6 +17,10 @@ type QcpTxResult struct {
 
 var _ ITx = (*QcpTxResult)(nil)
 
+func (tx *QcpTxResult) IsOk() bool {
+	return tx.Code == int64(0)
+}
+
 // 功能：检测结构体字段的合法性
 // todo:QcpOriginalSequence 加入检测
 func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
@@ -30,8 +34,14 @@ func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
 // 功能：tx执行
 // 备注：用户根据tx.QcpOriginalSequence,需自行实现此接口
 func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) {
-	result = ctx.TxQcpResultHandler()(ctx, tx)
+	handler := ctx.TxQcpResultHandler()
 
+	if handler == nil {
+		result = types.ErrInternal("qcpResultHandler not set.").Result()
+		return
+	}
+
+	result = handler(ctx, tx)
 	return
 }
 

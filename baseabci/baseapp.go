@@ -639,7 +639,13 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
 func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
+
 	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+			result = types.ErrInternal(log).Result()
+		}
+
 		//6. txQcp不为result时， 保存执行结果
 		if !tx.IsResult {
 			//类型为TxQcp时，将所有结果进行保存
@@ -667,13 +673,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
 				AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
 		}
-	}()
 
-	defer func() {
-		if r := recover(); r != nil {
-			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
-		}
 	}()
 
 	//1. 校验TxQcp基础数据
