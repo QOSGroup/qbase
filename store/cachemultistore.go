@@ -123,12 +123,20 @@ func (cms cacheMultiStore) CacheMultiStore() CacheMultiStore {
 
 // Implements MultiStore.
 func (cms cacheMultiStore) GetStore(key StoreKey) Store {
-	return cms.stores[key].(Store)
+	var cc = cms.stores[key]
+	if cc == nil {
+		return nil
+	}
+	return cc.(Store)
 }
 
 // Implements MultiStore.
 func (cms cacheMultiStore) GetKVStore(key StoreKey) KVStore {
-	return cms.stores[key].(KVStore)
+	var cc = cms.stores[key]
+	if cc == nil {
+		return nil
+	}
+	return cc.(KVStore)
 }
 
 // Implements MultiStore.
