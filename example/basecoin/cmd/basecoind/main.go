@@ -1,13 +1,10 @@
 package main
 
 import (
-	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
-	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/server"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/cli"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -17,7 +14,7 @@ import (
 )
 
 func main() {
-	cdc := makeCodec()
+	cdc := app.MakeCodec()
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
@@ -40,13 +37,4 @@ func main() {
 
 func newApp(logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Application {
 	return app.NewApp(logger, db, storeTracer)
-}
-
-func makeCodec() *amino.Codec {
-	cdc := baseabci.MakeQBaseCodec()
-
-	types.RegisterCodec(cdc)
-	tx.RegisterCodec(cdc)
-
-	return cdc
 }

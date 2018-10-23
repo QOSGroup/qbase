@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/baseabci"
+	"github.com/QOSGroup/qbase/example/basecoin/app"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	bctypes "github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	cdc := makeCodec()
+	cdc := app.MakeCodec()
 
 	mode := flag.String("m", "", "client mode: get/send")
 	addr := flag.String("addr", "", "input account addr(bech32)")
@@ -268,12 +268,4 @@ func genQcpResultTx(cdc *amino.Codec, chainId string, caPriHex string, originseq
 	tx.Sig.Signature = sig
 	tx.Sig.Pubkey = caPriKey.PubKey()
 	return tx
-}
-
-func makeCodec() *amino.Codec {
-	cdc := baseabci.MakeQBaseCodec()
-	bctypes.RegisterCodec(cdc)
-	tx.RegisterCodec(cdc)
-
-	return cdc
 }
