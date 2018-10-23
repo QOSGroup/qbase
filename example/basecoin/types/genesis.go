@@ -22,8 +22,8 @@ type GenesisState struct {
 
 // 初始账户
 type GenesisAccount struct {
-	Address types.Address `json:"address"`
-	Coins   Coins         `json:"coins"`
+	Address types.Address    `json:"address"`
+	Coins   []types.BaseCoin `json:"coins"`
 }
 
 // 初始QCP配置
@@ -121,7 +121,7 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs []json.RawMessage) (appStat
     		"address": "%s",
     		"coins": [
       			{
-        			"name":"qstar",
+        			"coin_name":"qstar",
         			"amount":"100000000"
       			}
 			]

@@ -4,14 +4,11 @@ import (
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
-	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/qcp"
-	qbtypes "github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -34,9 +31,6 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 	app := &BaseCoinApp{
 		BaseApp: baseApp,
 	}
-
-	// txResult handler
-	app.RegisterTxQcpResultHandler(resultTxHandler)
 
 	// 设置 InitChainer
 	app.SetInitChainer(app.initChainer)
@@ -85,21 +79,8 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	return abci.ResponseInitChain{}
 }
 
-// 序列化反序列化相关注册
-func MakeCodec() *amino.Codec {
-	var cdc = amino.NewCodec()
-	cryptoAmino.RegisterAmino(cdc)
-	registerCdc(cdc)
-	baseabci.RegisterCodec(cdc)
-	return cdc
-}
-
+// 注册相应Codec
 func registerCdc(cdc *amino.Codec) {
-	cdc.RegisterConcrete(&types.AppAccount{}, "basecoin/AppAccount", nil)
-	cdc.RegisterConcrete(&tx.SendTx{}, "basecoin/SendTx", nil)
-}
-
-func resultTxHandler(ctx ctx.Context, txQcpResult interface{}) qbtypes.Result {
-	// TODO
-	return qbtypes.Result{}
+	types.RegisterCodec(cdc)
+	tx.RegisterCodec(cdc)
 }

@@ -1,11 +1,15 @@
 package main
 
 import (
+	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
+	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/server"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -14,7 +18,7 @@ import (
 )
 
 func main() {
-	cdc := app.MakeCodec()
+	cdc := makeCodec()
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
@@ -37,4 +41,15 @@ func main() {
 
 func newApp(logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Application {
 	return app.NewApp(logger, db, storeTracer)
+}
+
+func makeCodec() *amino.Codec {
+	var cdc = amino.NewCodec()
+	cryptoAmino.RegisterAmino(cdc)
+	baseabci.RegisterCodec(cdc)
+
+	types.RegisterCodec(cdc)
+	tx.RegisterCodec(cdc)
+
+	return cdc
 }

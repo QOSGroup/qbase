@@ -4,64 +4,93 @@ import (
 	"bytes"
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
-	bctypes "github.com/QOSGroup/qbase/example/basecoin/types"
+	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
-	"github.com/QOSGroup/qbase/types"
+	btypes "github.com/QOSGroup/qbase/types"
 )
 
 type SendTx struct {
-	From types.Address `json:"from"`
-	To   types.Address `json:"to"`
-	Coin bctypes.Coin  `json:"coin"`
+	From btypes.Address  `json:"from"`
+	To   btypes.Address  `json:"to"`
+	Coin btypes.BaseCoin `json:"coin"`
 }
 
 var _ txs.ITx = (*SendTx)(nil)
 
-func NewSendTx(from types.Address, to types.Address, coin bctypes.Coin) SendTx {
+func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) SendTx {
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
 func (tx *SendTx) ValidateData(ctx context.Context) bool {
-	if len(tx.From) == 0 || len(tx.To) == 0 || !tx.Coin.IsNotNegative() {
+	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
 		return false
 	}
 	return true
 }
 
-func (tx *SendTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
-	result = types.Result{
-		Code: types.ABCICodeOK,
+func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *txs.TxQcp) {
+	result = btypes.Result{
+		Code: btypes.ABCICodeOK,
 	}
-	//查询发送方账户信息，校验发送金额
+	// 查询发送方账户信息
 	mapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
-	fromAcc := mapper.GetAccount(tx.From).(*bctypes.AppAccount)
-	if fromAcc.AccountAddress == nil || fromAcc.Coins.AmountOf(tx.Coin.Name).LT(tx.Coin.Amount) {
-		result.Code = types.ABCICodeType(types.CodeInternal)
+	fromAcc := mapper.GetAccount(tx.From).(*types.AppAccount)
+	if fromAcc.AccountAddress == nil {
+		result.Code = btypes.ABCICodeType(btypes.CodeInternal)
 		return
 	}
-	//查询接收方账户信息
+	// 校验发送金额
+	exists := false
+	for _, c := range fromAcc.Coins {
+		if c.Name == tx.Coin.Name {
+			exists = true
+			if c.Amount.LT(tx.Coin.Amount) {
+				result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+				return
+			}
+		}
+	}
+	if !exists {
+		result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+		return
+	}
+
+	// 查询接收方账户信息
 	toAcc := mapper.GetAccount(tx.To)
 	if toAcc == nil {
-		toAcc = mapper.NewAccountWithAddress(tx.To).(*bctypes.AppAccount)
+		toAcc = mapper.NewAccountWithAddress(tx.To).(*types.AppAccount)
 	}
-	toAccount := toAcc.(*bctypes.AppAccount)
-	//更新账户状态
-	fromAcc.Coins = fromAcc.Coins.MinusSingle(tx.Coin)
+	toAccount := toAcc.(*types.AppAccount)
+	// 更新账户状态
+	for i, c := range fromAcc.Coins {
+		if c.Name == tx.Coin.Name {
+			fromAcc.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount.Neg())
+		}
+	}
 	mapper.SetAccount(fromAcc)
-	toAccount.Coins = toAccount.Coins.PlusSingle(tx.Coin)
+	exists = false
+	for i, c := range toAccount.Coins {
+		if c.Name == tx.Coin.Name {
+			exists = true
+			toAccount.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount)
+		}
+	}
+	if !exists {
+		toAccount.Coins = append(toAccount.Coins, tx.Coin)
+	}
 	mapper.SetAccount(toAccount)
 	return
 }
 
-func (tx *SendTx) GetSigner() []types.Address {
-	return []types.Address{tx.From}
+func (tx *SendTx) GetSigner() []btypes.Address {
+	return []btypes.Address{tx.From}
 }
 
-func (tx *SendTx) CalcGas() types.BigInt {
-	return types.ZeroInt()
+func (tx *SendTx) CalcGas() btypes.BigInt {
+	return btypes.ZeroInt()
 }
 
-func (tx *SendTx) GetGasPayer() types.Address {
+func (tx *SendTx) GetGasPayer() btypes.Address {
 	return tx.From
 }
 
