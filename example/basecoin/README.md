@@ -42,10 +42,6 @@ go build
 ```
 ./basecli -m=qcpquery -chainid=qstar -qcpseq=1
 ```
-10. QCP TxResult
-```
-./basecli -m=qcptxresult -chainid=qstar -qcpprikey=0xa3288910405746e29aeec7d5ed56fac138b215e651e3244e6d995f25cc8a74c40dd1ef8d2e8ac876faaa4fb281f17fb9bebb08bc14e016c3a88c6836602ca97595ae32300b -originseq=1 -qcpseq=2
-```
 
 参数说明：<br/>
 -m            账户查询：accquery，QCP sequence 查询：qcpseq，QCP查询：qcpquery，链内交易：stdtransfer，QCP交易：qcptransfer，QCP TxResult：qcptxresult<br/>
