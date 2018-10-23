@@ -79,7 +79,13 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	return abci.ResponseInitChain{}
 }
 
-// 注册相应Codec
+// 序列化反序列化相关注册
+func MakeCodec() *amino.Codec {
+	cdc := baseabci.MakeQBaseCodec()
+	registerCdc(cdc)
+	return cdc
+}
+
 func registerCdc(cdc *amino.Codec) {
 	types.RegisterCodec(cdc)
 	tx.RegisterCodec(cdc)

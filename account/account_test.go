@@ -3,9 +3,10 @@ package account
 import (
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
+	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-
+	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"testing"
 )
 
@@ -16,7 +17,18 @@ func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.Address) {
 	return key, pub, addr
 }
 
+func MakeCdc() *go_amino.Codec {
+	cdc := go_amino.NewCodec()
+	cryptoAmino.RegisterAmino(cdc)
+	RegisterCodec(cdc)
+
+	return cdc
+}
+
 func TestAccountMarshal(t *testing.T) {
+
+	cdc := MakeCdc()
+
 	_, pub, addr := keyPubAddr()
 	baseAccount := BaseAccount{addr, nil, 0}
 

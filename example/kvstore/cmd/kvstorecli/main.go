@@ -21,7 +21,7 @@ import (
 
 func main() {
 
-	cdc := MakeCdc()
+	cdc := kvstore.MakeKVStoreCodec()
 
 	mode := flag.String("m", "", "client mode \n: get , set  or  send")
 	key := flag.String("k", "", "input key")
@@ -53,14 +53,6 @@ func main() {
 		panic("wrong mode")
 	}
 
-}
-
-func MakeCdc() *go_amino.Codec {
-	var cdc = go_amino.NewCodec()
-	txs.RegisterCodec(cdc)
-
-	cdc.RegisterConcrete(&kvstore.KvstoreTx{}, "kvstore/main/kvstoretx", nil)
-	return cdc
 }
 
 func getValue(key string, http *client.HTTP, cdc *go_amino.Codec) string {

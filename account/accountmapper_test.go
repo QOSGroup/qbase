@@ -30,6 +30,9 @@ func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) con
 }
 
 func TestAccountMapperGetSet(t *testing.T) {
+
+	cdc := MakeCdc()
+
 	seedMapper := NewAccountMapper(ProtoBaseAccount)
 	seedMapper.SetCodec(cdc)
 

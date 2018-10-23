@@ -68,6 +68,7 @@ var _ abci.Application = (*BaseApp)(nil)
 // NewBaseApp returns a reference to an initialized BaseApp.
 func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
 
+	cdc := MakeQBaseCodec()
 	if registerCodecFunc != nil {
 		registerCodecFunc(cdc)
 	}

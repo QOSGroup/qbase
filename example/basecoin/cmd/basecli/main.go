@@ -12,7 +12,6 @@ import (
 	"github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/rpc/client"
 	"strconv"
@@ -73,7 +72,7 @@ func queryAccount(http *client.HTTP, cdc *amino.Codec, addr *string) {
 	var acc *bctypes.AppAccount
 	cdc.UnmarshalBinaryBare(queryValueBz, &acc)
 
-	json,_ := cdc.MarshalJSON(acc)
+	json, _ := cdc.MarshalJSON(acc)
 	fmt.Println(fmt.Sprintf("query addr is %s = %s", *addr, json))
 }
 
@@ -125,7 +124,7 @@ func queryQCP(http *client.HTTP, cdc *amino.Codec, chainid *string, qcpseq *int6
 		cdc.UnmarshalBinaryBare(result.Response.GetValue(), &tx)
 	}
 
-	json,_ := cdc.MarshalJSON(tx)
+	json, _ := cdc.MarshalJSON(tx)
 	fmt.Println(fmt.Sprintf("query chain is %s, tx out[%d] is %s", *chainid, *qcpseq, json))
 }
 
@@ -154,7 +153,7 @@ func stdTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 		panic("BroadcastTxSync err")
 	}
 
-	json,_ := cdc.MarshalJSON(txStd)
+	json, _ := cdc.MarshalJSON(txStd)
 	fmt.Println(fmt.Sprintf("send tx is %s", json))
 }
 
@@ -184,7 +183,7 @@ func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 		panic("BroadcastTxSync err")
 	}
 
-	json,_ := cdc.MarshalJSON(txStd)
+	json, _ := cdc.MarshalJSON(txStd)
 	fmt.Println(fmt.Sprintf("send tx is %s", json))
 }
 
@@ -206,7 +205,7 @@ func qcpTxResult(http *client.HTTP, cdc *amino.Codec, chainId *string, qcpPriKey
 		panic("BroadcastTxSync err")
 	}
 
-	json,_ := cdc.MarshalJSON(txStd)
+	json, _ := cdc.MarshalJSON(txStd)
 	fmt.Println(fmt.Sprintf("send tx is %s", json))
 }
 
@@ -272,10 +271,7 @@ func genQcpResultTx(cdc *amino.Codec, chainId string, caPriHex string, originseq
 }
 
 func makeCodec() *amino.Codec {
-	var cdc = amino.NewCodec()
-	cryptoAmino.RegisterAmino(cdc)
-	baseabci.RegisterCodec(cdc)
-
+	cdc := baseabci.MakeQBaseCodec()
 	bctypes.RegisterCodec(cdc)
 	tx.RegisterCodec(cdc)
 

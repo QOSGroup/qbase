@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -44,9 +43,7 @@ func newApp(logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Applicatio
 }
 
 func makeCodec() *amino.Codec {
-	var cdc = amino.NewCodec()
-	cryptoAmino.RegisterAmino(cdc)
-	baseabci.RegisterCodec(cdc)
+	cdc := baseabci.MakeQBaseCodec()
 
 	types.RegisterCodec(cdc)
 	tx.RegisterCodec(cdc)
