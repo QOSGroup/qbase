@@ -2,12 +2,13 @@ package context_test
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/QOSGroup/qbase/context"
+	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
+	"reflect"
+	"testing"
 
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -205,5 +206,112 @@ func TestContextWithCustom(t *testing.T) {
 	ctx = ctx.WithBlockTxIndex(1)
 	index = ctx.BlockTxIndex()
 	require.Equal(t, int64(1), index)
+
+}
+
+type mapperA struct {
+	*mapper.BaseMapper
+}
+
+type mapperB struct {
+	*mapper.BaseMapper
+}
+
+var _ mapper.IMapper = (*mapperA)(nil)
+
+var _ mapper.IMapper = (*mapperB)(nil)
+
+func newMapperA() *mapperA {
+	a := &mapperA{}
+	a.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey("A"))
+	return a
+}
+
+func newMapperB() *mapperB {
+	b := &mapperB{}
+	b.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey("B"))
+	return b
+}
+
+func (mapper *mapperA) Name() string {
+	return "A"
+}
+
+func (mapper *mapperA) Copy() mapper.IMapper {
+	cpy := &mapperA{}
+	cpy.BaseMapper = mapper.BaseMapper.Copy()
+	return cpy
+}
+
+func (mapper *mapperB) Name() string {
+	return "B"
+}
+
+func (mapper *mapperB) Copy() mapper.IMapper {
+	cpy := &mapperB{}
+	cpy.BaseMapper = mapper.BaseMapper.Copy()
+	return cpy
+}
+
+func TestCopyKVStoreMapperFromSeed(t *testing.T) {
+
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db)
+
+	ma := newMapperA()
+	mb := newMapperB()
+
+	cms.MountStoreWithDB(ma.GetStoreKey(), store.StoreTypeIAVL, nil)
+	cms.MountStoreWithDB(mb.GetStoreKey(), store.StoreTypeIAVL, nil)
+	cms.LoadLatestVersion()
+
+	registerMapper := make(map[string]mapper.IMapper)
+	registerMapper[ma.Name()] = ma
+	registerMapper[mb.Name()] = mb
+
+	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), registerMapper)
+
+	ma = ctx.Mapper("A").(*mapperA)
+	maStore := ma.GetStore()
+
+	require.NotEqual(t, nil, maStore)
+
+	newCtx, _ := ctx.CacheContext()
+
+	newMa := newCtx.Mapper("A").(*mapperA)
+	newMaStore := newMa.GetStore()
+
+	require.NotEqual(t, nil, newMaStore)
+
+	fmt.Printf("%X,%X \n", maStore, newMaStore)
+
+	require.NotEqual(t, maStore, newMaStore)
+
+	childCtx, _ := newCtx.CacheContext()
+
+	childMa := childCtx.Mapper("A").(*mapperA)
+	ChildStore := childMa.GetStore()
+
+	require.NotEqual(t, nil, ChildStore)
+
+	fmt.Printf("%X,%X \n", ChildStore, newMaStore)
+
+	require.NotEqual(t, ChildStore, newMaStore)
+
+	val := reflect.ValueOf(ChildStore)
+	childVal := val.Elem()
+
+	parentVal := childVal.FieldByName("parent")
+	pVal := parentVal.Elem()
+
+	fmt.Println(pVal.Type())
+	fmt.Println(pVal.Pointer())
+
+	nVal := reflect.ValueOf(newMaStore)
+
+	fmt.Println(nVal.Type())
+	fmt.Println(nVal.Pointer())
+
+	require.Equal(t, pVal.Pointer(), nVal.Pointer())
 
 }
