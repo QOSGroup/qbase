@@ -14,7 +14,7 @@ type TxQcp struct {
 	Sequence    int64     `json:"sequence"`    //发送Sequence
 	Sig         Signature `json:"sig"`         //签名
 	BlockHeight int64     `json:"blockheight"` //Tx所在block高度
-	TxIndx      int64     `json:"txindx"`      //Tx在block的位置
+	TxIndex      int64     `json:"txindex"`      //Tx在block的位置
 	IsResult    bool      `json:"isresult"`    //是否为Result
 }
 
@@ -37,7 +37,7 @@ func (tx *TxQcp) GetSigData() []byte {
 	ret = append(ret, []byte(tx.To)...)
 	ret = append(ret, types.Int2Byte(tx.Sequence)...)
 	ret = append(ret, types.Int2Byte(tx.BlockHeight)...)
-	ret = append(ret, types.Int2Byte(tx.TxIndx)...)
+	ret = append(ret, types.Int2Byte(tx.TxIndex)...)
 	ret = append(ret, types.Bool2Byte(tx.IsResult)...)
 
 	return ret

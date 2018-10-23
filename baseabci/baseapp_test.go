@@ -457,7 +457,7 @@ func TestCrossStdTx(t *testing.T) {
 
 		require.Equal(t, i, outQcpTx.Sequence)
 		require.Equal(t, cid, outQcpTx.From)
-		require.Equal(t, i-1, outQcpTx.TxIndx)
+		require.Equal(t, i-1, outQcpTx.TxIndex)
 	}
 
 }
