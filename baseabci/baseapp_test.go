@@ -13,6 +13,7 @@ import (
 	"os"
 	"testing"
 
+	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -23,11 +24,6 @@ import (
 
 const cid = "test"
 
-func init() {
-	cdc.RegisterConcrete(&transferTx{}, "baseapp/test/transferTx", nil)
-	cdc.RegisterConcrete(&testAccount{}, "baseapp/test/testAccount", nil)
-}
-
 func defaultLogger() log.Logger {
 	return log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "base/app")
 }
@@ -37,7 +33,10 @@ func mockApp() *BaseApp {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
 
-	app := NewBaseApp("test", logger, db, nil)
+	app := NewBaseApp("test", logger, db, func(cdc *go_amino.Codec) {
+		cdc.RegisterConcrete(&transferTx{}, "baseapp/test/transferTx", nil)
+		cdc.RegisterConcrete(&testAccount{}, "baseapp/test/testAccount", nil)
+	})
 
 	app.RegisterAccountProto(func() account.Account {
 		baseAccount := &account.BaseAccount{}
