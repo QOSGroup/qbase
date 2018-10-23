@@ -98,7 +98,7 @@ func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, txStd *txs.TxStd,
 		To:          toChainID,
 		Sequence:    maxSequence + 1,
 		BlockHeight: ctx.BlockHeight(),
-		TxIndx:      ctx.BlockTxIndex(),
+		TxIndex:      ctx.BlockTxIndex(),
 		IsResult:    isResult,
 	}
 
