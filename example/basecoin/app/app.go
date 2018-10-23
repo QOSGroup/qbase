@@ -4,10 +4,8 @@ import (
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
-	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/qcp"
-	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -25,7 +23,7 @@ type BaseCoinApp struct {
 
 func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 
-	baseApp := baseabci.NewBaseApp(appName, logger, db, registerCdc)
+	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec)
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
 	app := &BaseCoinApp{
@@ -77,16 +75,4 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	}
 
 	return abci.ResponseInitChain{}
-}
-
-// 序列化反序列化相关注册
-func MakeCodec() *amino.Codec {
-	cdc := baseabci.MakeQBaseCodec()
-	registerCdc(cdc)
-	return cdc
-}
-
-func registerCdc(cdc *amino.Codec) {
-	types.RegisterCodec(cdc)
-	tx.RegisterCodec(cdc)
 }
