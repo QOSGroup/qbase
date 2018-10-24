@@ -146,6 +146,11 @@ func (i BigInt) IsInt64() bool {
 	return i.i.IsInt64()
 }
 
+// 判断bigint中的实体数值是否为空
+func (bi BigInt) IsNil() bool {
+	return bi.i == nil
+}
+
 // IsZero returns true if BigInt is zero
 func (i BigInt) IsZero() bool {
 	return i.i.Sign() == 0
