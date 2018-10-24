@@ -68,6 +68,7 @@ var _ abci.Application = (*BaseApp)(nil)
 // NewBaseApp returns a reference to an initialized BaseApp.
 func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
 
+	cdc := MakeQBaseCodec()
 	if registerCodecFunc != nil {
 		registerCodecFunc(cdc)
 	}
@@ -627,7 +628,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
-			AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
 
 	if result.IsOK() {
@@ -639,7 +640,13 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
 func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
+
 	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+			result = types.ErrInternal(log).Result()
+		}
+
 		//6. txQcp不为result时， 保存执行结果
 		if !tx.IsResult {
 			//类型为TxQcp时，将所有结果进行保存
@@ -665,15 +672,9 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
 			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
-				AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 		}
-	}()
 
-	defer func() {
-		if r := recover(); r != nil {
-			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
-		}
 	}()
 
 	//1. 校验TxQcp基础数据

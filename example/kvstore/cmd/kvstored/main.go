@@ -28,7 +28,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	var baseapp = baseabci.NewBaseApp("kvstore", logger, db, registerKVCdc)
+	var baseapp = baseabci.NewBaseApp("kvstore", logger, db, func(cdc *go_amino.Codec) {
+		kvstore.RegisterCodec(cdc)
+	})
 
 	baseapp.RegisterAccountProto(func() account.Account {
 		return &account.BaseAccount{}
@@ -64,8 +66,4 @@ func main() {
 	})
 	return
 
-}
-
-func registerKVCdc(cdc *go_amino.Codec) {
-	cdc.RegisterConcrete(&kvstore.KvstoreTx{}, "kvstore/main/kvstoretx", nil)
 }

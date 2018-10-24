@@ -7,14 +7,12 @@ import (
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
-var cdc = go_amino.NewCodec()
+func MakeQBaseCodec() *go_amino.Codec {
 
-func init() {
+	var cdc = go_amino.NewCodec()
 	cryptoAmino.RegisterAmino(cdc)
-	RegisterCodec(cdc)
-}
-
-func RegisterCodec(cdc *go_amino.Codec) {
 	txs.RegisterCodec(cdc)
 	account.RegisterCodec(cdc)
+
+	return cdc
 }

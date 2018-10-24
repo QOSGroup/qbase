@@ -23,9 +23,8 @@ qbase是QOS通用区块链应用框架，基于此框架开发QOS公链和联盟
 * [basecoin](https://github.com/QOSGroup/qbase/tree/master/example/basecoin)
 
 ## Quick Start
-* 创建一个新abci
-* 交易实现
-* qcp交易
+
+[Quick Start](./docs/quick_start.md)
 
 ## 已实现区块链应用
 * [qos](https://github.com/QOSGroup/qos)，QOS公链，支持双层代币和跨链交易

@@ -12,6 +12,7 @@ import (
 	"github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/rpc/client"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ func main() {
 	chainId := flag.String("chainid", "", "input qcp chainId")
 	qcpPriKey := flag.String("qcpprikey", "", "input qcp prikey")
 	qcpseq := flag.Int64("qcpseq", 0, "input qcp sequence")
-	isresult := flag.Bool("isresult", false, "input qcp isresult")
+	originseq := flag.Int64("originseq", 0, "input qcp origin sequence")
 
 	flag.Parse()
 
@@ -46,9 +47,12 @@ func main() {
 	case "stdtransfer": // 链内交易
 		stdTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce)
 	case "qcptransfer": // QCP交易
-		qcpTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce, chainId, qcpPriKey, qcpseq, isresult)
+		qcpTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce, chainId, qcpPriKey, qcpseq)
+	case "qcptxresult": // QCP TxResult
+		qcpTxResult(http, cdc, chainId, qcpPriKey, originseq, qcpseq)
+	default:
+		fmt.Println("invalid command")
 	}
-
 }
 
 // 查询账户状态
@@ -67,7 +71,8 @@ func queryAccount(http *client.HTTP, cdc *amino.Codec, addr *string) {
 	var acc *bctypes.AppAccount
 	cdc.UnmarshalBinaryBare(queryValueBz, &acc)
 
-	fmt.Println(fmt.Sprintf("query addr is %s = %v", *addr, acc))
+	json, _ := cdc.MarshalJSON(acc)
+	fmt.Println(fmt.Sprintf("query addr is %s = %s", *addr, json))
 }
 
 // 查询QCP Sequence
@@ -77,7 +82,7 @@ func queryQCPSequence(http *client.HTTP, cdc *amino.Codec, chainid *string, qcps
 	}
 
 	// in sequence
-	keyIn := fmt.Sprintf("[%s]/in/sequence", *chainid)
+	keyIn := fmt.Sprintf("sequence/in/%s", *chainid)
 	inResult, err := http.ABCIQuery("/store/qcp/key", []byte(keyIn))
 	if err != nil {
 		panic(err)
@@ -88,7 +93,7 @@ func queryQCPSequence(http *client.HTTP, cdc *amino.Codec, chainid *string, qcps
 	}
 
 	// out sequence
-	keyOut := fmt.Sprintf("[%s]/out/sequence", *chainid)
+	keyOut := fmt.Sprintf("sequence/out/%s", *chainid)
 	outResult, err := http.ABCIQuery("/store/qcp/key", []byte(keyOut))
 	if err != nil {
 		panic(err)
@@ -107,7 +112,7 @@ func queryQCP(http *client.HTTP, cdc *amino.Codec, chainid *string, qcpseq *int6
 		panic("usage: -m=qcpquery -chainid=xxx -qcpseq=xxx -inout=xxx")
 	}
 
-	key := fmt.Sprintf("[%s]/out/tx_[%d]", *chainid, *qcpseq)
+	key := fmt.Sprintf("tx/out/%s/%d", *chainid, *qcpseq)
 	result, err := http.ABCIQuery("/store/qcp/key", []byte(key))
 	if err != nil {
 		panic(err)
@@ -118,7 +123,8 @@ func queryQCP(http *client.HTTP, cdc *amino.Codec, chainid *string, qcpseq *int6
 		cdc.UnmarshalBinaryBare(result.Response.GetValue(), &tx)
 	}
 
-	fmt.Println(fmt.Sprintf("query chain is %s, tx out[%d] is %v", *chainid, *qcpseq, tx))
+	json, _ := cdc.MarshalJSON(tx)
+	fmt.Println(fmt.Sprintf("query chain is %s, tx out[%d] is %s", *chainid, *qcpseq, json))
 }
 
 // 链内交易
@@ -130,7 +136,7 @@ func stdTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 	senderAddr, _ := types.GetAddrFromBech32(*sender)
 	receiverAddr, _ := types.GetAddrFromBech32(*receiver)
 	amount, _ := strconv.ParseInt(coin[1], 10, 64)
-	txStd := genStdSendTx(cdc, senderAddr, receiverAddr, bctypes.Coin{
+	txStd := genStdSendTx(cdc, senderAddr, receiverAddr, types.BaseCoin{
 		coin[0],
 		types.NewInt(amount),
 	}, *prikey, *nonce)
@@ -146,12 +152,13 @@ func stdTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 		panic("BroadcastTxSync err")
 	}
 
-	fmt.Println(fmt.Sprintf("send tx is %v", txStd))
+	json, _ := cdc.MarshalJSON(txStd)
+	fmt.Println(fmt.Sprintf("send tx is %s", json))
 }
 
 // QCP交易
 func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *string, receiver *string, coinStr *string, nonce *int64,
-	chainId *string, qcpPriKey *string, qcpseq *int64, isresult *bool) {
+	chainId *string, qcpPriKey *string, qcpseq *int64) {
 	coin := strings.Split(*coinStr, ",")
 	if *sender == "" || *receiver == "" || len(coin) != 2 || *nonce < 0 || *chainId == "" || *qcpPriKey == "" || *qcpseq <= 0 {
 		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>=0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx")
@@ -159,10 +166,10 @@ func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 	senderAddr, _ := types.GetAddrFromBech32(*sender)
 	receiverAddr, _ := types.GetAddrFromBech32(*receiver)
 	amount, _ := strconv.ParseInt(coin[1], 10, 64)
-	txStd := genQcpSendTx(cdc, senderAddr, receiverAddr, bctypes.Coin{
+	txStd := genQcpSendTx(cdc, senderAddr, receiverAddr, types.BaseCoin{
 		coin[0],
 		types.NewInt(amount),
-	}, *prikey, *nonce, *chainId, *qcpPriKey, *qcpseq, *isresult)
+	}, *prikey, *nonce, *chainId, *qcpPriKey, *qcpseq)
 
 	tx, err := cdc.MarshalBinaryBare(txStd)
 	if err != nil {
@@ -175,19 +182,41 @@ func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 		panic("BroadcastTxSync err")
 	}
 
-	fmt.Println(fmt.Sprintf("send tx is %v", txStd))
+	json, _ := cdc.MarshalJSON(txStd)
+	fmt.Println(fmt.Sprintf("send tx is %s", json))
 }
 
-// 生成链内交易SendTx
-func genStdSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address, coin bctypes.Coin,
+// QCP result
+func qcpTxResult(http *client.HTTP, cdc *amino.Codec, chainId *string, qcpPriKey *string, originseq *int64, qcpseq *int64) {
+	if *chainId == "" || *qcpPriKey == "" || *qcpseq <= 0 {
+		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>=0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx")
+	}
+	txStd := genQcpResultTx(cdc, *chainId, *qcpPriKey, *originseq, *qcpseq)
+
+	tx, err := cdc.MarshalBinaryBare(txStd)
+	if err != nil {
+		panic("use cdc encode object fail")
+	}
+
+	_, err = http.BroadcastTxSync(tx)
+	if err != nil {
+		fmt.Println(err)
+		panic("BroadcastTxSync err")
+	}
+
+	json, _ := cdc.MarshalJSON(txStd)
+	fmt.Println(fmt.Sprintf("send tx is %s", json))
+}
+
+// 生成链内交易
+func genStdSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address, coin types.BaseCoin,
 	senderPriHex string, nonce int64) *txs.TxStd {
 	sendTx := tx.NewSendTx(sender, receiver, coin)
 	tx := txs.NewTxStd(&sendTx, "basecoin-chain", types.NewInt(int64(0)))
 	priHex, _ := hex.DecodeString(senderPriHex[2:])
 	var priKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(priHex, &priKey)
-	signData := append(tx.GetSignData(), types.Int2Byte(int64(nonce))...)
-	signature, _ := priKey.Sign(signData)
+	signature, _ := tx.SignTx(priKey, nonce)
 	tx.Signature = []txs.Signature{txs.Signature{
 		Pubkey:    priKey.PubKey(),
 		Signature: signature,
@@ -197,26 +226,43 @@ func genStdSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address
 	return tx
 }
 
-// 生成QCP交易SendTx
-func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address, coin bctypes.Coin,
-	senderPriHex string, nonce int64, chainId string, caPriHex string, qcpseq int64, isresult bool) *txs.TxQcp {
+// 生成QCP交易
+func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address, coin types.BaseCoin,
+	senderPriHex string, nonce int64, chainId string, caPriHex string, qcpseq int64) *txs.TxQcp {
 	sendTx := tx.NewSendTx(sender, receiver, coin)
 	std := txs.NewTxStd(&sendTx, "basecoin-chain", types.NewInt(int64(0)))
 	priHex, _ := hex.DecodeString(senderPriHex[2:])
 	var priKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(priHex, &priKey)
-	signData := append(std.GetSignData(), types.Int2Byte(int64(nonce))...)
-	signature, _ := priKey.Sign(signData)
+	signature, _ := std.SignTx(priKey, nonce)
 	std.Signature = []txs.Signature{txs.Signature{
 		Pubkey:    priKey.PubKey(),
 		Signature: signature,
 		Nonce:     nonce,
 	}}
-	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, isresult)
+	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, false)
 	caHex, _ := hex.DecodeString(caPriHex[2:])
 	var caPriKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)
-	sig, _ := caPriKey.Sign(tx.GetSigData())
+	sig, _ := tx.SignTx(caPriKey)
+	tx.Sig.Nonce = qcpseq
+	tx.Sig.Signature = sig
+	tx.Sig.Pubkey = caPriKey.PubKey()
+	return tx
+}
+
+// 生成QCP ResultTx 逻辑不完善
+func genQcpResultTx(cdc *amino.Codec, chainId string, caPriHex string, originseq int64, qcpseq int64) *txs.TxQcp {
+	var ext []common.KVPair
+	ext = append(ext, common.KVPair{[]byte("test"), []byte("tset")})
+	resultTx := txs.NewQcpTxResult(0, &ext, originseq, types.ZeroInt(), "")
+	std := txs.NewTxStd(resultTx, "basecoin-chain", types.NewInt(int64(0)))
+	std.Signature = []txs.Signature{}
+	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, true)
+	caHex, _ := hex.DecodeString(caPriHex[2:])
+	var caPriKey ed25519.PrivKeyEd25519
+	cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)
+	sig, _ := tx.SignTx(caPriKey)
 	tx.Sig.Nonce = qcpseq
 	tx.Sig.Signature = sig
 	tx.Sig.Pubkey = caPriKey.PubKey()
