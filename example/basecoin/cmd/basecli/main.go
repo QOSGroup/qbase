@@ -53,7 +53,6 @@ func main() {
 	default:
 		fmt.Println("invalid command")
 	}
-
 }
 
 // 查询账户状态
@@ -83,7 +82,7 @@ func queryQCPSequence(http *client.HTTP, cdc *amino.Codec, chainid *string, qcps
 	}
 
 	// in sequence
-	keyIn := fmt.Sprintf("[%s]/in/sequence", *chainid)
+	keyIn := fmt.Sprintf("sequence/in/%s", *chainid)
 	inResult, err := http.ABCIQuery("/store/qcp/key", []byte(keyIn))
 	if err != nil {
 		panic(err)
@@ -94,7 +93,7 @@ func queryQCPSequence(http *client.HTTP, cdc *amino.Codec, chainid *string, qcps
 	}
 
 	// out sequence
-	keyOut := fmt.Sprintf("[%s]/out/sequence", *chainid)
+	keyOut := fmt.Sprintf("sequence/out/%s", *chainid)
 	outResult, err := http.ABCIQuery("/store/qcp/key", []byte(keyOut))
 	if err != nil {
 		panic(err)
@@ -113,7 +112,7 @@ func queryQCP(http *client.HTTP, cdc *amino.Codec, chainid *string, qcpseq *int6
 		panic("usage: -m=qcpquery -chainid=xxx -qcpseq=xxx -inout=xxx")
 	}
 
-	key := fmt.Sprintf("[%s]/out/tx_[%d]", *chainid, *qcpseq)
+	key := fmt.Sprintf("tx/out/%s/%d", *chainid, *qcpseq)
 	result, err := http.ABCIQuery("/store/qcp/key", []byte(key))
 	if err != nil {
 		panic(err)
