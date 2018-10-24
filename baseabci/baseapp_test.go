@@ -251,7 +251,7 @@ func TestTxQcpResult(t *testing.T) {
 	app.Commit()
 
 	// -------------------------------------
-	inKey := []byte(fmt.Sprintf("[%s]/in/sequence", cid))
+	inKey := []byte(fmt.Sprintf("sequence/in/%s", cid))
 	query := abci.RequestQuery{
 		Path:   "/store/qcp/key",
 		Data:   inKey,
@@ -317,7 +317,7 @@ func TestTxQcp(t *testing.T) {
 	app.Commit()
 
 	// -------------------------------------
-	inKey := []byte(fmt.Sprintf("[%s]/in/sequence", cid))
+	inKey := []byte(fmt.Sprintf("sequence/in/%s", cid))
 	query := abci.RequestQuery{
 		Path:   "/store/qcp/key",
 		Data:   inKey,
@@ -331,7 +331,7 @@ func TestTxQcp(t *testing.T) {
 
 	// -------------------------------------
 
-	outKey := []byte(fmt.Sprintf("[%s]/out/sequence", cid))
+	outKey := []byte(fmt.Sprintf("sequence/out/%s", cid))
 	query = abci.RequestQuery{
 		Path:   "/store/qcp/key",
 		Data:   outKey,
@@ -345,7 +345,7 @@ func TestTxQcp(t *testing.T) {
 	// -------------------------------------
 
 	for i := int64(1); i <= seq; i++ {
-		key := []byte(fmt.Sprintf("[%s]/out/tx_[%d]", cid, i))
+		key := []byte(fmt.Sprintf("tx/out/%s/%d", cid, i))
 		query := abci.RequestQuery{
 			Path:   "/store/qcp/key",
 			Data:   key,
@@ -428,7 +428,7 @@ func TestCrossStdTx(t *testing.T) {
 	app.EndBlock(abci.RequestEndBlock{})
 	app.Commit()
 
-	k1 := []byte(fmt.Sprintf("[%s]/out/sequence", cid))
+	k1 := []byte(fmt.Sprintf("sequence/out/%s", cid))
 	queryHeight1 := abci.RequestQuery{
 		Path:   "/store/qcp/key",
 		Data:   k1,
@@ -441,7 +441,7 @@ func TestCrossStdTx(t *testing.T) {
 	require.Equal(t, int64(5), seq)
 
 	for i := int64(1); i <= seq; i++ {
-		k2 := []byte(fmt.Sprintf("[%s]/out/tx_[%d]", cid, i))
+		k2 := []byte(fmt.Sprintf("tx/out/%s/%d", cid, i))
 		queryHeight2 := abci.RequestQuery{
 			Path:   "/store/qcp/key",
 			Data:   k2,
