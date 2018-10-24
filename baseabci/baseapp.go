@@ -628,7 +628,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
-			AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
 
 	if result.IsOK() {
@@ -672,7 +672,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
 			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
-				AppendTag(qcp.QcpHashBytes, crypto.Sha256(txQcp.GetSigData()))
+				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 		}
 
 	}()
