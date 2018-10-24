@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.0.3
+
+2018.10.24
+
+修改qcp event相关tag名称，修改qcp存储key命名规则
+
+BREAKING CHANGES:
+
+* [tx] 修改qcp event相关tag名称。
+* [tx] 修改qcp存储key命名规则。
+
+FEATURES:
+    
+
+IMPROVEMENTS:   
+
+
+BUG FIXES:
+
+
 ## v0.0.2
 
 2018.10.23
