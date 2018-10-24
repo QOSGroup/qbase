@@ -11,12 +11,16 @@ import (
 )
 
 const (
-	QcpMapperName    = "qcpmapper"
-	storeKey         = "qcp"
-	outSequenceKey   = "[%s]/out/sequence"
-	outSequenceTxKey = "[%s]/out/tx_[%d]"
-	inSequenceKey    = "[%s]/in/sequence"
-	inPubkeyKey      = "[%s]/in/pubkey"
+	QcpMapperName = "qcpmapper"
+	storeKey      = "qcp"
+	//需要输出到"chainId"的qcp tx最大序号
+	outSequenceKey = "sequence/out/%s"
+	//需要输出到"chainId"的每个qcp tx
+	outSequenceTxKey = "tx/out/%s/%d"
+	//已经接受到来自"chainId"的qcp tx最大序号
+	inSequenceKey = "sequence/in/%s"
+	//接受来自"chainId"的合法公钥
+	inPubkeyKey = "pubkey/in/%s"
 )
 
 type QcpMapper struct {
@@ -98,7 +102,7 @@ func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, txStd *txs.TxStd,
 		To:          toChainID,
 		Sequence:    maxSequence + 1,
 		BlockHeight: ctx.BlockHeight(),
-		TxIndex:      ctx.BlockTxIndex(),
+		TxIndex:     ctx.BlockTxIndex(),
 		IsResult:    isResult,
 	}
 
