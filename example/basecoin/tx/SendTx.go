@@ -3,13 +3,13 @@ package tx
 import (
 	"bytes"
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
 	btypes "github.com/QOSGroup/qbase/types"
 )
 
 type SendTx struct {
+	*txs.TxWithContext
 	From btypes.Address  `json:"from"`
 	To   btypes.Address  `json:"to"`
 	Coin btypes.BaseCoin `json:"coin"`
@@ -21,14 +21,17 @@ func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) Sen
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
-func (tx *SendTx) ValidateData(ctx context.Context) bool {
+func (tx *SendTx) ValidateData() bool {
 	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
 		return false
 	}
 	return true
 }
 
-func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *txs.TxQcp) {
+func (tx *SendTx) Exec() (result btypes.Result, crossTxQcps *txs.TxQcp) {
+
+	ctx := tx.CurrentContext()
+
 	result = btypes.Result{
 		Code: btypes.ABCICodeOK,
 	}

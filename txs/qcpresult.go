@@ -1,7 +1,6 @@
 package txs
 
 import (
-	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	tcommon "github.com/tendermint/tendermint/libs/common"
 )
@@ -12,7 +11,8 @@ type QcpTxResult struct {
 	Extends             []tcommon.KVPair `json:"extends"`             //结果附加值
 	GasUsed             types.BigInt     `json:"gasused"`             //gas消耗值
 	QcpOriginalSequence int64            `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
-	Info                string           `json:"info"`                //结果信息
+	*TxWithContext
+	Info string `json:"info"` //结果信息
 }
 
 var _ ITx = (*QcpTxResult)(nil)
@@ -23,7 +23,7 @@ func (tx *QcpTxResult) IsOk() bool {
 
 // 功能：检测结构体字段的合法性
 // todo:QcpOriginalSequence 加入检测
-func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
+func (tx *QcpTxResult) ValidateData() bool {
 	if tx.Extends == nil || len(tx.Extends) == 0 || types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
 		return false
 	}
@@ -33,7 +33,9 @@ func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
 
 // 功能：tx执行
 // 备注：用户根据tx.QcpOriginalSequence,需自行实现此接口
-func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) {
+func (tx *QcpTxResult) Exec() (result types.Result, crossTxQcps *TxQcp) {
+
+	ctx := tx.CurrentContext()
 	handler := ctx.TxQcpResultHandler()
 
 	if handler == nil {
@@ -75,13 +77,13 @@ func (tx *QcpTxResult) GetSignData() []byte {
 }
 
 // 功能：构建 QcpTxReasult 结构体
-func NewQcpTxResult(code int64, ext *[]tcommon.KVPair, sequence int64, gasused types.BigInt, info string) (rTx *QcpTxResult) {
+func NewQcpTxResult(code int64, ext []tcommon.KVPair, sequence int64, gasused types.BigInt, info string) (rTx *QcpTxResult) {
 	rTx = &QcpTxResult{
-		code,
-		*ext,
-		gasused,
-		sequence,
-		info,
+		Code:                code,
+		Extends:             ext,
+		GasUsed:             gasused,
+		QcpOriginalSequence: sequence,
+		Info:                info,
 	}
 	return rTx
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"reflect"
 	"runtime/debug"
 	"strings"
 
@@ -388,8 +389,11 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 		}
 	}()
 
+	//初始化tx.itx上下文context
+	preInitITxContext(tx.ITx, ctx, app.Logger)
+
 	//1. 校验txStd基础信息
-	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
+	err := tx.ValidateBasicData(true, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}
@@ -488,6 +492,9 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 			result = types.ErrInternal(log).Result()
 		}
 	}()
+
+	//初始化tx.itx上下文context
+	// preInitITxContext(tx.TxStd.ITx, ctx, app.Logger)
 
 	//1. 校验txQcp基础数据
 	err := tx.ValidateBasicData(true, ctx.ChainID())
@@ -589,8 +596,10 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		}
 	}()
 
+	//初始化tx.itx上下文context
+	preInitITxContext(tx.ITx, ctx, app.Logger)
 	//1. 校验基础数据
-	err := tx.ValidateBasicData(ctx, false, ctx.ChainID())
+	err := tx.ValidateBasicData(false, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}
@@ -615,7 +624,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	ctx = ctx.WithMultiStore(msCache)
 
 	var crossTxQcp *txs.TxQcp
-	result, crossTxQcp = tx.ITx.Exec(ctx)
+	result, crossTxQcp = tx.ITx.Exec()
 
 	//4. 根据crossTxQcp结果判断是否保存跨链结果
 	// crossTxQcp 不为空时，需要将跨链结果保存
@@ -676,6 +685,9 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		}
 
 	}()
+
+	//初始化tx.itx上下文context
+	// preInitITxContext(tx.TxStd.ITx, ctx, app.Logger)
 
 	//1. 校验TxQcp基础数据
 	err := tx.ValidateBasicData(false, ctx.ChainID())
@@ -768,4 +780,21 @@ func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
 		return nil
 	}
 	return mapper.(*account.AccountMapper)
+}
+
+func preInitITxContext(itx txs.ITx, ctx ctx.Context, logger log.Logger) {
+
+	v := reflect.ValueOf(itx)
+	e := v.Elem()
+
+	if !e.CanSet() {
+		logger.Error("itx's implemtnts can not set context")
+	}
+
+	vv := e.FieldByName("TxWithContext")
+
+	if vv.Kind() == reflect.Ptr {
+		txCtx := txs.NewTxWithContext(ctx)
+		vv.Set(reflect.ValueOf(txCtx))
+	}
 }

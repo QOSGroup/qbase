@@ -3,7 +3,6 @@ package txs
 import (
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -17,9 +16,8 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 		{[]byte("k1"), []byte("v1")},
 	}
 
-	txqcpresult = NewQcpTxResult(0, &ext, 10, types.NewInt(10), "qcp result info")
-	var ctx context.Context
-	if !txqcpresult.ValidateData(ctx) {
+	txqcpresult = NewQcpTxResult(0, ext, 10, types.NewInt(10), "qcp result info")
+	if !txqcpresult.ValidateData() {
 		fmt.Print("QcpTxResult ValidateData Error")
 		return nil
 	}
@@ -30,8 +28,7 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 func newTxStd(tx ITx) (txstd *TxStd) {
 	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
 	signer := txstd.ITx.GetSigner()
-	var ctx context.Context
-	err := txstd.ValidateBasicData(ctx, true, "qsc1")
+	err := txstd.ValidateBasicData(true, "qsc1")
 	if err != nil {
 		return nil
 	}

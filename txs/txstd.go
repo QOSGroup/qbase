@@ -10,12 +10,14 @@ import (
 
 // 功能：抽象具体的Tx结构体
 type ITx interface {
-	ValidateData(ctx context.Context) bool //检测
+	CurrentContext() context.Context // may be bil if you don't use TxWithContext
+
+	ValidateData() bool //检测
 
 	//执行业务逻辑,
 	// crossTxQcp: 需要进行跨链处理的TxQcp。
 	// 业务端实现中crossTxQcp只需包含`to` 和 `txStd`
-	Exec(ctx context.Context) (result types.Result, crossTxQcp *TxQcp)
+	Exec() (result types.Result, crossTxQcp *TxQcp)
 	GetSigner() []types.Address //签名者
 	CalcGas() types.BigInt      //计算gas
 	GetGasPayer() types.Address //gas付费人
@@ -100,12 +102,12 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 
 //ValidateBasicData  对txStd进行基础的数据校验
 //tx.ITx == QcpTxResult时 不校验签名相关信息
-func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
+func (tx *TxStd) ValidateBasicData(isCheckTx bool, currentChaindID string) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("no itx in txStd")
 	}
 
-	if !tx.ITx.ValidateData(ctx) {
+	if !tx.ITx.ValidateData() {
 		return types.ErrInternal("invaild ITx data in txStd")
 	}
 

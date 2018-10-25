@@ -2,13 +2,13 @@ package kvstore
 
 import (
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
 )
 
 type KvstoreTx struct {
+	*txs.TxWithContext
 	Key   []byte
 	Value []byte
 	Bytes []byte
@@ -23,14 +23,17 @@ func NewKvstoreTx(key []byte, value []byte) KvstoreTx {
 	}
 }
 
-func (kv KvstoreTx) ValidateData(ctx context.Context) bool {
+func (kv KvstoreTx) ValidateData() bool {
 	if len(kv.Key) < 0 {
 		return false
 	}
 	return true
 }
 
-func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
+func (kv KvstoreTx) Exec() (result types.Result, crossTxQcps *txs.TxQcp) {
+
+	ctx := kv.CurrentContext()
+
 	logger := ctx.Logger()
 
 	//获取注册的mapper：

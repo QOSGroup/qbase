@@ -225,6 +225,8 @@ func TestTxQcpResult(t *testing.T) {
 			},
 		}
 
+		// qcpResult.TxWithContext = txs.TxWithContext{}
+
 		stdTx := txs.NewTxStd(qcpResult, cid, types.OneInt())
 		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 0, 0, true)
 
@@ -643,6 +645,7 @@ type testAccount struct {
 // }
 
 type transferTx struct {
+	*txs.TxWithContext
 	Amount    int64
 	FromUsers []types.Address
 	ToUsers   []types.Address
@@ -650,7 +653,7 @@ type transferTx struct {
 
 var _ txs.ITx = (*transferTx)(nil)
 
-func (t *transferTx) ValidateData(ctx context.Context) bool {
+func (t *transferTx) ValidateData() bool {
 	if t.Amount < 0 || len(t.FromUsers) < 1 || len(t.ToUsers) < 1 {
 		return false
 	}
@@ -658,8 +661,9 @@ func (t *transferTx) ValidateData(ctx context.Context) bool {
 }
 
 //TODO: 简单实现，只实现单用户对单用户转账
-func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
+func (t *transferTx) Exec() (result types.Result, crossTxQcps *txs.TxQcp) {
 
+	ctx := t.CurrentContext()
 	accMapper, _ := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
 
 	from, _ := accMapper.GetAccount(t.FromUsers[0]).(*testAccount)
