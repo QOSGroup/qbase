@@ -76,7 +76,7 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 		}
 	}
 	if !exists {
-		toAccount.Coins = append(toAccount.Coins, tx.Coin)
+		toAccount.Coins = append(toAccount.Coins, &(tx.Coin))
 	}
 	mapper.SetAccount(toAccount)
 	return

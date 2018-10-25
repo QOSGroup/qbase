@@ -22,8 +22,8 @@ type GenesisState struct {
 
 // 初始账户
 type GenesisAccount struct {
-	Address types.Address    `json:"address"`
-	Coins   []types.BaseCoin `json:"coins"`
+	Address types.Address   `json:"address"`
+	Coins   types.BaseCoins `json:"coins"`
 }
 
 // 初始QCP配置

@@ -68,7 +68,7 @@ func queryAccount(http *client.HTTP, cdc *amino.Codec, addr *string) {
 	}
 
 	queryValueBz := result.Response.GetValue()
-	var acc *bctypes.AppAccount
+	var acc bctypes.AppAccount
 	cdc.UnmarshalBinaryBare(queryValueBz, &acc)
 
 	json, _ := cdc.MarshalJSON(acc)
