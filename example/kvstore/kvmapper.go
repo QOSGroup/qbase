@@ -2,18 +2,17 @@ package kvstore
 
 import (
 	"github.com/QOSGroup/qbase/mapper"
-	"github.com/QOSGroup/qbase/store"
 )
 
-const KvMapperName = "kvmapper"
+const KvKVStoreName = "kv"
 
 type KvMapper struct {
 	*mapper.BaseMapper
 }
 
-func NewKvMapper(main store.StoreKey) *KvMapper {
+func NewKvMapper() *KvMapper {
 	var txMapper = KvMapper{}
-	txMapper.BaseMapper = mapper.NewBaseMapper(main)
+	txMapper.BaseMapper = mapper.NewBaseMapper(nil, KvKVStoreName)
 	return &txMapper
 }
 
@@ -21,10 +20,6 @@ func (mapper *KvMapper) Copy() mapper.IMapper {
 	cpyMapper := &KvMapper{}
 	cpyMapper.BaseMapper = mapper.BaseMapper.Copy()
 	return cpyMapper
-}
-
-func (mapper *KvMapper) Name() string {
-	return KvMapperName
 }
 
 var _ mapper.IMapper = (*KvMapper)(nil)

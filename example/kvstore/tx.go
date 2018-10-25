@@ -34,12 +34,12 @@ func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps 
 	logger := ctx.Logger()
 
 	//获取注册的mapper：
-	kvMapper := ctx.Mapper(KvMapperName).(*KvMapper)
+	kvMapper := ctx.Mapper(KvKVStoreName).(*KvMapper)
 	//以下两个为qbase内置的mapper
 	//QcpMapper: 跨链相关的操作
 	//AccountMapper: 账户相关的操作
-	qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
-	accMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	qcpMapper := ctx.Mapper(qcp.GetQcpKVStoreName()).(*qcp.QcpMapper)
+	accMapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	logger.Info("kvMapper", kvMapper)
 	logger.Info("qcpMapper", qcpMapper)

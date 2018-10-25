@@ -2,17 +2,19 @@ package context_test
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
 
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 
+	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -221,19 +223,19 @@ var _ mapper.IMapper = (*mapperA)(nil)
 
 var _ mapper.IMapper = (*mapperB)(nil)
 
-func newMapperA() *mapperA {
+func newMapperA(cdc *go_amino.Codec) *mapperA {
 	a := &mapperA{}
-	a.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey("A"))
+	a.BaseMapper = mapper.NewBaseMapper(cdc, "A")
 	return a
 }
 
-func newMapperB() *mapperB {
+func newMapperB(cdc *go_amino.Codec) *mapperB {
 	b := &mapperB{}
-	b.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey("B"))
+	b.BaseMapper = mapper.NewBaseMapper(cdc, "B")
 	return b
 }
 
-func (mapper *mapperA) Name() string {
+func (mapper *mapperA) GetKVStoreName() string {
 	return "A"
 }
 
@@ -243,7 +245,11 @@ func (mapper *mapperA) Copy() mapper.IMapper {
 	return cpy
 }
 
-func (mapper *mapperB) Name() string {
+func (mapper *mapperA) GetBaseMapper() *mapper.BaseMapper {
+	return mapper.BaseMapper
+}
+
+func (mapper *mapperB) GetKVStoreName() string {
 	return "B"
 }
 
@@ -253,21 +259,25 @@ func (mapper *mapperB) Copy() mapper.IMapper {
 	return cpy
 }
 
+func (mapper *mapperB) GetBaseMapper() *mapper.BaseMapper {
+	return mapper.BaseMapper
+}
+
 func TestCopyKVStoreMapperFromSeed(t *testing.T) {
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 
-	ma := newMapperA()
-	mb := newMapperB()
+	ma := newMapperA(nil)
+	mb := newMapperB(nil)
 
 	cms.MountStoreWithDB(ma.GetStoreKey(), store.StoreTypeIAVL, nil)
 	cms.MountStoreWithDB(mb.GetStoreKey(), store.StoreTypeIAVL, nil)
 	cms.LoadLatestVersion()
 
 	registerMapper := make(map[string]mapper.IMapper)
-	registerMapper[ma.Name()] = ma
-	registerMapper[mb.Name()] = mb
+	registerMapper[ma.GetKVStoreName()] = ma
+	registerMapper[mb.GetKVStoreName()] = mb
 
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), registerMapper)
 

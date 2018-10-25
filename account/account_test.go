@@ -1,6 +1,7 @@
 package account
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/QOSGroup/qbase/types"
@@ -53,4 +54,26 @@ func TestAccountMarshal(t *testing.T) {
 	err = cdc.UnmarshalBinary(add_binary[:len(add_binary)/2], &another_json)
 	require.NotNil(t, err)
 
+}
+
+func TestBaseAccount_GetAddress(t *testing.T) {
+
+	type appAccount struct {
+		BaseAccount
+		Amount int64
+	}
+
+	aa := appAccount{
+		BaseAccount: BaseAccount{
+			AccountAddress: make([]byte, 10),
+			Publickey:      nil,
+			Nonce:          10,
+		},
+		Amount: 20,
+	}
+
+	aa.SetNonce(30)
+
+	fmt.Println(aa)
+	fmt.Println(aa.BaseAccount)
 }

@@ -33,7 +33,7 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 		Code: btypes.ABCICodeOK,
 	}
 	// 查询发送方账户信息
-	mapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	mapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 	fromAcc := mapper.GetAccount(tx.From).(*types.AppAccount)
 	if fromAcc.AccountAddress == nil {
 		result.Code = btypes.ABCICodeType(btypes.CodeInternal)

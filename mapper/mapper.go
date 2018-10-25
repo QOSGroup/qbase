@@ -8,18 +8,14 @@ import (
 )
 
 type IMapper interface {
-	Name() string
 	Copy() IMapper
+
+	//BaseMapper implement below methods
+	GetKVStoreName() string
 	GetStoreKey() store.StoreKey
 
-	Get(key []byte, ptr interface{}) (exsits bool)
-	Set(key []byte, val interface{})
-	Del(key []byte)
-
-	GetCodec() *go_amino.Codec
-	SetCodec(cdc *go_amino.Codec)
 	SetStore(store store.KVStore)
-	GetStore() store.KVStore
+	SetCodec(cdc *go_amino.Codec)
 }
 
 type BaseMapper struct {
@@ -28,8 +24,8 @@ type BaseMapper struct {
 	store store.KVStore   //Important:注意在不同的context中要覆盖该值
 }
 
-func NewBaseMapper(key store.StoreKey) *BaseMapper {
-	return &BaseMapper{cdc: nil, key: key}
+func NewBaseMapper(cdc *go_amino.Codec, kvStoreName string) *BaseMapper {
+	return &BaseMapper{cdc: cdc, key: store.NewKVStoreKey(kvStoreName)}
 }
 
 func (baseMapper *BaseMapper) Copy() *BaseMapper {
@@ -38,6 +34,10 @@ func (baseMapper *BaseMapper) Copy() *BaseMapper {
 		key:   baseMapper.key,
 		store: baseMapper.store,
 	}
+}
+
+func (baseMapper *BaseMapper) GetKVStoreName() string {
+	return baseMapper.key.Name()
 }
 
 func (baseMapper *BaseMapper) isRegistered() bool {

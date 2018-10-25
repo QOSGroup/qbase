@@ -50,12 +50,12 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 // 初始配置
 func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
-	accountMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
-	qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
+	accountMapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
+	qcpMapper := ctx.Mapper(qcp.GetQcpKVStoreName()).(*qcp.QcpMapper)
 
 	stateJSON := req.AppStateBytes
 	genesisState := &types.GenesisState{}
-	err := accountMapper.GetCodec().UnmarshalJSON(stateJSON, genesisState)
+	err := app.BaseApp.GetCdc().UnmarshalJSON(stateJSON, genesisState)
 	if err != nil {
 		panic(err)
 	}

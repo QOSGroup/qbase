@@ -1,17 +1,27 @@
 package account
 
 import (
+	"fmt"
+
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/types"
+	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 )
 
 const (
-	AccountMapperName = "accountmapper"
-	storeKey          = "acc"      // 用户获取账户存储的store的键名
-	accountStoreKey   = "account:" // 便于获取全部账户的通用存储键名，继承BaseAccount时，可根据不同业务设置存储前缀
+	kvStoreName     = "acc"      // 用户获取账户存储的store的键名
+	accountStoreKey = "account:" // 便于获取全部账户的通用存储键名，继承BaseAccount时，可根据不同业务设置存储前缀
 )
+
+func GetAccountKVStoreName() string {
+	return kvStoreName
+}
+
+func BuildAccountStoreQueryPath() []byte {
+	return []byte(fmt.Sprintf("/store/%s/key", kvStoreName))
+}
 
 // 对BaseAccount存储操作进行包装的结构，可进行序列化
 type AccountMapper struct {
@@ -22,15 +32,11 @@ type AccountMapper struct {
 var _ mapper.IMapper = (*AccountMapper)(nil)
 
 // 用给定编码和原型生成mapper
-func NewAccountMapper(proto func() Account) *AccountMapper {
+func NewAccountMapper(cdc *go_amino.Codec, proto func() Account) *AccountMapper {
 	var accountMapper = AccountMapper{}
-	accountMapper.BaseMapper = mapper.NewBaseMapper(store.NewKVStoreKey(storeKey))
+	accountMapper.BaseMapper = mapper.NewBaseMapper(cdc, kvStoreName)
 	accountMapper.proto = proto
 	return &accountMapper
-}
-
-func (mapper *AccountMapper) Name() string {
-	return AccountMapperName
 }
 
 func (mapper *AccountMapper) Copy() mapper.IMapper {
@@ -113,20 +119,4 @@ func (mapper *AccountMapper) SetNonce(addr types.Address, nonce int64) types.Err
 	}
 	mapper.SetAccount(acc)
 	return nil
-}
-
-func (mapper *AccountMapper) EncodeAccount(acc Account) []byte {
-	bz, err := mapper.BaseMapper.GetCodec().MarshalBinaryBare(acc)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-func (mapper *AccountMapper) DecodeAccount(bz []byte) (acc Account) {
-	err := mapper.GetCodec().UnmarshalBinaryBare(bz, &acc)
-	if err != nil {
-		panic(err)
-	}
-	return
 }

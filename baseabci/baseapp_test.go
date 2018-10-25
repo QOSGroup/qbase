@@ -52,7 +52,7 @@ func mockApp() *BaseApp {
 
 		//测试： 使用签名者的公钥作为trustKey. 正式环境不能这么用
 		if app.txQcpSigner != nil {
-			qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
+			qcpMapper := ctx.Mapper(qcp.GetQcpKVStoreName()).(*qcp.QcpMapper)
 			qcpMapper.SetChainInTruestPubKey(cid, app.txQcpSigner.PubKey())
 		}
 
@@ -280,7 +280,7 @@ func TestTxQcp(t *testing.T) {
 
 	//查询出两个账户进行转账操作
 	newCtx := app.NewContext(true, abci.Header{})
-	accMapper := newCtx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	accMapper := newCtx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	pidAccount1 := getAccount(accMapper, int64(1))
 	pidAccount2 := getAccount(accMapper, int64(2))
@@ -387,7 +387,7 @@ func TestCrossStdTx(t *testing.T) {
 	app.Commit()
 
 	checkContext := app.checkState.ctx
-	accMapper := checkContext.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	accMapper := checkContext.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	pidAccount3 := getAccount(accMapper, int64(3))
 	pidAccount4 := getAccount(accMapper, int64(4))
@@ -472,7 +472,7 @@ func TestStdTx(t *testing.T) {
 	app.Commit()
 
 	checkContext := app.checkState.ctx
-	accMapper := checkContext.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	accMapper := checkContext.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	pidAccount1 := getAccount(accMapper, int64(1))
 	pidAccount2 := getAccount(accMapper, int64(2))
@@ -568,7 +568,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 
 func createAccount(id int64, money int64, ctx context.Context) account.Account {
 	privkey := ed25519.GenPrivKey()
-	accMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	accMapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	pubkeyAddress := types.Address(privkey.PubKey().Address())
 
@@ -660,7 +660,7 @@ func (t *transferTx) ValidateData(ctx context.Context) bool {
 //TODO: 简单实现，只实现单用户对单用户转账
 func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
 
-	accMapper, _ := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+	accMapper, _ := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
 
 	from, _ := accMapper.GetAccount(t.FromUsers[0]).(*testAccount)
 	to, _ := accMapper.GetAccount(t.ToUsers[0]).(*testAccount)

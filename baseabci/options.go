@@ -41,7 +41,7 @@ func (app *BaseApp) registerQcpMapper() {
 	if app.sealed {
 		panic("RegisterQcpMapper() on sealed BaseApp")
 	}
-	mapper := qcp.NewQcpMapper()
+	mapper := qcp.NewQcpMapper(app.GetCdc())
 	app.RegisterMapper(mapper)
 }
 
@@ -50,7 +50,7 @@ func (app *BaseApp) RegisterAccountProto(proto func() account.Account) {
 	if app.sealed {
 		panic("RegisterAccountProto() on sealed BaseApp")
 	}
-	mapper := account.NewAccountMapper(proto)
+	mapper := account.NewAccountMapper(app.GetCdc(), proto)
 	app.RegisterMapper(mapper)
 }
 
@@ -63,12 +63,12 @@ func (app *BaseApp) RegisterMapper(seedMapper mapper.IMapper) {
 	kvKey := key.(*store.KVStoreKey)
 	app.mountStoresIAVL(kvKey)
 
-	if _, ok := app.registerMappers[seedMapper.Name()]; ok {
+	if _, ok := app.registerMappers[seedMapper.GetKVStoreName()]; ok {
 		panic("Register dup mapper")
 	}
 
-	seedMapper.SetCodec(app.cdc)
-	app.registerMappers[seedMapper.Name()] = seedMapper
+	seedMapper.SetCodec(app.GetCdc())
+	app.registerMappers[seedMapper.GetKVStoreName()] = seedMapper
 }
 
 func (app *BaseApp) RegisterCustomQueryHandler(handler CustomQueryHandler) {

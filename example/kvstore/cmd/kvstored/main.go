@@ -8,7 +8,6 @@ import (
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/example/kvstore"
-	"github.com/QOSGroup/qbase/store"
 
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/abci/server"
@@ -36,8 +35,7 @@ func main() {
 		return &account.BaseAccount{}
 	})
 
-	var mainStore = store.NewKVStoreKey("kv")
-	var kvMapper = kvstore.NewKvMapper(mainStore)
+	var kvMapper = kvstore.NewKvMapper()
 	baseapp.RegisterMapper(kvMapper)
 
 	if err := baseapp.LoadLatestVersion(); err != nil {
