@@ -20,18 +20,18 @@ import (
 func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 
 	cdc := defaultCdc()
-	qcpMapper := NewQcpMapper()
+	qcpMapper := NewQcpMapper(cdc)
 
 	qcpMapper.SetCodec(cdc)
 
 	storeKey := qcpMapper.GetStoreKey()
 
 	mapper := make(map[string]mapper.IMapper)
-	mapper[qcpMapper.Name()] = qcpMapper
+	mapper[qcpMapper.GetKVStoreName()] = qcpMapper
 
 	ctx := defaultContext(storeKey, mapper)
 
-	qcpMapper, _ = ctx.Mapper(qcpMapper.Name()).(*QcpMapper)
+	qcpMapper, _ = ctx.Mapper(qcpMapper.GetKVStoreName()).(*QcpMapper)
 
 	outChain := "qsc"
 	seq := int64(12)
@@ -50,7 +50,7 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	fmt.Println(ctx.KVStore(storeKey))
 	fmt.Println(cctx.KVStore(storeKey))
 
-	newQcpMapper, _ := cctx.Mapper(qcpMapper.Name()).(*QcpMapper)
+	newQcpMapper, _ := cctx.Mapper(qcpMapper.GetKVStoreName()).(*QcpMapper)
 
 	fmt.Println(qcpMapper)
 	fmt.Println(newQcpMapper)
@@ -61,11 +61,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	var seq1 int64
 	store := cctx.KVStore(storeKey)
 	c := store.Get([]byte(fmt.Sprintf(outSequenceKey, outChain)))
-	qcpMapper.GetCodec().UnmarshalBinaryBare(c, &seq1)
+	qcpMapper.BaseMapper.DecodeObject(c, &seq1)
 
 	store = ctx.KVStore(storeKey)
 	c = store.Get([]byte(fmt.Sprintf(outSequenceKey, outChain)))
-	qcpMapper.GetCodec().UnmarshalBinaryBare(c, &seq1)
+	qcpMapper.BaseMapper.DecodeObject(c, &seq1)
 
 	newQcpMapper.SetMaxChainOutSequence(outChain, cseq)
 	maxSeq = newQcpMapper.GetMaxChainOutSequence(outChain)
@@ -73,11 +73,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 
 	store = cctx.KVStore(storeKey)
 	c = store.Get([]byte(fmt.Sprintf(outSequenceKey, outChain)))
-	qcpMapper.GetCodec().UnmarshalBinaryBare(c, &seq1)
+	qcpMapper.BaseMapper.DecodeObject(c, &seq1)
 
 	store = ctx.KVStore(storeKey)
 	c = store.Get([]byte(fmt.Sprintf(outSequenceKey, outChain)))
-	qcpMapper.GetCodec().UnmarshalBinaryBare(c, &seq1)
+	qcpMapper.BaseMapper.DecodeObject(c, &seq1)
 
 	//重置qcpMapper中的kestore
 	// qcpMapper.SetStore(ctx.KVStore(storeKey))

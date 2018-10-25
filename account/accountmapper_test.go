@@ -33,15 +33,15 @@ func TestAccountMapperGetSet(t *testing.T) {
 
 	cdc := MakeCdc()
 
-	seedMapper := NewAccountMapper(ProtoBaseAccount)
+	seedMapper := NewAccountMapper(cdc, ProtoBaseAccount)
 	seedMapper.SetCodec(cdc)
 
 	mapperMap := make(map[string]mapper.IMapper)
-	mapperMap[seedMapper.Name()] = seedMapper
+	mapperMap[seedMapper.GetKVStoreName()] = seedMapper
 
 	ctx := defaultContext(seedMapper.GetStoreKey(), mapperMap)
 
-	mapper, _ := ctx.Mapper(AccountMapperName).(*AccountMapper)
+	mapper, _ := ctx.Mapper(GetAccountKVStoreName()).(*AccountMapper)
 
 	for i := 0; i < 100; i++ {
 		pubkey := ed25519.GenPrivKey().PubKey()

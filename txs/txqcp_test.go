@@ -42,7 +42,7 @@ func newTxStd(tx ITx) (txstd *TxStd) {
 		return
 	}
 
-	accmapper := account.NewAccountMapper(account.ProtoBaseAccount)
+	accmapper := account.NewAccountMapper(nil, account.ProtoBaseAccount)
 	// 填充 txstd.Signature[]
 	for _, sg := range signer {
 		prvKey := ed25519.GenPrivKey()

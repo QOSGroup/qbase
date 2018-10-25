@@ -755,7 +755,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 }
 
 func getQcpMapper(ctx ctx.Context) *qcp.QcpMapper {
-	mapper := ctx.Mapper(qcp.QcpMapperName)
+	mapper := ctx.Mapper(qcp.GetQcpKVStoreName())
 	if mapper == nil {
 		return nil
 	}
@@ -763,7 +763,7 @@ func getQcpMapper(ctx ctx.Context) *qcp.QcpMapper {
 }
 
 func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
-	mapper := ctx.Mapper(account.AccountMapperName)
+	mapper := ctx.Mapper(account.GetAccountKVStoreName())
 	if mapper == nil {
 		return nil
 	}
