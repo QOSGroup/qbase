@@ -1,6 +1,10 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
 
 // 币的通用接口
 type Coin interface {
@@ -16,6 +20,7 @@ type Coin interface {
 	// 判断币的数量
 	IsZero() bool
 	IsPositive() bool
+	IsNotNegative() bool
 	IsNegative() bool
 	IsGreaterThan(Coin) bool
 	IsLessThan(Coin) bool
@@ -27,11 +32,14 @@ type Coin interface {
 }
 
 type BaseCoin struct {
-	Name   string       `json:"coin_name"`
-	Amount BigInt 		`json:"amount"`
+	Name   string `json:"coin_name"`
+	Amount BigInt `json:"amount"`
 }
 
 func NewBaseCoin(name string, amount BigInt) *BaseCoin {
+	if amount.IsNil() {
+		amount = NewInt(0)
+	}
 	return &BaseCoin{
 		Name:   name,
 		Amount: amount,
@@ -70,6 +78,11 @@ func (coin *BaseCoin) IsPositive() bool {
 	return (coin.Amount.Sign() == 1)
 }
 
+// 判断币的数量是否为非负值
+func (coin *BaseCoin) IsNotNegative() bool {
+	return (coin.Amount.Sign() != -1)
+}
+
 // 判断币的数量是否为负值
 func (coin *BaseCoin) IsNegative() bool {
 	return (coin.Amount.Sign() == -1)
@@ -91,7 +104,7 @@ func (coin *BaseCoin) IsLessThan(another Coin) bool {
 }
 
 // 增加一定数量的币
-func (coin *BaseCoin) PlusByAmount(amountplus BigInt){
+func (coin *BaseCoin) PlusByAmount(amountplus BigInt) {
 	coin.SetAmount(coin.Amount.Add(amountplus))
 }
 
@@ -104,7 +117,7 @@ func (coin *BaseCoin) Plus(coinB Coin) Coin {
 }
 
 // 减掉一定数量的币
-func (coin *BaseCoin) MinusByAmount(amountminus BigInt){
+func (coin *BaseCoin) MinusByAmount(amountminus BigInt) {
 	coin.SetAmount(coin.Amount.Sub(amountminus))
 }
 
@@ -114,4 +127,200 @@ func (coin *BaseCoin) Minus(coinB Coin) Coin {
 		return coin
 	}
 	return NewBaseCoin(coin.Name, coin.Amount.Sub(coinB.GetAmount()))
+}
+
+//----------------------------------------
+// BaseCoins
+
+// BaseCoin集合
+type BaseCoins []*BaseCoin
+
+func (coins BaseCoins) String() string {
+	if len(coins) == 0 {
+		return ""
+	}
+
+	out := ""
+	for _, coin := range coins {
+		out += fmt.Sprintf("%v,", coin.String())
+	}
+	return out[:len(out)-1]
+}
+
+// 校验
+// 1.排序好
+// 2.amount没有0值
+func (coins BaseCoins) IsValid() bool {
+	switch len(coins) {
+	case 0:
+		return true
+	case 1:
+		return !coins[0].IsZero()
+	default:
+		lowDenom := coins[0].Name
+		for _, coin := range coins[1:] {
+			if coin.Name <= lowDenom {
+				return false
+			}
+			if coin.IsZero() {
+				return false
+			}
+			// we compare each coin against the last name
+			lowDenom = coin.Name
+		}
+		return true
+	}
+}
+
+// BaseCoins相加
+// 注意：任何一个BaseCoin如果amount有0值将不会返回正确值
+func (coins BaseCoins) Plus(coinsB BaseCoins) BaseCoins {
+	sum := ([]*BaseCoin)(nil)
+	indexA, indexB := 0, 0
+	lenA, lenB := len(coins), len(coinsB)
+	for {
+		if indexA == lenA {
+			if indexB == lenB {
+				return sum
+			}
+			return append(sum, coinsB[indexB:]...)
+		} else if indexB == lenB {
+			return append(sum, coins[indexA:]...)
+		}
+		coinA, coinB := coins[indexA], coinsB[indexB]
+		switch strings.Compare(coinA.Name, coinB.Name) {
+		case -1:
+			sum = append(sum, coinA)
+			indexA++
+		case 0:
+			if coinA.Amount.Add(coinB.Amount).IsZero() {
+				// ignore 0 sum coin type
+			} else {
+				sum = append(sum, coinA.Plus(coinB).(*BaseCoin))
+			}
+			indexA++
+			indexB++
+		case 1:
+			sum = append(sum, coinB)
+			indexB++
+		}
+	}
+}
+
+// 返回相反值
+func (coins BaseCoins) Negative() BaseCoins {
+	res := make([]*BaseCoin, 0, len(coins))
+	for _, coin := range coins {
+		res = append(res, &BaseCoin{
+			Name:   coin.Name,
+			Amount: coin.Amount.Neg(),
+		})
+	}
+	return res
+}
+
+// 相减
+func (coins BaseCoins) Minus(coinsB BaseCoins) BaseCoins {
+	return coins.Plus(coinsB.Negative())
+}
+
+// 返回coins内币种币值是否均大于等于coinsB对应值
+func (coins BaseCoins) IsGTE(coinsB BaseCoins) bool {
+	diff := coins.Minus(coinsB)
+	if len(diff) == 0 {
+		return true
+	}
+	return diff.IsNotNegative()
+}
+
+// 返回coins内币种币值是否均小于coinsB对应值
+func (coins BaseCoins) IsLT(coinsB BaseCoins) bool {
+	return !coins.IsGTE(coinsB)
+}
+
+// 返回coins内币种币值是否均等于0
+func (coins BaseCoins) IsZero() bool {
+	for _, coin := range coins {
+		if !coin.IsZero() {
+			return false
+		}
+	}
+	return true
+}
+
+// 返回coins是否和coinsB一致
+func (coins BaseCoins) IsEqual(coinsB BaseCoins) bool {
+	if len(coins) != len(coinsB) {
+		return false
+	}
+	for i := 0; i < len(coins); i++ {
+		if coins[i].Name != coinsB[i].Name || !coins[i].Amount.Equal(coinsB[i].Amount) {
+			return false
+		}
+	}
+	return true
+}
+
+// 返回coins内币种币值是否均大于0
+func (coins BaseCoins) IsPositive() bool {
+	if len(coins) == 0 {
+		return false
+	}
+	for _, coin := range coins {
+		if !coin.IsPositive() {
+			return false
+		}
+	}
+	return true
+}
+
+// 返回coins内币种币值是否均大于等于0
+func (coins BaseCoins) IsNotNegative() bool {
+	if len(coins) == 0 {
+		return true
+	}
+	for _, coin := range coins {
+		if !coin.IsNotNegative() {
+			return false
+		}
+	}
+	return true
+}
+
+// 返回coins内给定币种币值
+func (coins BaseCoins) AmountOf(name string) BigInt {
+	switch len(coins) {
+	case 0:
+		return ZeroInt()
+	case 1:
+		coin := coins[0]
+		if coin.Name == name {
+			return coin.Amount
+		}
+		return ZeroInt()
+	default:
+		midIdx := len(coins) / 2
+		coin := coins[midIdx]
+		if name < coin.Name {
+			return coins[:midIdx].AmountOf(name)
+		} else if name == coin.Name {
+			return coin.Amount
+		} else {
+			return coins[midIdx+1:].AmountOf(name)
+		}
+	}
+}
+
+//----------------------------------------
+// 排序
+
+func (coins BaseCoins) Len() int           { return len(coins) }
+func (coins BaseCoins) Less(i, j int) bool { return coins[i].Name < coins[j].Name }
+func (coins BaseCoins) Swap(i, j int)      { coins[i], coins[j] = coins[j], coins[i] }
+
+var _ sort.Interface = BaseCoins{}
+
+func (coins BaseCoins) Sort() BaseCoins {
+	sort.Sort(coins)
+	return coins
 }
