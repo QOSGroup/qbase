@@ -287,7 +287,7 @@ func TestTxQcp(t *testing.T) {
 
 	var txQcpBytes [][]byte
 
-	for i := uint64(1); i < 10; i++ {
+	for i := int64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		acc.SetNonce(i - 1)
@@ -394,7 +394,7 @@ func TestCrossStdTx(t *testing.T) {
 
 	var txss [][]byte
 	//创建转账stdTx: pid3 转账 pid4
-	for i := uint64(1); i < 10; i++ {
+	for i := int64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount3.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())
@@ -479,7 +479,7 @@ func TestStdTx(t *testing.T) {
 
 	var txs [][]byte
 	//创建转账stdTx: pid1 转账 pid2
-	for i := uint64(1); i < 10; i++ {
+	for i := int64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())

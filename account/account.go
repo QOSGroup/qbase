@@ -10,14 +10,14 @@ type Account interface {
 	SetAddress(addr types.Address) error
 	GetPubicKey() crypto.PubKey
 	SetPublicKey(pubKey crypto.PubKey) error
-	GetNonce() uint64
-	SetNonce(nonce uint64) error
+	GetNonce() int64
+	SetNonce(nonce int64) error
 }
 
 type BaseAccount struct {
 	AccountAddress types.Address `json:"account_address"` // account address
 	Publickey      crypto.PubKey `json:"public_key"`      // public key
-	Nonce          uint64        `json:"nonce"`           // identifies tx_status of an account
+	Nonce          int64         `json:"nonce"`           // identifies tx_status of an account
 }
 
 func ProtoBaseAccount() Account {
@@ -50,12 +50,12 @@ func (accnt *BaseAccount) SetPublicKey(pubKey crypto.PubKey) error {
 }
 
 // getter for nonce
-func (accnt *BaseAccount) GetNonce() uint64 {
+func (accnt *BaseAccount) GetNonce() int64 {
 	return accnt.Nonce
 }
 
 // setter for nonce
-func (accnt *BaseAccount) SetNonce(nonce uint64) error {
+func (accnt *BaseAccount) SetNonce(nonce int64) error {
 	accnt.Nonce = nonce
 	return nil
 }

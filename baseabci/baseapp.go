@@ -442,7 +442,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 			}
 		}
 
-		if uint64(signature.Nonce) != acc.GetNonce() {
+		if signature.Nonce != acc.GetNonce() {
 			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce(), signature.Nonce)).Result()
 			return
 		}
