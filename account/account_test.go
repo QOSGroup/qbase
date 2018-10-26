@@ -1,13 +1,14 @@
 package account
 
 import (
+	"testing"
+
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
-	"testing"
 )
 
 func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.Address) {
@@ -34,7 +35,7 @@ func TestAccountMarshal(t *testing.T) {
 
 	err := baseAccount.SetPublicKey(pub)
 	require.Nil(t, err)
-	err = baseAccount.SetNonce(uint64(7))
+	err = baseAccount.SetNonce(int64(7))
 	require.Nil(t, err)
 
 	add_binary, err := cdc.MarshalBinary(baseAccount)
