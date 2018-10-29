@@ -1,16 +1,15 @@
 package app
 
 import (
-	"github.com/QOSGroup/qbase/account"
+	"io"
+
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
-	"github.com/QOSGroup/qbase/qcp"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
-	"io"
 )
 
 const (
@@ -50,8 +49,8 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 // 初始配置
 func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
-	accountMapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
-	qcpMapper := ctx.Mapper(qcp.GetQcpKVStoreName()).(*qcp.QcpMapper)
+	accountMapper := baseabci.GetAccountMapper(ctx)
+	qcpMapper := baseabci.GetQcpMapper(ctx)
 
 	stateJSON := req.AppStateBytes
 	genesisState := &types.GenesisState{}
@@ -62,7 +61,7 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 
 	// 保存初始QCP配置
 	for _, qcp := range genesisState.QCP {
-		qcpMapper.SetChainInTruestPubKey(qcp.ChainId, qcp.PubKey)
+		qcpMapper.SetChainInTrustPubKey(qcp.ChainId, qcp.PubKey)
 	}
 
 	// 保存初始账户

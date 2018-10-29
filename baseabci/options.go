@@ -54,21 +54,21 @@ func (app *BaseApp) RegisterAccountProto(proto func() account.Account) {
 	app.RegisterMapper(mapper)
 }
 
-func (app *BaseApp) RegisterMapper(seedMapper mapper.IMapper) {
+func (app *BaseApp) RegisterMapper(mapper mapper.IMapper) {
 	if app.sealed {
 		panic("RegisterMapper() on sealed BaseApp")
 	}
 
-	key := seedMapper.GetStoreKey()
+	key := mapper.GetStoreKey()
 	kvKey := key.(*store.KVStoreKey)
 	app.mountStoresIAVL(kvKey)
 
-	if _, ok := app.registerMappers[seedMapper.GetKVStoreName()]; ok {
+	if _, ok := app.registerMappers[mapper.MapperName()]; ok {
 		panic("Register dup mapper")
 	}
 
-	seedMapper.SetCodec(app.GetCdc())
-	app.registerMappers[seedMapper.GetKVStoreName()] = seedMapper
+	mapper.SetCodec(app.GetCdc())
+	app.registerMappers[mapper.MapperName()] = mapper
 }
 
 func (app *BaseApp) RegisterCustomQueryHandler(handler CustomQueryHandler) {

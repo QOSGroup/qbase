@@ -391,7 +391,7 @@ baseapp.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain){
   // chainId , pubKey可以从配置文件或其他保存的地方获取
   // chainId := xxx 中继从chainId获取的跨链
   // pubKey := xxx  中继公钥
-  qcpMapper.SetChainInTruestPubKey(chainId, pubKey)
+  qcpMapper.SetChainInTrustPubKey(chainId, pubKey)
 
   ...
 })
@@ -454,7 +454,7 @@ baseapp.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain){
   // chainId , pubKey可以从配置文件或其他保存的地方获取
   // chainId := xxx： 联盟链chainId
   // pubKey := xxx : 联盟链公钥
-  qcpMapper.SetChainInTruestPubKey(chainId, pubKey)
+  qcpMapper.SetChainInTrustPubKey(chainId, pubKey)
 
   ...
 })

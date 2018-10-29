@@ -4,7 +4,7 @@ import (
 	"github.com/QOSGroup/qbase/mapper"
 )
 
-const KvKVStoreName = "kv"
+const KVMapperName = "kv"
 
 type KvMapper struct {
 	*mapper.BaseMapper
@@ -12,7 +12,7 @@ type KvMapper struct {
 
 func NewKvMapper() *KvMapper {
 	var txMapper = KvMapper{}
-	txMapper.BaseMapper = mapper.NewBaseMapper(nil, KvKVStoreName)
+	txMapper.BaseMapper = mapper.NewBaseMapper(nil, KVMapperName)
 	return &txMapper
 }
 
