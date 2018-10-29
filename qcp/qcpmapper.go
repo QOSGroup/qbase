@@ -79,9 +79,10 @@ func (mapper *QcpMapper) SetMaxChainOutSequence(outChain string, sequence int64)
 	mapper.Set(BuildOutSequenceKey(outChain), sequence)
 }
 
-func (mapper *QcpMapper) GetChainOutTxs(outChain string, sequence int64) (txQcp *txs.TxQcp) {
-	mapper.Get(BuildOutSequenceTxKey(outChain, sequence), txQcp)
-	return
+func (mapper *QcpMapper) GetChainOutTxs(outChain string, sequence int64) *txs.TxQcp {
+	var txQcp txs.TxQcp
+	mapper.Get(BuildOutSequenceTxKey(outChain, sequence), &txQcp)
+	return &txQcp
 }
 
 func (mapper *QcpMapper) SetChainOutTxs(outChain string, sequence int64, txQcp *txs.TxQcp) {
