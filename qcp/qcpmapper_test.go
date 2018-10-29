@@ -89,6 +89,19 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	maxSeq = qcpMapper.GetMaxChainOutSequence(outChain)
 	require.Equal(t, cseq, maxSeq)
 
+	txQcp := &txs.TxQcp{
+		From: "a",
+	}
+
+
+	qcpMapper.SetChainOutTxs("a",2,txQcp)
+
+	a := qcpMapper.GetChainOutTxs("a",2)
+
+	require.Equal(t , "a" , a.From)
+
+
+
 }
 
 func defaultCdc() *go_amino.Codec {
