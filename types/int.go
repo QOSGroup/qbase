@@ -151,6 +151,14 @@ func (bi BigInt) IsNil() bool {
 	return bi.i == nil
 }
 
+// BigInt nil值转换成0值
+func (i BigInt) NilToZero() BigInt {
+	if i.IsNil() {
+		return ZeroInt()
+	}
+	return i
+}
+
 // IsZero returns true if BigInt is zero
 func (i BigInt) IsZero() bool {
 	return i.i.Sign() == 0

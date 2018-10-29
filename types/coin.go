@@ -37,12 +37,9 @@ type BaseCoin struct {
 }
 
 func NewBaseCoin(name string, amount BigInt) *BaseCoin {
-	if amount.IsNil() {
-		amount = NewInt(0)
-	}
 	return &BaseCoin{
 		Name:   name,
-		Amount: amount,
+		Amount: amount.NilToZero(),
 	}
 }
 
