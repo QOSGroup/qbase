@@ -3,7 +3,6 @@ package qcp
 import (
 	"fmt"
 
-	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/txs"
 	go_amino "github.com/tendermint/go-amino"
@@ -11,7 +10,7 @@ import (
 )
 
 const (
-	kvStoreName = "qcp"
+	QcpMapperName = "qcp"
 	//需要输出到"chainId"的qcp tx最大序号
 	outSequenceKey = "sequence/out/%s"
 	//需要输出到"chainId"的每个qcp tx
@@ -22,12 +21,8 @@ const (
 	inPubkeyKey = "pubkey/in/%s"
 )
 
-func GetQcpKVStoreName() string {
-	return kvStoreName
-}
-
 func BuildQcpStoreQueryPath() []byte {
-	return []byte(fmt.Sprintf("/store/%s/key", kvStoreName))
+	return []byte(fmt.Sprintf("/store/%s/key", QcpMapperName))
 }
 
 func BuildOutSequenceKey(outChainID string) []byte {
@@ -54,7 +49,7 @@ var _ mapper.IMapper = (*QcpMapper)(nil)
 
 func NewQcpMapper(cdc *go_amino.Codec) *QcpMapper {
 	var qcpMapper = QcpMapper{}
-	qcpMapper.BaseMapper = mapper.NewBaseMapper(cdc, kvStoreName)
+	qcpMapper.BaseMapper = mapper.NewBaseMapper(cdc, QcpMapperName)
 	return &qcpMapper
 }
 
@@ -65,13 +60,13 @@ func (mapper *QcpMapper) Copy() mapper.IMapper {
 }
 
 //TODO: test case
-func (mapper *QcpMapper) GetChainInTruestPubKey(inChain string) (pubkey crypto.PubKey) {
+func (mapper *QcpMapper) GetChainInTrustPubKey(inChain string) (pubkey crypto.PubKey) {
 	mapper.Get(BuildInPubkeyKey(inChain), &pubkey)
 	return
 }
 
 //TODO: test case
-func (mapper *QcpMapper) SetChainInTruestPubKey(inChain string, pubkey crypto.PubKey) {
+func (mapper *QcpMapper) SetChainInTrustPubKey(inChain string, pubkey crypto.PubKey) {
 	mapper.Set(BuildInPubkeyKey(inChain), pubkey)
 }
 
@@ -103,19 +98,11 @@ func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence int64) {
 }
 
 //TODO: test case
-func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, txStd *txs.TxStd, toChainID string, isResult bool, signer crypto.PrivKey) (txQcp *txs.TxQcp) {
+func (mapper *QcpMapper) SignAndSaveTxQcp(txQcp *txs.TxQcp, signer crypto.PrivKey) *txs.TxQcp {
 
+	toChainID := txQcp.To
 	maxSequence := mapper.GetMaxChainOutSequence(toChainID)
-
-	txQcp = &txs.TxQcp{
-		TxStd:       txStd,
-		From:        ctx.ChainID(),
-		To:          toChainID,
-		Sequence:    maxSequence + 1,
-		BlockHeight: ctx.BlockHeight(),
-		TxIndex:     ctx.BlockTxIndex(),
-		IsResult:    isResult,
-	}
+	txQcp.Sequence = maxSequence + 1
 
 	if signer != nil {
 		signature, err := signer.Sign(txQcp.GetSigData())
@@ -129,5 +116,5 @@ func (mapper *QcpMapper) SaveCrossChainResult(ctx ctx.Context, txStd *txs.TxStd,
 	mapper.SetMaxChainOutSequence(toChainID, maxSequence+1)
 	mapper.SetChainOutTxs(toChainID, maxSequence+1, txQcp)
 
-	return
+	return txQcp
 }

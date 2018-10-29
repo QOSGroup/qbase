@@ -1,8 +1,8 @@
 package tx
 
 import (
+	"github.com/QOSGroup/qbase/baseabci"
 	"bytes"
-	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
@@ -33,7 +33,7 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 		Code: btypes.ABCICodeOK,
 	}
 	// 查询发送方账户信息
-	mapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
+	mapper := baseabci.GetAccountMapper(ctx)
 	fromAcc := mapper.GetAccount(tx.From).(*types.AppAccount)
 	if fromAcc.AccountAddress == nil {
 		result.Code = btypes.ABCICodeType(btypes.CodeInternal)

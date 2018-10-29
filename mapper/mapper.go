@@ -11,7 +11,7 @@ type IMapper interface {
 	Copy() IMapper
 
 	//BaseMapper implement below methods
-	GetKVStoreName() string
+	MapperName() string
 	GetStoreKey() store.StoreKey
 
 	SetStore(store store.KVStore)
@@ -24,8 +24,8 @@ type BaseMapper struct {
 	store store.KVStore   //Important:注意在不同的context中要覆盖该值
 }
 
-func NewBaseMapper(cdc *go_amino.Codec, kvStoreName string) *BaseMapper {
-	return &BaseMapper{cdc: cdc, key: store.NewKVStoreKey(kvStoreName)}
+func NewBaseMapper(cdc *go_amino.Codec, mapperName string) *BaseMapper {
+	return &BaseMapper{cdc: cdc, key: store.NewKVStoreKey(mapperName)}
 }
 
 func (baseMapper *BaseMapper) Copy() *BaseMapper {
@@ -36,7 +36,7 @@ func (baseMapper *BaseMapper) Copy() *BaseMapper {
 	}
 }
 
-func (baseMapper *BaseMapper) GetKVStoreName() string {
+func (baseMapper *BaseMapper) MapperName() string {
 	return baseMapper.key.Name()
 }
 
