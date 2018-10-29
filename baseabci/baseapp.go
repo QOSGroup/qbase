@@ -442,7 +442,8 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 			}
 		}
 
-		if signature.Nonce != acc.GetNonce() {
+		//issue-68 https://github.com/QOSGroup/qbase/issues/68
+		if signature.Nonce != acc.GetNonce() + 1 {
 			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce(), signature.Nonce)).Result()
 			return
 		}
@@ -462,7 +463,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		signature := signatures[i]
 		pubkey := acc.GetPubicKey()
 		//1. 根据账户nonce及tx生成signData
-		signBytes := append(tx.GetSignData(), types.Int2Byte(int64(acc.GetNonce()))...)
+		signBytes := append(tx.GetSignData(), types.Int2Byte(acc.GetNonce() + 1)...)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
 			result = types.ErrInternal(fmt.Sprintf("signature verification failed")).Result()
 			return
