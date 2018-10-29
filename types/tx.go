@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	go_amino "github.com/tendermint/go-amino"
 )
 
@@ -14,7 +16,7 @@ func DecoderTx(cdc *go_amino.Codec, txBytes []byte) (Tx, Error) {
 	err := cdc.UnmarshalBinaryBare(txBytes, &tx)
 
 	if err != nil {
-		return nil, ErrInternal("txBytes decoder failed")
+		return nil, ErrInternal(fmt.Sprintf("txBytes decoder failed. error: %s", err.Error()))
 	}
 
 	return tx, nil

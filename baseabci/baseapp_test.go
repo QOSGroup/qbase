@@ -745,3 +745,26 @@ func TestInfo(t *testing.T) {
 	require.Equal(t, []uint8(nil), res.LastBlockAppHash)
 
 }
+
+func TestDeferFuncArgs(t *testing.T) {
+
+	flag := false
+
+	defer func(f bool) {
+
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+
+		fmt.Println(f)
+		fmt.Println(flag)
+	}(flag)
+
+	// var b []byte
+	// b[1] = byte(1)
+
+	flag = true
+	var b []byte
+	b[1] = byte(1)
+
+}
