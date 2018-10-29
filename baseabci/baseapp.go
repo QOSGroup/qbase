@@ -494,18 +494,23 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 	if err != nil {
 		return err.Result()
 	}
-	//2. 校验txQcp sequence: sequence 必须大于当前接收的该链最大的sequence
-	//checkTx时仅校验 sequence > maxReceivedSeq
-	maxReceivedSeq := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
-	if tx.Sequence < maxReceivedSeq {
-		return types.ErrInvalidSequence(fmt.Sprintf("tx sequence is less then received sequence. max is %d , got is %d", maxReceivedSeq, tx.Sequence)).Result()
+	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
+	// deliverTx时校验 sequence =  maxInSequence + 1
+	maxInSequence := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
+	if tx.Sequence != maxInSequence+1 {
+		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
+		return
 	}
 
-	//3. 校验签名
+	//3. 校验TxQcp签名
 	res := app.validateTxQcpSignature(ctx, tx)
 	if !res.IsOK() {
-		return res
+		result = res
+		return
 	}
+
+	//4. 更新qcp in sequence
+	getQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
 
 	return
 }
@@ -646,64 +651,45 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
 			result = types.ErrInternal(log).Result()
 		}
-
-		//6. txQcp不为result时， 保存执行结果
-		if !tx.IsResult {
-			//类型为TxQcp时，将所有结果进行保存
-			txQcpResult := &txs.QcpTxResult{
-				Code:                int64(result.Code),
-				Extends:             make([]cmn.KVPair, 1),
-				GasUsed:             types.NewInt(result.GasUsed),
-				QcpOriginalSequence: tx.Sequence,
-				Info:                result.Log,
-			}
-
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
-				AppendTag(qcp.QcpTo, []byte(tx.From))
-
-			txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
-
-			txStd := &txs.TxStd{
-				ITx:       txQcpResult,
-				Signature: make([]txs.Signature, 0),
-				ChainID:   ctx.ChainID(),
-				MaxGas:    types.ZeroInt(),
-			}
-
-			txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
-			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
-				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
-		}
-
 	}()
 
-	//1. 校验TxQcp基础数据
-	err := tx.ValidateBasicData(false, ctx.ChainID())
-	if err != nil {
-		result = err.Result()
-		return
-	}
-
-	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
-	// deliverTx时校验 sequence =  maxInSequence + 1
-	maxInSequence := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
-	if tx.Sequence != maxInSequence+1 {
-		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
-		return
-	}
-
-	//3. 更新qcp in sequence
-	getQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
-
-	//4. 校验TxQcp签名
-	res := app.validateTxQcpSignature(ctx, tx)
-	if !res.IsOK() {
-		result = res
+	err := app.checkTxQcp(ctx, tx)
+	if !err.IsOK() {
+		result = err
 		return
 	}
 
 	//5. 执行内部txStd
 	result = app.deliverTxStd(ctx, tx.TxStd)
+
+	//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
+	if !tx.IsResult {
+		//类型为TxQcp时，将所有结果进行保存
+		txQcpResult := &txs.QcpTxResult{
+			Code:                int64(result.Code),
+			Extends:             make([]cmn.KVPair, 1),
+			GasUsed:             types.NewInt(result.GasUsed),
+			QcpOriginalSequence: tx.Sequence,
+			Info:                result.Log,
+		}
+
+		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
+			AppendTag(qcp.QcpTo, []byte(tx.From))
+
+		txQcpResult.Extends = append(txQcpResult.Extends, result.Tags...)
+
+		txStd := &txs.TxStd{
+			ITx:       txQcpResult,
+			Signature: make([]txs.Signature, 0),
+			ChainID:   ctx.ChainID(),
+			MaxGas:    types.ZeroInt(),
+		}
+
+		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
+		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
+			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
+	}
+
 	return
 }
 
