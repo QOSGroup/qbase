@@ -290,7 +290,7 @@ func TestTxQcp(t *testing.T) {
 	for i := int64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
-		acc.SetNonce(i - 1)
+		acc.SetNonce(i)
 		txstd := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
 		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), 0, 0, false)
 
@@ -399,6 +399,8 @@ func TestCrossStdTx(t *testing.T) {
 		acc := accMapper.GetAccount(pidAccount3.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())
 
+		acc.SetNonce(i)
+
 		stdTx := createTransformTxWithNoQcpTx(acc, pidAccount4, 1000)
 		stdTxBz, _ := app.GetCdc().MarshalBinaryBare(stdTx)
 
@@ -484,6 +486,7 @@ func TestStdTx(t *testing.T) {
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())
 
+		acc.SetNonce(i)
 		stdTx := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
 		stdTxBz, _ := app.GetCdc().MarshalBinaryBare(stdTx)
 
@@ -549,7 +552,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 
 	signerAccount, _ := from.(*testAccount)
 
-	nonceByte := types.Int2Byte(int64(from.GetNonce()))
+	nonceByte := types.Int2Byte(from.GetNonce())
 	signBytes := append(stdTx.GetSignData(), nonceByte...)
 
 	signature, err := signerAccount.PrivKey.Sign(signBytes)
@@ -560,7 +563,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 	stdTx.Signature = []txs.Signature{{
 		Pubkey:    signerAccount.PrivKey.PubKey(),
 		Signature: signature,
-		Nonce:     int64(from.GetNonce()),
+		Nonce:     from.GetNonce(),
 	}}
 
 	return stdTx
