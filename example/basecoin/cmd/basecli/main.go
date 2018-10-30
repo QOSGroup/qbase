@@ -130,8 +130,8 @@ func queryQCP(http *client.HTTP, cdc *amino.Codec, chainid *string, qcpseq *int6
 // 链内交易
 func stdTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *string, receiver *string, coinStr *string, nonce *int64) {
 	coin := strings.Split(*coinStr, ",")
-	if *sender == "" || *receiver == "" || len(coin) != 2 || *prikey == "" || *nonce < 0 {
-		panic("usage: -m=stdTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>=0)")
+	if *sender == "" || *receiver == "" || len(coin) != 2 || *prikey == "" || *nonce <= 0 {
+		panic("usage: -m=stdTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>0)")
 	}
 	senderAddr, _ := types.GetAddrFromBech32(*sender)
 	receiverAddr, _ := types.GetAddrFromBech32(*receiver)
@@ -160,8 +160,8 @@ func stdTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *string, receiver *string, coinStr *string, nonce *int64,
 	chainId *string, qcpPriKey *string, qcpseq *int64) {
 	coin := strings.Split(*coinStr, ",")
-	if *sender == "" || *receiver == "" || len(coin) != 2 || *nonce < 0 || *chainId == "" || *qcpPriKey == "" || *qcpseq <= 0 {
-		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>=0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx")
+	if *sender == "" || *receiver == "" || len(coin) != 2 || *nonce <= 0 || *chainId == "" || *qcpPriKey == "" || *qcpseq <= 0 {
+		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx(>0)")
 	}
 	senderAddr, _ := types.GetAddrFromBech32(*sender)
 	receiverAddr, _ := types.GetAddrFromBech32(*receiver)
@@ -189,7 +189,7 @@ func qcpTransfer(http *client.HTTP, cdc *amino.Codec, sender *string, prikey *st
 // QCP result
 func qcpTxResult(http *client.HTTP, cdc *amino.Codec, chainId *string, qcpPriKey *string, originseq *int64, qcpseq *int64) {
 	if *chainId == "" || *qcpPriKey == "" || *qcpseq <= 0 {
-		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>=0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx")
+		panic("usage: -m=qcpTransfer -from=xxx -to=xxx -coin=xxx,xxx -prikey=xxx -nonce=xxx(>0) -chainid=xxx -qcpprikey=xxx -qcpseq=xxx(>0)")
 	}
 	txStd := genQcpResultTx(cdc, *chainId, *qcpPriKey, *originseq, *qcpseq)
 
