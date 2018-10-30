@@ -465,7 +465,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 		//issue-68 https://github.com/QOSGroup/qbase/issues/68
 		if signature.Nonce != acc.GetNonce() + 1 {
-			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce(), signature.Nonce)).Result()
+			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce() + 1, signature.Nonce)).Result()
 			return
 		}
 
@@ -722,7 +722,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		txStd := &txs.TxStd{
 			ITx:       txQcpResult,
 			Signature: make([]txs.Signature, 0),
-			ChainID:   ctx.ChainID(),
+			ChainID:   tx.From,
 			MaxGas:    types.ZeroInt(),
 		}
 
