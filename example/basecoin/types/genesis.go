@@ -15,22 +15,14 @@ import (
 
 // QOS初始状态
 type GenesisState struct {
-	CAPubKey crypto.PubKey     `json:"pub_key"`
-	Accounts []*GenesisAccount `json:"accounts"`
-	QCP      []*GenesisQCP     `json:"qcp"`
+	CAPubKey crypto.PubKey      `json:"pub_key"`
+	Accounts []*GenesisAccount  `json:"accounts"`
 }
 
 // 初始账户
 type GenesisAccount struct {
 	Address types.Address   `json:"address"`
 	Coins   types.BaseCoins `json:"coins"`
-}
-
-// 初始QCP配置
-type GenesisQCP struct {
-	Name    string        `json:"name"`
-	ChainId string        `json:"chain_id"`
-	PubKey  crypto.PubKey `json:"pub_key"`
 }
 
 // 给定 AppAccpunt 创建 GenesisAccount
@@ -109,14 +101,6 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs []json.RawMessage) (appStat
 	}
 
 	appState = json.RawMessage(fmt.Sprintf(`{
-		"qcp":[{
-			"name": "qstar",
-			"chain_id": "qstar",
-			"pub_key":{
-        		"type": "tendermint/PubKeyEd25519",
-        		"value": "ish2+qpPsoHxf7m+uwi8FOAWw6iMaDZgLKl1la4yMAs="
-			}
-		}],
   		"accounts": [{
     		"address": "%s",
     		"coins": [

@@ -215,11 +215,31 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	app.setDeliverState(abci.Header{ChainID: req.ChainId})
 	app.setCheckState(abci.Header{ChainID: req.ChainId})
 
+	// 保存初始QCP配置
+	initQCP(app.deliverState.ctx, app.GetCdc(), req.AppStateBytes)
+
 	if app.initChainer == nil {
 		return
 	}
 	res = app.initChainer(app.deliverState.ctx, req)
 	return
+}
+
+func initQCP(ctx ctx.Context, cdc *go_amino.Codec, appState []byte) {
+	if appState == nil {
+		return
+	}
+	gs := types.GenesisState{}
+	err := cdc.UnmarshalJSON(appState, &gs)
+	if err != nil {
+		panic(err)
+	}
+	if len(gs.QCPs) > 0 {
+		qcpMapper := GetQcpMapper(ctx)
+		for _, qcp := range gs.QCPs {
+			qcpMapper.SetChainInTrustPubKey(qcp.ChainId, qcp.PubKey)
+		}
+	}
 }
 
 func splitPath(requestPath string) (path []string) {
