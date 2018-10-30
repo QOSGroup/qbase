@@ -89,23 +89,21 @@ type TxQcp struct {
  ```go
 
 type IMapper interface {
-	Name() string
 	Copy() IMapper
+
+	//BaseMapper implement below methods
+	GetKVStoreName() string
 	GetStoreKey() store.StoreKey
 
-	Get(key []byte, ptr interface{}) (exsits bool)
-	Set(key []byte, val interface{})
-	Del(key []byte)
-
-	GetCodec() *go_amino.Codec
-	SetCodec(cdc *go_amino.Codec)
 	SetStore(store store.KVStore)
-	GetStore() store.KVStore
+	SetCodec(cdc *go_amino.Codec)
+}
+
 }
 
  ```
 
-`qbase`提供`BaseMapper`用于对`IMapper`的快速实现,自定义Mapper仅需实现`Name()`和`Copy()`方法即可:
+`qbase`提供`BaseMapper`用于对`IMapper`的快速实现,自定义Mapper仅需实现`Copy()`方法即可:
 
 ```go
 
@@ -116,9 +114,9 @@ type YourMapper struct {
 
 var _ mapper.IMapper = (*YourMapper)(nil)
 
-func NewYourMapper(main store.StoreKey) *YourMapper {
+func NewYourMapper(mapperName string) *YourMapper {
 	var yourMapper = YourMapper{}
-	yourMapper.BaseMapper = mapper.NewBaseMapper(main)
+	yourMapper.BaseMapper = mapper.NewBaseMapper(nil, mapperName)
 	return &yourMapper
 }
 
@@ -130,9 +128,6 @@ func (mapper *YourMapper) Copy() mapper.IMapper {
 	return cpyMapper
 }
 
-func (mapper *YourMapper) Name() string {
-	return "YourMapperName"
-}
 
 ```
 
@@ -185,15 +180,11 @@ type KvstoreTx struct {
 
 ```go
 
-const KvMapperName = "kvmapper"
+const KvKVStoreName = "kvmapper"
 
-type KvMapper struct {
-	*mapper.BaseMapper
-}
-
-func NewKvMapper(main store.StoreKey) *KvMapper {
+func NewKvMapper() *KvMapper {
 	var txMapper = KvMapper{}
-	txMapper.BaseMapper = mapper.NewBaseMapper(main)
+	txMapper.BaseMapper = mapper.NewBaseMapper(nil, KvKVStoreName)
 	return &txMapper
 }
 
@@ -203,9 +194,7 @@ func (mapper *KvMapper) Copy() mapper.IMapper {
 	return cpyMapper
 }
 
-func (mapper *KvMapper) Name() string {
-	return KvMapperName
-}
+var _ mapper.IMapper = (*KvMapper)(nil)
 
 func (mapper *KvMapper) SaveKV(key string, value string) {
 	mapper.Set([]byte(key), value)
@@ -337,7 +326,7 @@ baseapp.RegisterAccountProto(func() account.Account {
 
 func (tx *YourTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {
 	//获取注册的account mapper：
-  accountMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+  accountMapper := baseabci.GetAccountMapper(ctx)
 
   //通过账户地址获取account
   account := accountMapper.GetAccount(accAddress).(*AppAccount)
@@ -386,7 +375,7 @@ baseapp.RegisterTxQcpSigner(priKey)
 baseapp.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain){
   ...
 
-  qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
+  qcpMapper := GetQcpMapper(ctx)
 
   // chainId , pubKey可以从配置文件或其他保存的地方获取
   // chainId := xxx 中继从chainId获取的跨链
@@ -408,7 +397,7 @@ baseapp.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain){
 
 txQcpResultHandler := func(ctx ctx.Context, txQcpResult interface{}) types.Result {
 
-  qcpResult, ok := txQcpResult.(*txs.QcpTxResult)
+  qcpResult, ok := CovertTxQcpResult(txQcpResult)
   if !ok {
   return types.ErrInternal("wrong type").Result()
   }
@@ -449,7 +438,7 @@ func (tx *YourTx) Exec(ctx context.Context) (result types.Result, crossTxQcp *tx
 baseapp.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain){
   ...
 
-  qcpMapper := ctx.Mapper(qcp.QcpMapperName).(*qcp.QcpMapper)
+  qcpMapper := GetQcpMapper(ctx)
 
   // chainId , pubKey可以从配置文件或其他保存的地方获取
   // chainId := xxx： 联盟链chainId
