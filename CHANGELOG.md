@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.0.5
+
+2018.10.30
+
+initChain增加qcp pubkey初始化功能
+
+**BREAKING CHANGES**
+
+**FEATURES** 
+
+**IMPROVEMENTS**
+ 
+* [qcp] #78 initChain增加从genesis.json文件初始化qcp pubkey功能
+ 
+**BUG FIXES**
+
 ## v0.0.4
 
 2018.10.29
