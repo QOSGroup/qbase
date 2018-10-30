@@ -50,18 +50,12 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
 	accountMapper := baseabci.GetAccountMapper(ctx)
-	qcpMapper := baseabci.GetQcpMapper(ctx)
 
 	stateJSON := req.AppStateBytes
 	genesisState := &types.GenesisState{}
 	err := app.BaseApp.GetCdc().UnmarshalJSON(stateJSON, genesisState)
 	if err != nil {
 		panic(err)
-	}
-
-	// 保存初始QCP配置
-	for _, qcp := range genesisState.QCP {
-		qcpMapper.SetChainInTrustPubKey(qcp.ChainId, qcp.PubKey)
 	}
 
 	// 保存初始账户
