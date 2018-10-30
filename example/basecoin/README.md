@@ -24,7 +24,7 @@ go build
 ```
 5. 链内交易
 ```
-./basecli -m=stdtransfer -from=address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay -to=address1srrhd4quypqn0vu5sgrmutgudtnmgm2t2juwya -coin=qstar,10 -prikey=0xa328891040ae9b773bcd30005235f99a8d62df03a89e4f690f9fa03abb1bf22715fc9ca05613f2d8061492e9f8149510b5b67d340d199ff24f34c85dbbbd7e0df780e9a6cc -nonce=0
+./basecli -m=stdtransfer -from=address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay -to=address1srrhd4quypqn0vu5sgrmutgudtnmgm2t2juwya -coin=qstar,10 -prikey=0xa328891040ae9b773bcd30005235f99a8d62df03a89e4f690f9fa03abb1bf22715fc9ca05613f2d8061492e9f8149510b5b67d340d199ff24f34c85dbbbd7e0df780e9a6cc -nonce=1
 ```
 6. 账户查询状态
 ```
@@ -32,7 +32,7 @@ go build
 ```
 7. QCP交易
 ```
-./basecli -m=qcptransfer -from=address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay -to=address1srrhd4quypqn0vu5sgrmutgudtnmgm2t2juwya -coin=qstar,10 -prikey=0xa328891040ae9b773bcd30005235f99a8d62df03a89e4f690f9fa03abb1bf22715fc9ca05613f2d8061492e9f8149510b5b67d340d199ff24f34c85dbbbd7e0df780e9a6cc -nonce=1 -chainid=qstar -qcpprikey=0xa3288910405746e29aeec7d5ed56fac138b215e651e3244e6d995f25cc8a74c40dd1ef8d2e8ac876faaa4fb281f17fb9bebb08bc14e016c3a88c6836602ca97595ae32300b -qcpseq=1
+./basecli -m=qcptransfer -from=address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay -to=address1srrhd4quypqn0vu5sgrmutgudtnmgm2t2juwya -coin=qstar,10 -prikey=0xa328891040ae9b773bcd30005235f99a8d62df03a89e4f690f9fa03abb1bf22715fc9ca05613f2d8061492e9f8149510b5b67d340d199ff24f34c85dbbbd7e0df780e9a6cc -nonce=2 -chainid=qstar -qcpprikey=0xa3288910405746e29aeec7d5ed56fac138b215e651e3244e6d995f25cc8a74c40dd1ef8d2e8ac876faaa4fb281f17fb9bebb08bc14e016c3a88c6836602ca97595ae32300b -qcpseq=1
 ```
 8. QCP sequence 查询
 ```
