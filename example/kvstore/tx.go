@@ -1,9 +1,8 @@
 package kvstore
 
 import (
-	"github.com/QOSGroup/qbase/account"
+	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
-	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
 )
@@ -34,12 +33,13 @@ func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps 
 	logger := ctx.Logger()
 
 	//获取注册的mapper：
-	kvMapper := ctx.Mapper(KvKVStoreName).(*KvMapper)
+	kvMapper := ctx.Mapper(KVMapperName).(*KvMapper)
 	//以下两个为qbase内置的mapper
 	//QcpMapper: 跨链相关的操作
 	//AccountMapper: 账户相关的操作
-	qcpMapper := ctx.Mapper(qcp.GetQcpKVStoreName()).(*qcp.QcpMapper)
-	accMapper := ctx.Mapper(account.GetAccountKVStoreName()).(*account.AccountMapper)
+
+	accMapper := baseabci.GetAccountMapper(ctx)
+	qcpMapper := baseabci.GetQcpMapper(ctx)
 
 	logger.Info("kvMapper", kvMapper)
 	logger.Info("qcpMapper", qcpMapper)

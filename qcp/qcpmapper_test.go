@@ -27,11 +27,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	storeKey := qcpMapper.GetStoreKey()
 
 	mapper := make(map[string]mapper.IMapper)
-	mapper[qcpMapper.GetKVStoreName()] = qcpMapper
+	mapper[qcpMapper.MapperName()] = qcpMapper
 
 	ctx := defaultContext(storeKey, mapper)
 
-	qcpMapper, _ = ctx.Mapper(qcpMapper.GetKVStoreName()).(*QcpMapper)
+	qcpMapper, _ = ctx.Mapper(qcpMapper.MapperName()).(*QcpMapper)
 
 	outChain := "qsc"
 	seq := int64(12)
@@ -50,7 +50,7 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	fmt.Println(ctx.KVStore(storeKey))
 	fmt.Println(cctx.KVStore(storeKey))
 
-	newQcpMapper, _ := cctx.Mapper(qcpMapper.GetKVStoreName()).(*QcpMapper)
+	newQcpMapper, _ := cctx.Mapper(qcpMapper.MapperName()).(*QcpMapper)
 
 	fmt.Println(qcpMapper)
 	fmt.Println(newQcpMapper)
@@ -88,6 +88,19 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 
 	maxSeq = qcpMapper.GetMaxChainOutSequence(outChain)
 	require.Equal(t, cseq, maxSeq)
+
+	txQcp := &txs.TxQcp{
+		From: "a",
+	}
+
+
+	qcpMapper.SetChainOutTxs("a",2,txQcp)
+
+	a := qcpMapper.GetChainOutTxs("a",2)
+
+	require.Equal(t , "a" , a.From)
+
+
 
 }
 

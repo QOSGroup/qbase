@@ -405,8 +405,9 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 
 //校验txstd用户签名，签名通过后，增加用户none
 func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd) (newctx ctx.Context, result types.Result) {
-	//accountMapper 未设置时， 不做签名校验
-	accounMapper := getAccountMapper(cctx)
+	//未注册accountProto时， 不做签名校验
+	//用户可以在itx.validate()中自定义签名校验逻辑
+	accounMapper := GetAccountMapper(cctx)
 
 	if accounMapper == nil {
 		app.Logger.Info("accountMapper not setup....")
@@ -497,7 +498,7 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 	}
 	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
 	// deliverTx时校验 sequence =  maxInSequence + 1
-	maxInSequence := getQcpMapper(ctx).GetMaxChainInSequence(tx.From)
+	maxInSequence := GetQcpMapper(ctx).GetMaxChainInSequence(tx.From)
 	if tx.Sequence != maxInSequence+1 {
 		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
 		return
@@ -511,7 +512,7 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 	}
 
 	//4. 更新qcp in sequence
-	getQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
+	GetQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
 
 	return
 }
@@ -520,7 +521,7 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (result types.Result) {
 	//1. 校验qcpTx签名者PubKey是否合法:
 	pubkey := qcpTx.Sig.Pubkey
-	trustPubkey := getQcpMapper(ctx).GetChainInTruestPubKey(qcpTx.From)
+	trustPubkey := GetQcpMapper(ctx).GetChainInTrustPubKey(qcpTx.From)
 
 	if trustPubkey == nil {
 		return types.ErrInvalidPubKey("trust pubkey not set. you should set one trustKey per chain").Result()
@@ -630,7 +631,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}
 
 	if crossTxQcp != nil {
-		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, crossTxQcp.TxStd, crossTxQcp.To, false, app.txQcpSigner)
+		txQcp := saveCrossChainResult(ctx , crossTxQcp , false , app.txQcpSigner)
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
@@ -643,6 +644,25 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 
 	return
 }
+
+
+func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp , isResult bool , txQcpSigner  crypto.PrivKey ) *txs.TxQcp {
+
+	qcpMapper := GetQcpMapper(ctx)
+
+	txQcp := &txs.TxQcp{
+		TxStd:       crossTxQcp.TxStd,
+		From:        ctx.ChainID(),
+		To:          crossTxQcp.To,
+		BlockHeight: ctx.BlockHeight(),
+		TxIndex:     ctx.BlockTxIndex(),
+		IsResult:    isResult,
+	}
+
+	return qcpMapper.SignAndSaveTxQcp(txQcp , txQcpSigner)
+}
+
+
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
 func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
@@ -686,7 +706,12 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			MaxGas:    types.ZeroInt(),
 		}
 
-		txQcp := getQcpMapper(ctx).SaveCrossChainResult(ctx, txStd, tx.From, true, nil)
+		crossTxQcp := &txs.TxQcp{
+			TxStd: txStd,
+			To: tx.From,
+		}
+
+		txQcp := saveCrossChainResult(ctx , crossTxQcp , true , nil)
 		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
@@ -741,18 +766,3 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 }
 
-func getQcpMapper(ctx ctx.Context) *qcp.QcpMapper {
-	mapper := ctx.Mapper(qcp.GetQcpKVStoreName())
-	if mapper == nil {
-		return nil
-	}
-	return mapper.(*qcp.QcpMapper)
-}
-
-func getAccountMapper(ctx ctx.Context) *account.AccountMapper {
-	mapper := ctx.Mapper(account.GetAccountKVStoreName())
-	if mapper == nil {
-		return nil
-	}
-	return mapper.(*account.AccountMapper)
-}
