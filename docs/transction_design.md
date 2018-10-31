@@ -34,6 +34,7 @@
 		IsResult：	是否为执行结果，避免执行结果被作为 TxQcp 再次发送
 		BlockHeight: Tx所在block的高度
 		TxIndx：     Tx在block中的位置
+		Extends:      扩展字段
 # QcpTxResult
 功能：TxQcp在公链上的执行结果；
 

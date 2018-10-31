@@ -225,7 +225,7 @@ func TestTxQcpResult(t *testing.T) {
 		}
 
 		stdTx := txs.NewTxStd(qcpResult, cid, types.OneInt())
-		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 0, 0, true)
+		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 0, 0, true, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -279,7 +279,7 @@ func TestTxQcp(t *testing.T) {
 
 	//查询出两个账户进行转账操作
 	newCtx := app.NewContext(true, abci.Header{})
-	accMapper :=  GetAccountMapper(newCtx)
+	accMapper := GetAccountMapper(newCtx)
 
 	pidAccount1 := getAccount(accMapper, int64(1))
 	pidAccount2 := getAccount(accMapper, int64(2))
@@ -291,7 +291,7 @@ func TestTxQcp(t *testing.T) {
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		acc.SetNonce(i)
 		txstd := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
-		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), 0, 0, false)
+		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), 0, 0, false, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -386,7 +386,7 @@ func TestCrossStdTx(t *testing.T) {
 	app.Commit()
 
 	checkContext := app.checkState.ctx
-	accMapper :=  GetAccountMapper(checkContext)
+	accMapper := GetAccountMapper(checkContext)
 
 	pidAccount3 := getAccount(accMapper, int64(3))
 	pidAccount4 := getAccount(accMapper, int64(4))
@@ -473,7 +473,7 @@ func TestStdTx(t *testing.T) {
 	app.Commit()
 
 	checkContext := app.checkState.ctx
-	accMapper :=  GetAccountMapper(checkContext)
+	accMapper := GetAccountMapper(checkContext)
 
 	pidAccount1 := getAccount(accMapper, int64(1))
 	pidAccount2 := getAccount(accMapper, int64(2))
@@ -570,7 +570,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 
 func createAccount(id int64, money int64, ctx context.Context) account.Account {
 	privkey := ed25519.GenPrivKey()
-	accMapper :=  GetAccountMapper(ctx)
+	accMapper := GetAccountMapper(ctx)
 
 	pubkeyAddress := types.Address(privkey.PubKey().Address())
 
