@@ -14,8 +14,9 @@ type TxQcp struct {
 	Sequence    int64     `json:"sequence"`    //发送Sequence
 	Sig         Signature `json:"sig"`         //签名
 	BlockHeight int64     `json:"blockheight"` //Tx所在block高度
-	TxIndex      int64     `json:"txindex"`      //Tx在block的位置
+	TxIndex     int64     `json:"txindex"`     //Tx在block的位置
 	IsResult    bool      `json:"isresult"`    //是否为Result
+	Extends     string    `json:"extends"`     //扩展字段
 }
 
 var _ types.Tx = (*TxQcp)(nil)
@@ -39,7 +40,7 @@ func (tx *TxQcp) GetSigData() []byte {
 	ret = append(ret, types.Int2Byte(tx.BlockHeight)...)
 	ret = append(ret, types.Int2Byte(tx.TxIndex)...)
 	ret = append(ret, types.Bool2Byte(tx.IsResult)...)
-
+	ret = append(ret, []byte(tx.Extends)...)
 	return ret
 }
 
@@ -58,7 +59,7 @@ func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
 
 // 构建TxQCP结构体
 func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
-	blockheigh int64, txindex int64, isResult bool) (rTx *TxQcp) {
+	blockheigh int64, txindex int64, isResult bool, extends string) (rTx *TxQcp) {
 
 	rTx = &TxQcp{
 		txStd,
@@ -69,6 +70,7 @@ func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
 		blockheigh,
 		txindex,
 		isResult,
+		extends,
 	}
 
 	return

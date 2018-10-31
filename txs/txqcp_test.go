@@ -17,7 +17,7 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 		{[]byte("k1"), []byte("v1")},
 	}
 
-	txqcpresult = NewQcpTxResult(0, &ext, 10, types.NewInt(10), "qcp result info")
+	txqcpresult = NewQcpTxResult(0, ext, 10, types.NewInt(10), "qcp result info","")
 	var ctx context.Context
 	if !txqcpresult.ValidateData(ctx) {
 		fmt.Print("QcpTxResult ValidateData Error")
@@ -97,7 +97,7 @@ func TestTxQcp(t *testing.T) {
 	txStd := newTxStd(txResult)
 	require.NotNil(t, txStd)
 
-	txqcp := NewTxQCP(txStd, "qsc1", "qos", 1, 13452345, 2, false)
+	txqcp := NewTxQCP(txStd, "qsc1", "qos", 1, 13452345, 2, false, "")
 	require.NotNil(t, txqcp)
 
 	prvkey := ed25519.GenPrivKey()

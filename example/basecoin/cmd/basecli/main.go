@@ -240,7 +240,7 @@ func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address
 		Signature: signature,
 		Nonce:     nonce,
 	}}
-	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, false)
+	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, false, "")
 	caHex, _ := hex.DecodeString(caPriHex[2:])
 	var caPriKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)
@@ -255,10 +255,10 @@ func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address
 func genQcpResultTx(cdc *amino.Codec, chainId string, caPriHex string, originseq int64, qcpseq int64) *txs.TxQcp {
 	var ext []common.KVPair
 	ext = append(ext, common.KVPair{[]byte("test"), []byte("tset")})
-	resultTx := txs.NewQcpTxResult(0, &ext, originseq, types.ZeroInt(), "")
+	resultTx := txs.NewQcpTxResult(0, ext, originseq, types.ZeroInt(), "","")
 	std := txs.NewTxStd(resultTx, "basecoin-chain", types.NewInt(int64(0)))
 	std.Signature = []txs.Signature{}
-	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, true)
+	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, true,"")
 	caHex, _ := hex.DecodeString(caPriHex[2:])
 	var caPriKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)

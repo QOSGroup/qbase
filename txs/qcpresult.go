@@ -12,6 +12,7 @@ type QcpTxResult struct {
 	Extends             []tcommon.KVPair `json:"extends"`             //结果附加值
 	GasUsed             types.BigInt     `json:"gasused"`             //gas消耗值
 	QcpOriginalSequence int64            `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
+	QcpOriginalExtends  string           `json:"qcpextends"`          //此结果对应的 TxQcp.Extends
 	Info                string           `json:"info"`                //结果信息
 }
 
@@ -69,19 +70,21 @@ func (tx *QcpTxResult) GetSignData() []byte {
 	ret = append(ret, Extends2Byte(tx.Extends)...)
 	ret = append(ret, types.Int2Byte(tx.GasUsed.Int64())...)
 	ret = append(ret, types.Int2Byte(tx.QcpOriginalSequence)...)
+	ret = append(ret, []byte(tx.QcpOriginalExtends)...)
 	ret = append(ret, []byte(tx.Info)...)
 
 	return ret
 }
 
 // 功能：构建 QcpTxReasult 结构体
-func NewQcpTxResult(code int64, ext *[]tcommon.KVPair, sequence int64, gasused types.BigInt, info string) (rTx *QcpTxResult) {
+func NewQcpTxResult(code int64, ext []tcommon.KVPair, sequence int64, gasused types.BigInt, info, qcpExtends string) (rTx *QcpTxResult) {
 	rTx = &QcpTxResult{
-		code,
-		*ext,
-		gasused,
-		sequence,
-		info,
+		Code:                code,
+		Extends:             ext,
+		GasUsed:             gasused,
+		QcpOriginalSequence: sequence,
+		QcpOriginalExtends:  qcpExtends,
+		Info:                info,
 	}
 	return rTx
 }

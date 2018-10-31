@@ -69,6 +69,7 @@ type TxQcp struct {
 	BlockHeight int64     `json:"blockheight"` //Tx所在block高度
 	TxIndx      int64     `json:"txindx"`      //Tx在block的位置
 	IsResult    bool      `json:"isresult"`    //是否为Result
+	Extends      string    `json:"extends"`      //扩展字段
 }
 
 ```

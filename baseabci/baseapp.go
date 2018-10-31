@@ -464,8 +464,8 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		}
 
 		//issue-68 https://github.com/QOSGroup/qbase/issues/68
-		if signature.Nonce != acc.GetNonce() + 1 {
-			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce() + 1, signature.Nonce)).Result()
+		if signature.Nonce != acc.GetNonce()+1 {
+			result = types.ErrInternal(fmt.Sprintf("invalid nonce. expect: %d, got: %d", acc.GetNonce()+1, signature.Nonce)).Result()
 			return
 		}
 
@@ -484,7 +484,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		signature := signatures[i]
 		pubkey := acc.GetPubicKey()
 		//1. 根据账户nonce及tx生成signData
-		signBytes := append(tx.GetSignData(), types.Int2Byte(acc.GetNonce() + 1)...)
+		signBytes := append(tx.GetSignData(), types.Int2Byte(acc.GetNonce()+1)...)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
 			result = types.ErrInternal(fmt.Sprintf("signature verification failed")).Result()
 			return
@@ -651,7 +651,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	}
 
 	if crossTxQcp != nil {
-		txQcp := saveCrossChainResult(ctx , crossTxQcp , false , app.txQcpSigner)
+		txQcp := saveCrossChainResult(ctx, crossTxQcp, false, app.txQcpSigner)
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
@@ -665,8 +665,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 	return
 }
 
-
-func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp , isResult bool , txQcpSigner  crypto.PrivKey ) *txs.TxQcp {
+func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp, isResult bool, txQcpSigner crypto.PrivKey) *txs.TxQcp {
 
 	qcpMapper := GetQcpMapper(ctx)
 
@@ -677,12 +676,11 @@ func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp , isResult bool
 		BlockHeight: ctx.BlockHeight(),
 		TxIndex:     ctx.BlockTxIndex(),
 		IsResult:    isResult,
+		Extends:     crossTxQcp.Extends,
 	}
 
-	return qcpMapper.SignAndSaveTxQcp(txQcp , txQcpSigner)
+	return qcpMapper.SignAndSaveTxQcp(txQcp, txQcpSigner)
 }
-
-
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
 func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
@@ -711,6 +709,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			Extends:             make([]cmn.KVPair, 1),
 			GasUsed:             types.NewInt(result.GasUsed),
 			QcpOriginalSequence: tx.Sequence,
+			QcpOriginalExtends:  tx.Extends,
 			Info:                result.Log,
 		}
 
@@ -728,10 +727,10 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 		crossTxQcp := &txs.TxQcp{
 			TxStd: txStd,
-			To: tx.From,
+			To:    tx.From,
 		}
 
-		txQcp := saveCrossChainResult(ctx , crossTxQcp , true , nil)
+		txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
 		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
@@ -785,4 +784,3 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		Data: commitID.Hash,
 	}
 }
-
