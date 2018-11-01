@@ -11,8 +11,12 @@ func MakeQBaseCodec() *go_amino.Codec {
 
 	var cdc = go_amino.NewCodec()
 	cryptoAmino.RegisterAmino(cdc)
-	txs.RegisterCodec(cdc)
-	account.RegisterCodec(cdc)
+	RegisterCodec(cdc)
 
 	return cdc
+}
+
+func RegisterCodec(cdc *go_amino.Codec) {
+	txs.RegisterCodec(cdc)
+	account.RegisterCodec(cdc)
 }
