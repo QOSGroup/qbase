@@ -101,6 +101,14 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs []json.RawMessage) (appStat
 	}
 
 	appState = json.RawMessage(fmt.Sprintf(`{
+		"qcps":[{
+			"name": "qstar",
+			"chain_id": "qstar",
+			"pub_key":{
+        		"type": "tendermint/PubKeyEd25519",
+        		"value": "ish2+qpPsoHxf7m+uwi8FOAWw6iMaDZgLKl1la4yMAs="
+			}
+		}],
   		"accounts": [{
     		"address": "%s",
     		"coins": [
