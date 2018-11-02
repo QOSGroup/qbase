@@ -2,6 +2,7 @@ package txs
 
 import (
 	"fmt"
+
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/pkg/errors"
@@ -10,7 +11,7 @@ import (
 
 // 功能：抽象具体的Tx结构体
 type ITx interface {
-	ValidateData(ctx context.Context) bool //检测
+	ValidateData(ctx context.Context) error //检测
 
 	//执行业务逻辑,
 	// crossTxQcp: 需要进行跨链处理的TxQcp。
@@ -61,7 +62,7 @@ func (tx *TxStd) GetSignData() []byte {
 // 签名：每个签名者外部调用此方法
 func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) (signedbyte []byte, err error) {
 	if tx.ITx == nil {
-		return nil, errors.New("Signature txstd err(itx is nil)!")
+		return nil, errors.New("Signature txstd err(itx is nil)")
 	}
 
 	sigdata := append(tx.GetSignData(), types.Int2Byte(nonce)...)
@@ -102,15 +103,16 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 //tx.ITx == QcpTxResult时 不校验签名相关信息
 func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
 	if tx.ITx == nil {
-		return types.ErrInternal("no itx in txStd")
+		return types.ErrInternal("TxStd's ITx is nil")
 	}
 
-	if !tx.ITx.ValidateData(ctx) {
-		return types.ErrInternal("invaild ITx data in txStd")
+	itxErr := tx.ITx.ValidateData(ctx)
+	if itxErr != nil {
+		return types.ErrInternal(fmt.Sprintf("TxStd's ITx ValidateData error:  %s", itxErr.Error()))
 	}
 
 	if tx.ChainID == "" {
-		return types.ErrInternal("no chainId in txStd")
+		return types.ErrInternal("TxStd's ChainID is empty")
 	}
 
 	if tx.ChainID != currentChaindID {
@@ -118,7 +120,7 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 	}
 
 	if tx.MaxGas.LT(types.ZeroInt()) {
-		return types.ErrInternal("invaild max gas in txStd")
+		return types.ErrInternal("TxStd's MaxGas is less than zero")
 	}
 
 	_, ok := tx.ITx.(*QcpTxResult)
@@ -131,11 +133,11 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 
 		sigs := tx.Signature
 		if len(sigs) == 0 {
-			return types.ErrUnauthorized("no signatures")
+			return types.ErrUnauthorized("no signatures in TxStd's ITx")
 		}
 
 		if len(sigs) != len(singers) {
-			return types.ErrUnauthorized("signatures and signers not match")
+			return types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , singers count: %d ", len(sigs), len(singers)))
 		}
 	}
 

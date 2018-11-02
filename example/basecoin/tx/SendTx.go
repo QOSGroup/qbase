@@ -1,8 +1,10 @@
 package tx
 
 import (
-	"github.com/QOSGroup/qbase/baseabci"
 	"bytes"
+	"errors"
+
+	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
@@ -21,11 +23,11 @@ func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) Sen
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
-func (tx *SendTx) ValidateData(ctx context.Context) bool {
+func (tx *SendTx) ValidateData(ctx context.Context) error {
 	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
-		return false
+		return errors.New("SendTx ValidateData error")
 	}
-	return true
+	return nil
 }
 
 func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *txs.TxQcp) {

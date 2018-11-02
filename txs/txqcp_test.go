@@ -19,7 +19,8 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 
 	txqcpresult = NewQcpTxResult(0, ext, 10, types.NewInt(10), "qcp result info","")
 	var ctx context.Context
-	if !txqcpresult.ValidateData(ctx) {
+	err := txqcpresult.ValidateData(ctx)
+	if err != nil {
 		fmt.Print("QcpTxResult ValidateData Error")
 		return nil
 	}
