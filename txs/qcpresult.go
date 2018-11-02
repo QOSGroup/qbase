@@ -1,6 +1,9 @@
 package txs
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	tcommon "github.com/tendermint/tendermint/libs/common"
@@ -24,12 +27,20 @@ func (tx *QcpTxResult) IsOk() bool {
 
 // 功能：检测结构体字段的合法性
 // todo:QcpOriginalSequence 加入检测
-func (tx *QcpTxResult) ValidateData(ctx context.Context) bool {
-	if tx.Extends == nil || len(tx.Extends) == 0 || types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
-		return false
+func (tx *QcpTxResult) ValidateData(ctx context.Context) error {
+	if tx.Extends == nil || len(tx.Extends) == 0 {
+		return errors.New("QcpTxResult's  Extends is empty")
 	}
 
-	return true
+	if types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
+		return errors.New("QcpTxResult's  GasUsed is less then zero")
+	}
+
+	if tx.QcpOriginalSequence <= 0 {
+		return fmt.Errorf("QcpTxResult's QcpOriginalSequence Illegal data, except bigger than 0 , actual: %d ", tx.QcpOriginalSequence)
+	}
+
+	return nil
 }
 
 // 功能：tx执行
@@ -38,7 +49,7 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 	handler := ctx.TxQcpResultHandler()
 
 	if handler == nil {
-		result = types.ErrInternal("qcpResultHandler not set.").Result()
+		result = types.ErrInternal("QcpResultHandler not set.").Result()
 		return
 	}
 

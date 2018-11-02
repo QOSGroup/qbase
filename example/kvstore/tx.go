@@ -1,6 +1,8 @@
 package kvstore
 
 import (
+	"errors"
+
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/txs"
@@ -22,11 +24,11 @@ func NewKvstoreTx(key []byte, value []byte) KvstoreTx {
 	}
 }
 
-func (kv KvstoreTx) ValidateData(ctx context.Context) bool {
+func (kv KvstoreTx) ValidateData(ctx context.Context) error {
 	if len(kv.Key) < 0 {
-		return false
+		return errors.New("key is empty")
 	}
-	return true
+	return nil
 }
 
 func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps *txs.TxQcp) {

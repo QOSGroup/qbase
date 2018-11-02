@@ -1,6 +1,8 @@
 package txs
 
 import (
+	"fmt"
+
 	"github.com/QOSGroup/qbase/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
@@ -86,7 +88,7 @@ func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChaindID string) (err 
 	}
 
 	if tx.To != currentChaindID {
-		return types.ErrInternal("txQcp's To chainID is not match current chainID")
+		return types.ErrInternal(fmt.Sprintf("txQcp's To chainID is not match current chainID. expect: %s, actual: %s", currentChaindID, tx.To))
 	}
 
 	return

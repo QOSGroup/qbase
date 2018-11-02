@@ -1,6 +1,7 @@
 package baseabci
 
 import (
+	"errors"
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
@@ -652,11 +653,11 @@ type transferTx struct {
 
 var _ txs.ITx = (*transferTx)(nil)
 
-func (t *transferTx) ValidateData(ctx context.Context) bool {
+func (t *transferTx) ValidateData(ctx context.Context) error {
 	if t.Amount < 0 || len(t.FromUsers) < 1 || len(t.ToUsers) < 1 {
-		return false
+		return errors.New("transferTx ValidateBasicData error")
 	}
-	return true
+	return nil
 }
 
 //TODO: 简单实现，只实现单用户对单用户转账
