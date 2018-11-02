@@ -1,6 +1,7 @@
 package baseabci
 
 import (
+	"strconv"
 	"bytes"
 	"fmt"
 	"io"
@@ -654,7 +655,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		txQcp := saveCrossChainResult(ctx, crossTxQcp, false, app.txQcpSigner)
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
-			AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
+			AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence,10))).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
 
@@ -730,8 +731,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			To:    tx.From,
 		}
 
-		txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
-		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, types.Int2Byte(txQcp.Sequence)).
+		txQcp := saveCrossChainResult(ctx , crossTxQcp , true , nil)
+		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence,10))).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
 	}
 
