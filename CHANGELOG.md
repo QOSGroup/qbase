@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.0.6
+2018.11.5
+
+**BREAKING CHANGES**
+* [qcp] QcpTxResult返回字段直接包含为DeliverResult
+
+**FEATURES** 
+
+**IMPROVEMENTS**
+* [qcp] #82 TxQcp中增加Extends，QcpTxResult中增加QcpOriginalExtends，方便联盟链关联TxQcpQcpTxResult
+* [qcp] DeliverResult.Tags中qcp.sequence保存为字符串数字，方便订阅比较
+* [tx] ITx.validateData返回类型修改为error，方便在Result中保存这些error，客户端查看
+ 
+**BUG FIXES**
+* [qcp] QcpTxResult.TXSTD.ChainID设置为qcp来源chain
+
 ## v0.0.5
 
 2018.10.30
