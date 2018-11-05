@@ -2,22 +2,22 @@ package txs
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/libs/common"
-	"testing"
 )
 
 func newQcpTxResult() (txqcpresult *QcpTxResult) {
-	ext := []common.KVPair{
-		{[]byte("k0"), []byte("v0")},
-		{[]byte("k1"), []byte("v1")},
+
+	result := types.Result{
+		Code: 0,
 	}
 
-	txqcpresult = NewQcpTxResult(0, ext, 10, types.NewInt(10), "qcp result info","")
+	txqcpresult = NewQcpTxResult(result, 10, "qcp result info", "")
 	var ctx context.Context
 	err := txqcpresult.ValidateData(ctx)
 	if err != nil {

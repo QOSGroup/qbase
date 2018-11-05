@@ -11,28 +11,22 @@ import (
 
 // qos端对TxQcp的执行结果
 type QcpTxResult struct {
-	Code                int64            `json:"code"`                //执行结果
-	Extends             []tcommon.KVPair `json:"extends"`             //结果附加值
-	GasUsed             types.BigInt     `json:"gasused"`             //gas消耗值
-	QcpOriginalSequence int64            `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
-	QcpOriginalExtends  string           `json:"qcpextends"`          //此结果对应的 TxQcp.Extends
-	Info                string           `json:"info"`                //结果信息
+	Result              types.Result `json:"result"`              //对应TxQcp执行结果
+	QcpOriginalSequence int64        `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
+	QcpOriginalExtends  string       `json:"qcpextends"`          //此结果对应的 TxQcp.Extends
+	Info                string       `json:"info"`                //结果信息
 }
 
 var _ ITx = (*QcpTxResult)(nil)
 
 func (tx *QcpTxResult) IsOk() bool {
-	return tx.Code == int64(0)
+	return tx.Result.Code.IsOK()
 }
 
 // 功能：检测结构体字段的合法性
-// todo:QcpOriginalSequence 加入检测
 func (tx *QcpTxResult) ValidateData(ctx context.Context) error {
-	if tx.Extends == nil || len(tx.Extends) == 0 {
-		return errors.New("QcpTxResult's  Extends is empty")
-	}
 
-	if types.BigInt.LT(tx.GasUsed, types.ZeroInt()) {
+	if types.NewInt(tx.Result.GasUsed).LT(types.ZeroInt()) {
 		return errors.New("QcpTxResult's  GasUsed is less then zero")
 	}
 
@@ -77,9 +71,10 @@ func (tx *QcpTxResult) GetGasPayer() types.Address {
 
 // 获取签名字段
 func (tx *QcpTxResult) GetSignData() []byte {
-	ret := types.Int2Byte(tx.Code)
-	ret = append(ret, Extends2Byte(tx.Extends)...)
-	ret = append(ret, types.Int2Byte(tx.GasUsed.Int64())...)
+	ret := types.Int2Byte(int64(tx.Result.Code))
+	ret = append(ret, tx.Result.Data...)
+	ret = append(ret, Extends2Byte(tx.Result.Tags)...)
+	ret = append(ret, types.Int2Byte(tx.Result.GasUsed)...)
 	ret = append(ret, types.Int2Byte(tx.QcpOriginalSequence)...)
 	ret = append(ret, []byte(tx.QcpOriginalExtends)...)
 	ret = append(ret, []byte(tx.Info)...)
@@ -88,16 +83,13 @@ func (tx *QcpTxResult) GetSignData() []byte {
 }
 
 // 功能：构建 QcpTxReasult 结构体
-func NewQcpTxResult(code int64, ext []tcommon.KVPair, sequence int64, gasused types.BigInt, info, qcpExtends string) (rTx *QcpTxResult) {
-	rTx = &QcpTxResult{
-		Code:                code,
-		Extends:             ext,
-		GasUsed:             gasused,
-		QcpOriginalSequence: sequence,
+func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info string) *QcpTxResult {
+	return &QcpTxResult{
+		Result:              result,
+		QcpOriginalSequence: qcpSequence,
 		QcpOriginalExtends:  qcpExtends,
 		Info:                info,
 	}
-	return rTx
 }
 
 // 功能：将common.KVPair转化成[]byte

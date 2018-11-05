@@ -255,7 +255,14 @@ func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address
 func genQcpResultTx(cdc *amino.Codec, chainId string, caPriHex string, originseq int64, qcpseq int64) *txs.TxQcp {
 	var ext []common.KVPair
 	ext = append(ext, common.KVPair{[]byte("test"), []byte("tset")})
-	resultTx := txs.NewQcpTxResult(0, ext, originseq, types.ZeroInt(), "","")
+	result := types.Result{
+		Code: 0 ,
+		Data: make([]byte,10),
+		Tags: types.Tags{
+			types.MakeTag("test",[]byte("tset")),
+		},
+	}
+	resultTx := txs.NewQcpTxResult(result, originseq,"","")
 	std := txs.NewTxStd(resultTx, "basecoin-chain", types.NewInt(int64(0)))
 	std.Signature = []txs.Signature{}
 	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, true,"")
