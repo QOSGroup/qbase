@@ -17,7 +17,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	tcommon "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -218,10 +217,12 @@ func TestTxQcpResult(t *testing.T) {
 		}
 
 		qcpResult := &txs.QcpTxResult{
-			Code:    code,
-			GasUsed: types.OneInt(),
-			Extends: []tcommon.KVPair{
-				tcommon.KVPair{Key: []byte("key"), Value: []byte("value")},
+			Result: types.Result{
+				Code:    types.ABCICodeType(code),
+				GasUsed: types.OneInt().Int64(),
+				Tags: types.Tags{
+					types.MakeTag("key", []byte("value")),
+				},
 			},
 		}
 
@@ -364,9 +365,9 @@ func TestTxQcp(t *testing.T) {
 		qcpResult, _ := outQcpTx.TxStd.ITx.(*txs.QcpTxResult)
 
 		if i > 5 {
-			require.NotEqual(t, int64(0), int64(qcpResult.Code))
+			require.NotEqual(t, int64(0), int64(qcpResult.Result.Code))
 		} else {
-			require.Equal(t, int64(0), int64(qcpResult.Code))
+			require.Equal(t, int64(0), int64(qcpResult.Result.Code))
 		}
 
 	}
