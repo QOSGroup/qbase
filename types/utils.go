@@ -1,10 +1,8 @@
 package types
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"regexp"
 )
 
@@ -38,26 +36,17 @@ func MustSortJSON(toSortJSON []byte) []byte {
 
 // 函数：int64 转化为 []byte
 func Int2Byte(in int64) []byte {
-	var ret = bytes.NewBuffer([]byte{})
-	err := binary.Write(ret, binary.BigEndian, in)
-	if err != nil {
-		fmt.Printf("Int2Byte error:%s", err.Error())
-		return nil
-	}
-
-	return ret.Bytes()
+	var bz = make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(in))
+	return bz
 }
 
 // 函数：bool 转化为 []byte
 func Bool2Byte(in bool) []byte {
-	var ret = bytes.NewBuffer([]byte{})
-	err := binary.Write(ret, binary.BigEndian, in)
-	if err != nil {
-		fmt.Printf("Bool2Byte error:%s", err.Error())
-		return nil
+	if in {
+		return []byte{1}
 	}
-
-	return ret.Bytes()
+	return []byte{0}
 }
 
 // 功能：检查 QscName 的合法性
