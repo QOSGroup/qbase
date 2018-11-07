@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/QOSGroup/qbase/client/keys"
+	"github.com/spf13/cobra"
 	"encoding/hex"
-	"flag"
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
-	"github.com/QOSGroup/qbase/example/basecoin/app"
+	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	bctypes "github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
@@ -19,40 +21,54 @@ import (
 )
 
 func main() {
-	cdc := app.MakeCodec()
 
-	mode := flag.String("m", "", "client mode: get/send")
-	addr := flag.String("addr", "", "input account addr(bech32)")
-	sender := flag.String("from", "", "input sender addr")
-	receiver := flag.String("to", "", "input receive addr")
-	prikey := flag.String("prikey", "", "input sender prikey")
-	nonce := flag.Int64("nonce", 0, "input sender nonce")
-	coinStr := flag.String("coin", "", "input coinname,coinamount")
-	chainId := flag.String("chainid", "", "input qcp chainId")
-	qcpPriKey := flag.String("qcpprikey", "", "input qcp prikey")
-	qcpseq := flag.Int64("qcpseq", 0, "input qcp sequence")
-	originseq := flag.Int64("originseq", 0, "input qcp origin sequence")
+	cdc := baseabci.MakeQBaseCodec()
 
-	flag.Parse()
-
-	http := client.NewHTTP("tcp://127.0.0.1:26657", "/websocket")
-
-	switch *mode {
-	case "accquery": // 账户查询
-		queryAccount(http, cdc, addr)
-	case "qcpseq": // QCP sequence查询
-		queryQCPSequence(http, cdc, chainId, qcpseq)
-	case "qcpquery": // QCP查询
-		queryQCP(http, cdc, chainId, qcpseq)
-	case "stdtransfer": // 链内交易
-		stdTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce)
-	case "qcptransfer": // QCP交易
-		qcpTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce, chainId, qcpPriKey, qcpseq)
-	case "qcptxresult": // QCP TxResult
-		qcpTxResult(http, cdc, chainId, qcpPriKey, originseq, qcpseq)
-	default:
-		fmt.Println("invalid command")
+	rootCmd := &cobra.Command{
+		Use:   "cli",
+		Short: "client",
 	}
+
+	rootCmd.AddCommand(keys.Commands(cdc))
+
+	executor := cli.PrepareMainCmd(rootCmd, "GA", "")
+
+	executor.Execute()
+
+	// cdc := app.MakeCodec()
+
+	// mode := flag.String("m", "", "client mode: get/send")
+	// addr := flag.String("addr", "", "input account addr(bech32)")
+	// sender := flag.String("from", "", "input sender addr")
+	// receiver := flag.String("to", "", "input receive addr")
+	// prikey := flag.String("prikey", "", "input sender prikey")
+	// nonce := flag.Int64("nonce", 0, "input sender nonce")
+	// coinStr := flag.String("coin", "", "input coinname,coinamount")
+	// chainId := flag.String("chainid", "", "input qcp chainId")
+	// qcpPriKey := flag.String("qcpprikey", "", "input qcp prikey")
+	// qcpseq := flag.Int64("qcpseq", 0, "input qcp sequence")
+	// originseq := flag.Int64("originseq", 0, "input qcp origin sequence")
+
+	// flag.Parse()
+
+	// http := client.NewHTTP("tcp://127.0.0.1:26657", "/websocket")
+
+	// switch *mode {
+	// case "accquery": // 账户查询
+	// 	queryAccount(http, cdc, addr)
+	// case "qcpseq": // QCP sequence查询
+	// 	queryQCPSequence(http, cdc, chainId, qcpseq)
+	// case "qcpquery": // QCP查询
+	// 	queryQCP(http, cdc, chainId, qcpseq)
+	// case "stdtransfer": // 链内交易
+	// 	stdTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce)
+	// case "qcptransfer": // QCP交易
+	// 	qcpTransfer(http, cdc, sender, prikey, receiver, coinStr, nonce, chainId, qcpPriKey, qcpseq)
+	// case "qcptxresult": // QCP TxResult
+	// 	qcpTxResult(http, cdc, chainId, qcpPriKey, originseq, qcpseq)
+	// default:
+	// 	fmt.Println("invalid command")
+	// }
 }
 
 // 查询账户状态
@@ -240,7 +256,7 @@ func genQcpSendTx(cdc *amino.Codec, sender types.Address, receiver types.Address
 		Signature: signature,
 		Nonce:     nonce,
 	}}
-	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, false, "")
+	tx := txs.NewTxQCP(std, chainId, "basecoin-chain", qcpseq, 0, 0, false,"")
 	caHex, _ := hex.DecodeString(caPriHex[2:])
 	var caPriKey ed25519.PrivKeyEd25519
 	cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)
