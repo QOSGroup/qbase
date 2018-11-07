@@ -296,7 +296,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abc
 func handlerCustomQuery(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
 
 	if app.customQueryHandler == nil {
-		return types.ErrUnknownRequest("custom query handler not register").QueryResult()
+		return types.ErrUnknownRequest("CustomQueryHandler not register").QueryResult()
 	}
 
 	ctx := ctx.NewContext(app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.Logger, app.registerMappers)
@@ -472,7 +472,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 		if acc.GetPubicKey() == nil {
 			if signature.Pubkey == nil {
-				result = types.ErrInternal(fmt.Sprintf("signature missing pubkey")).Result()
+				result = types.ErrInternal("txstd's pubkey is nil in signature").Result()
 				return
 			}
 			acc.SetPublicKey(signature.Pubkey)
@@ -487,7 +487,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		//1. 根据账户nonce及tx生成signData
 		signBytes := append(tx.GetSignData(), types.Int2Byte(acc.GetNonce()+1)...)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
-			result = types.ErrInternal(fmt.Sprintf("signature verification failed")).Result()
+			result = types.ErrInternal("txstd's signature verification failed").Result()
 			return
 		}
 
@@ -545,21 +545,21 @@ func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (r
 	trustPubkey := GetQcpMapper(ctx).GetChainInTrustPubKey(qcpTx.From)
 
 	if trustPubkey == nil {
-		return types.ErrInvalidPubKey("trust pubkey not set. you should set one trustKey per chain").Result()
+		return types.ErrInvalidPubKey(fmt.Sprintf("chain: %s trust pubkey not found",ctx.ChainID())).Result()
 	}
 
 	if pubkey == nil {
-		return types.ErrInvalidPubKey("pubkey is nil in signature").Result()
+		return types.ErrInvalidPubKey("txqcp's pubkey is nil in signature").Result()
 	}
 
 	if !bytes.Equal(pubkey.Bytes(), trustPubkey.Bytes()) {
-		return types.ErrInvalidPubKey(fmt.Sprintf("pubkey is signature is not expect. Got: %X , Expect: %X", pubkey.Bytes(), trustPubkey.Bytes())).Result()
+		return types.ErrInvalidPubKey(fmt.Sprintf("txqcp's pubkey is not expect. Got: %X , Expect: %X", pubkey.Bytes(), trustPubkey.Bytes())).Result()
 	}
 
 	//2. 校验签名是否合法
 	sigBytes := qcpTx.GetSigData()
 	if !pubkey.VerifyBytes(sigBytes, qcpTx.Sig.Signature) {
-		return types.ErrUnauthorized("signature verification failed").Result()
+		return types.ErrUnauthorized("txqcp's signature verification failed").Result()
 	}
 
 	return
