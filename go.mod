@@ -5,7 +5,8 @@ require (
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
-	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be // indirect
+	github.com/bgentry/speakeasy v0.1.0
+	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be
 	github.com/btcsuite/btcutil v0.0.0-20180706230648-ab6388e0c60a // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebuchman/fail-test v0.0.0-20170303061230-95f809107225 // indirect
@@ -23,7 +24,9 @@ require (
 	github.com/jmhodges/levigo v0.0.0-20161115193449-c42d9e0ca023 // indirect
 	github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515 // indirect
 	github.com/magiconair/properties v1.8.0 // indirect
+	github.com/mattn/go-isatty v0.0.4
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v0.0.0-20180715050151-f15292f7a699 // indirect
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
@@ -41,12 +44,15 @@ require (
 	github.com/spf13/pflag v1.0.1
 	github.com/spf13/viper v1.0.0
 	github.com/stretchr/testify v1.2.2
-	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d // indirect
+	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d
+	github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 	github.com/tendermint/ed25519 v0.0.0-20171027050219-d8387025d2b9 // indirect
 	github.com/tendermint/go-amino v0.12.0
 	github.com/tendermint/iavl v0.11.0
 	github.com/tendermint/tendermint v0.23.1
-	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4 // indirect
+	github.com/tendermint/tmlibs v0.9.0
+	github.com/tyler-smith/go-bip39 v1.0.0
+	golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 // indirect
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
 	google.golang.org/grpc v1.15.0 // indirect
 )
