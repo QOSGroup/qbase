@@ -43,6 +43,10 @@ func NewBaseCoin(name string, amount BigInt) *BaseCoin {
 	}
 }
 
+func NewInt64BaseCoin(name string, amount int64) *BaseCoin {
+	return NewBaseCoin(name, NewInt(amount))
+}
+
 func (coin *BaseCoin) GetName() string {
 	return coin.Name
 }
@@ -172,6 +176,12 @@ func (coins BaseCoins) IsValid() bool {
 // BaseCoins相加
 // 注意：任何一个BaseCoin如果amount有0值将不会返回正确值
 func (coins BaseCoins) Plus(coinsB BaseCoins) BaseCoins {
+	if len(coins) > 1 {
+		coins = coins.Sort()
+	}
+	if len(coinsB) > 1 {
+		coinsB = coinsB.Sort()
+	}
 	sum := ([]*BaseCoin)(nil)
 	indexA, indexB := 0, 0
 	lenA, lenB := len(coins), len(coinsB)
@@ -223,6 +233,9 @@ func (coins BaseCoins) Minus(coinsB BaseCoins) BaseCoins {
 
 // 返回coins内币种币值是否均大于等于coinsB对应值
 func (coins BaseCoins) IsGTE(coinsB BaseCoins) bool {
+	if coins == nil && coinsB == nil {
+		return true
+	}
 	diff := coins.Minus(coinsB)
 	if len(diff) == 0 {
 		return true
@@ -249,6 +262,12 @@ func (coins BaseCoins) IsZero() bool {
 func (coins BaseCoins) IsEqual(coinsB BaseCoins) bool {
 	if len(coins) != len(coinsB) {
 		return false
+	}
+	if len(coins) > 1 {
+		coins = coins.Sort()
+	}
+	if len(coinsB) > 1 {
+		coinsB = coinsB.Sort()
 	}
 	for i := 0; i < len(coins); i++ {
 		if coins[i].Name != coinsB[i].Name || !coins[i].Amount.Equal(coinsB[i].Amount) {
@@ -296,6 +315,7 @@ func (coins BaseCoins) AmountOf(name string) BigInt {
 		}
 		return ZeroInt()
 	default:
+		coins = coins.Sort()
 		midIdx := len(coins) / 2
 		coin := coins[midIdx]
 		if name < coin.Name {
