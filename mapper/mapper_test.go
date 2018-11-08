@@ -47,11 +47,64 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 
 	baseMapper = &BaseMapper{cdc: cdc, store: cms.GetStore(storeKey).(store.KVStore)}
 
+	strKey := []byte("stringkey")
+	_, exsits := baseMapper.GetString(strKey)
+	require.Equal(t, false, exsits)
+
+	baseMapper.Set(strKey, "1111")
+	s, exsits := baseMapper.GetString(strKey)
+	require.Equal(t, true, exsits)
+	require.Equal(t, "1111", s)
+
+	require.Panics(t, func() {
+		_, _ = baseMapper.GetInt64(strKey)
+	})
+
+	intKey := []byte("interkey")
+	_, exsits = baseMapper.GetInt64(intKey)
+	require.Equal(t, false, exsits)
+
+	baseMapper.Set(intKey, int64(98))
+	i, exsits := baseMapper.GetInt64(intKey)
+	require.Equal(t, true, exsits)
+	require.Equal(t, int64(98), i)
+
+	require.Panics(t, func() {
+		_, _ = baseMapper.GetString(intKey)
+	})
+
+	booKey := []byte("booKey")
+	_, exsits = baseMapper.GetBool(booKey)
+	require.Equal(t, false, exsits)
+
+	baseMapper.Set(booKey, true)
+	b, exsits := baseMapper.GetBool(booKey)
+	require.Equal(t, true, exsits)
+	require.Equal(t, true, b)
+
+	require.Panics(t, func() {
+		_, _ = baseMapper.GetString(booKey)
+	})
+
+	count := 0
+	baseMapper.Iterator(nil, func(bz []byte) (stop bool) {
+		count++
+		return
+	})
+	require.Equal(t, 3, count)
+
+	count = 0
+	baseMapper.Iterator([]byte("interkey"), func(bz []byte) (stop bool) {
+		count++
+		return
+	})
+	require.Equal(t, 1, count)
+
 	k1 := []byte("account")
 	v1 := []byte("addressaaa")
 
 	var v string
-	exsits := baseMapper.Get(k1, &v)
+	exsits = baseMapper.Get(k1, &v)
 	require.Equal(t, false, exsits)
 
 	baseMapper.Set(k1, v1)

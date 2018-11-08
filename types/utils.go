@@ -3,7 +3,10 @@ package types
 import (
 	"encoding/binary"
 	"encoding/json"
+	"path/filepath"
 	"regexp"
+
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // SortedJSON takes any JSON and returns it sorted by keys. Also, all white-spaces
@@ -36,7 +39,7 @@ func MustSortJSON(toSortJSON []byte) []byte {
 
 // 函数：int64 转化为 []byte
 func Int2Byte(in int64) []byte {
-	var bz = make([]byte, 8)
+	bz := make([]byte, 8)
 	binary.BigEndian.PutUint64(bz, uint64(in))
 	return bz
 }
@@ -57,4 +60,21 @@ func CheckQscName(qscName string) bool {
 	ret = !ret && !reg.Match([]byte(qscName))
 
 	return ret
+}
+
+func GetGenesisDoc(rootDir string) (*tmtypes.GenesisDoc, error) {
+	path := filepath.Join(rootDir, "config", "genesis.json")
+	doc, err := tmtypes.GenesisDocFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return doc, nil
+}
+
+func GetChainID(rootDir string) (string, error) {
+	doc, err := GetGenesisDoc(rootDir)
+	if err != nil {
+		return "", err
+	}
+	return doc.ChainID, nil
 }
