@@ -10,7 +10,6 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 	"io"
-	"os"
 )
 
 func main() {
@@ -26,8 +25,7 @@ func main() {
 	server.AddCommands(ctx, cdc, rootCmd, types.BaseCoinInit(),
 		server.ConstructAppCreator(newApp, "basecoin"))
 
-	rootDir := os.ExpandEnv("$HOME/.basecoind")
-	executor := cli.PrepareBaseCmd(rootCmd, "basecoin", rootDir)
+	executor := cli.PrepareBaseCmd(rootCmd, "basecoin", types.DefaultNodeHome)
 
 	err := executor.Execute()
 	if err != nil {

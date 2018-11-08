@@ -5,18 +5,35 @@ import (
 	"errors"
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
+	clikeys "github.com/QOSGroup/qbase/client/keys"
+	"github.com/QOSGroup/qbase/keys"
 	"github.com/QOSGroup/qbase/server"
 	"github.com/QOSGroup/qbase/server/config"
 	"github.com/QOSGroup/qbase/types"
+	"github.com/spf13/pflag"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
+	"os"
+	"path/filepath"
+
+	dbm "github.com/tendermint/tendermint/libs/db"
+)
+
+const (
+	DefaultAccountName = "Jia"
+	DefaultAccountPass = "12345678"
+)
+
+var (
+	DefaultCLIHome  = os.ExpandEnv("$HOME/.basecli")
+	DefaultNodeHome = os.ExpandEnv("$HOME/.basecoind")
 )
 
 // QOS初始状态
 type GenesisState struct {
-	CAPubKey crypto.PubKey      `json:"pub_key"`
-	Accounts []*GenesisAccount  `json:"accounts"`
+	CAPubKey crypto.PubKey     `json:"pub_key"`
+	Accounts []*GenesisAccount `json:"accounts"`
 }
 
 // 初始账户
@@ -44,9 +61,19 @@ func (ga *GenesisAccount) ToAppAccount() (acc *AppAccount, err error) {
 }
 
 func BaseCoinInit() server.AppInit {
+	fsAppGenState := pflag.NewFlagSet("", pflag.ContinueOnError)
+
+	fsAppGenTx := pflag.NewFlagSet("", pflag.ContinueOnError)
+	fsAppGenTx.String(server.FlagName, "", "validator moniker, required")
+	fsAppGenTx.String(server.FlagClientHome, DefaultCLIHome,
+		"home directory for the client, used for key generation")
+	fsAppGenTx.Bool(server.FlagOWK, false, "overwrite the accounts created")
+
 	return server.AppInit{
-		AppGenTx:    BaseCoinAppGenTx,
-		AppGenState: BaseCoinAppGenState,
+		FlagsAppGenState: fsAppGenState,
+		FlagsAppGenTx:    fsAppGenTx,
+		AppGenTx:         BaseCoinAppGenTx,
+		AppGenState:      BaseCoinAppGenState,
 	}
 }
 
@@ -60,7 +87,7 @@ func BaseCoinAppGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.Gen
 
 	var addr types.Address
 	var secret string
-	addr, secret, err = GenerateCoinKey()
+	addr, secret, err = GenerateCoinKey(cdc, genTxConfig.CliRoot)
 	if err != nil {
 		return
 	}
@@ -73,7 +100,7 @@ func BaseCoinAppGenTx(cdc *amino.Codec, pk crypto.PubKey, genTxConfig config.Gen
 	}
 	appGenTx = json.RawMessage(bz)
 
-	mm := map[string]string{"secret": secret}
+	mm := map[string]string{"name": DefaultAccountName, "pass": DefaultAccountPass, "secret": secret}
 	bz, err = cdc.MarshalJSON(mm)
 	if err != nil {
 		return
@@ -122,9 +149,19 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs []json.RawMessage) (appStat
 	return
 }
 
-func GenerateCoinKey() (addr types.Address, secret string, err error) {
-	//ed25519
-	addr, _ = types.GetAddrFromBech32("address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay")
-	secret = "0xa328891040ae9b773bcd30005235f99a8d62df03a89e4f690f9fa03abb1bf22715fc9ca05613f2d8061492e9f8149510b5b67d340d199ff24f34c85dbbbd7e0df780e9a6cc"
-	return
+func GenerateCoinKey(cdc *amino.Codec, clientRoot string) (addr types.Address, mnemonic string, err error) {
+
+	db, err := dbm.NewGoLevelDB(clikeys.KeyDBName, filepath.Join(clientRoot, "keys"))
+	if err != nil {
+		return types.Address([]byte{}), "", err
+	}
+	keybase := keys.New(db, cdc)
+
+	info, secret, err := keybase.CreateEnMnemonic(DefaultAccountName, DefaultAccountPass)
+	if err != nil {
+		return types.Address([]byte{}), "", err
+	}
+
+	addr = types.Address(info.GetPubKey().Address())
+	return addr, secret, nil
 }
