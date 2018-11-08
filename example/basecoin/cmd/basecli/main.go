@@ -4,6 +4,7 @@ import (
 	bcli "github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/keys"
+	"github.com/QOSGroup/qbase/client/qcp"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
 	"github.com/QOSGroup/qbase/example/basecoin/tx/client"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
@@ -38,6 +39,10 @@ func main() {
 
 	// basecoin
 	client.AddCommands(rootCmd, cdc)
+	rootCmd.AddCommand(bcli.LineBreak)
+
+	// qcp
+	qcp.AddCommands(rootCmd, cdc)
 	rootCmd.AddCommand(bcli.LineBreak)
 
 	// version
