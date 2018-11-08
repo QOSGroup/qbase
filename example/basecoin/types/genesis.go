@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	DefaultCLIHome  = os.ExpandEnv("$HOME/.basecli")
+	DefaultCLIHome  = os.ExpandEnv("$HOME/.basecoind")
 	DefaultNodeHome = os.ExpandEnv("$HOME/.basecoind")
 )
 

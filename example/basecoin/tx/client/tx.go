@@ -1,27 +1,33 @@
 package client
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/QOSGroup/qbase/client"
 	cliacc "github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/keys"
 	cliqcp "github.com/QOSGroup/qbase/client/qcp"
+	btx "github.com/QOSGroup/qbase/client/tx"
+	"github.com/QOSGroup/qbase/example/basecoin/tx"
+	"github.com/QOSGroup/qbase/txs"
 	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 )
 
 const (
 	flagFrom       = "from"
-	flagPriKey     = "from-prikey"
 	flagTo         = "to"
 	flagCoinName   = "coin-name"
 	flagCoinAmount = "coin-amount"
 
-	flagQCPChain  = "qcp-chain"
-	flagQCPPriKey = "qcp-prikey"
+	flagQCPChain = "qcp-chain"
 )
 
 // 链内交易
@@ -33,20 +39,18 @@ func SendTxCmd(cdc *amino.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().
 				WithCodec(cdc)
 
-			fromStr := viper.GetString(flagFrom)
-			fromAddr, err := btypes.GetAddrFromBech32(fromStr)
+			fromName := viper.GetString(flagFrom)
+			fromInfo, err := keys.GetKeyInfo(cliCtx, fromName)
 			if err != nil {
 				return err
 			}
-			from, err := cliacc.GetAccount(cliCtx, fromAddr)
+			from, err := cliacc.GetAccount(cliCtx, fromInfo.GetAddress())
 			if err != nil {
 				return err
 			}
 
-			fromPri := viper.GetString(flagPriKey)
-
-			toStr := viper.GetString(flagTo)
-			toAddr, err := btypes.GetAddrFromBech32(toStr)
+			toName := viper.GetString(flagTo)
+			toInfo, err := keys.GetKeyInfo(cliCtx, toName)
 			if err != nil {
 				return err
 			}
@@ -54,7 +58,18 @@ func SendTxCmd(cdc *amino.Codec) *cobra.Command {
 			name := viper.GetString(flagCoinName)
 			amount, err := strconv.ParseInt(viper.GetString(flagCoinAmount), 10, 64)
 
-			tx := BuildStdTx(cdc, from, fromPri, toAddr, btypes.BaseCoin{name, btypes.NewInt(amount)})
+			sendTx := tx.NewSendTx(from.GetAddress(), toInfo.GetAddress(), btypes.BaseCoin{name, btypes.NewInt(amount)})
+
+			chainId, err := getChainId()
+			if err != nil {
+				return err
+			}
+
+			tx := txs.NewTxStd(&sendTx, chainId, btypes.NewInt(int64(0)))
+			tx, err = btx.SignStdTx(cliCtx, fromName, from.GetNonce()+1, tx)
+			if err != nil {
+				return err
+			}
 
 			result, err := cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(tx))
 
@@ -66,7 +81,6 @@ func SendTxCmd(cdc *amino.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagFrom, "", "Address to send coins")
-	cmd.Flags().String(flagPriKey, "", "Sender's PriKey")
 	cmd.Flags().String(flagTo, "", "Address to receive coins")
 	cmd.Flags().String(flagCoinName, "", "Name of coin to send")
 	cmd.Flags().String(flagCoinAmount, "", "Amount of coin to send")
@@ -83,20 +97,18 @@ func SendQCPTxCmd(cdc *amino.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().
 				WithCodec(cdc)
 
-			fromStr := viper.GetString(flagFrom)
-			fromAddr, err := btypes.GetAddrFromBech32(fromStr)
+			fromName := viper.GetString(flagFrom)
+			fromInfo, err := keys.GetKeyInfo(cliCtx, fromName)
 			if err != nil {
 				return err
 			}
-			from, err := cliacc.GetAccount(cliCtx, fromAddr)
+			from, err := cliacc.GetAccount(cliCtx, fromInfo.GetAddress())
 			if err != nil {
 				return err
 			}
 
-			fromPri := viper.GetString(flagPriKey)
-
-			toStr := viper.GetString(flagTo)
-			toAddr, err := btypes.GetAddrFromBech32(toStr)
+			toName := viper.GetString(flagTo)
+			toInfo, err := keys.GetKeyInfo(cliCtx, toName)
 			if err != nil {
 				return err
 			}
@@ -104,13 +116,36 @@ func SendQCPTxCmd(cdc *amino.Codec) *cobra.Command {
 			name := viper.GetString(flagCoinName)
 			amount, err := strconv.ParseInt(viper.GetString(flagCoinAmount), 10, 64)
 
-			chainId := viper.GetString(flagQCPChain)
-			seq, _ := cliqcp.GetInChainSequence(cliCtx, chainId)
+			qcpChain := viper.GetString(flagQCPChain)
+			seq, _ := cliqcp.GetInChainSequence(cliCtx, qcpChain)
 
-			chainPri := viper.GetString(flagQCPPriKey)
+			chainId, err := getChainId()
+			if err != nil {
+				return err
+			}
 
-			stdTx := BuildStdTx(cdc, from, fromPri, toAddr, btypes.BaseCoin{name, btypes.NewInt(amount)})
-			qcpTx := BuildQCPTx(cdc, stdTx, chainId, chainPri, seq + 1)
+			sendTx := tx.NewSendTx(from.GetAddress(), toInfo.GetAddress(), btypes.BaseCoin{name, btypes.NewInt(amount)})
+			tx := txs.NewTxStd(&sendTx, chainId, btypes.NewInt(int64(0)))
+			tx, err = btx.SignStdTx(cliCtx, fromName, from.GetNonce()+1, tx)
+			if err != nil {
+				return err
+			}
+
+			buf := client.BufferStdin()
+
+			fmt.Print(fmt.Sprintf("PriKey to sign with %s chain:", qcpChain))
+			hexPriKey, err := client.GetPassword("", buf)
+			if err != nil {
+				return err
+			}
+			qcpTx := txs.NewTxQCP(tx, qcpChain, chainId, seq+1, 0, 0, false, "")
+			caHex, _ := hex.DecodeString(hexPriKey[2:])
+			var caPriKey ed25519.PrivKeyEd25519
+			cdc.MustUnmarshalBinaryBare(caHex, &caPriKey)
+			sig, _ := qcpTx.SignTx(caPriKey)
+			qcpTx.Sig.Nonce = seq
+			qcpTx.Sig.Signature = sig
+			qcpTx.Sig.Pubkey = caPriKey.PubKey()
 
 			result, err := cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(qcpTx))
 
@@ -122,12 +157,22 @@ func SendQCPTxCmd(cdc *amino.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagFrom, "", "Address to send coins")
-	cmd.Flags().String(flagPriKey, "", "Sender's PriKey")
 	cmd.Flags().String(flagTo, "", "Address to receive coins")
 	cmd.Flags().String(flagCoinName, "", "Name of coin to send")
 	cmd.Flags().String(flagCoinAmount, "", "Amount of coin to send")
-	cmd.Flags().String(flagQCPChain, "", "qcp chain id")
-	cmd.Flags().String(flagQCPPriKey, "", "qcp chain prikey")
+	cmd.Flags().String(flagQCPChain, "", "QCP chain id")
 
 	return cmd
+}
+
+func getChainId() (string, error) {
+	chainId := viper.GetString(client.FlagChainID)
+	if len(chainId) == 0 {
+		cfg, err := tcmd.ParseConfig()
+		if err != nil {
+			return "", err
+		}
+		return btypes.GetChainID(cfg.BaseConfig.RootDir)
+	}
+	return chainId, nil
 }
