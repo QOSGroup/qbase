@@ -72,6 +72,41 @@ func (baseMapper *BaseMapper) Get(key []byte, ptr interface{}) (exsits bool) {
 	return
 }
 
+func (baseMapper *BaseMapper) GetString(key []byte) (v string, exsits bool) {
+	exsits = baseMapper.Get(key, &v)
+	return
+}
+
+func (baseMapper *BaseMapper) GetInt64(key []byte) (v int64, exsits bool) {
+	exsits = baseMapper.Get(key, &v)
+	return
+}
+
+func (baseMapper *BaseMapper) GetBool(key []byte) (v bool, exsits bool) {
+	exsits = baseMapper.Get(key, &v)
+	return
+}
+
+func (baseMapper *BaseMapper) Iterator(prefix []byte, process func([]byte) (stop bool)) {
+	baseMapper.IteratorWithEnd(prefix, store.PrefixEndBytes(prefix), process)
+}
+
+func (baseMapper *BaseMapper) IteratorWithEnd(start []byte, end []byte, process func([]byte) (stop bool)) {
+	iter := baseMapper.GetStore().Iterator(start, end)
+	defer iter.Close()
+
+	for {
+		if !iter.Valid() {
+			return
+		}
+		val := iter.Value()
+		if process(val) {
+			return
+		}
+		iter.Next()
+	}
+}
+
 func (baseMapper *BaseMapper) Set(key []byte, val interface{}) {
 
 	if !baseMapper.isRegistered() {
