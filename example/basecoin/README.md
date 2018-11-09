@@ -4,10 +4,10 @@ basecoin example基于qbase实现了简单的单次单币种，单个发送/接�
 
 ## 使用步骤
 
-1. Install basecoind and basecli
+1. Install basecoind and basecli</br>
 在qbase项目根目录下
 ```
-cd example/cmd/basecoind
+cd example/basecoin/cmd/basecoind
 go install
 cd ../basecli
 go install
@@ -147,7 +147,7 @@ basecli tx 0677BB2E156496064960ED759BFEDBE6D09A8282
 } <nil>
 ```
 
-9. QCP交易
+9. QCP交易</br>
 qstar PriKey:</br>
 0xa3288910405746e29aeec7d5ed56fac138b215e651e3244e6d995f25cc8a74c40dd1ef8d2e8ac876faaa4fb281f17fb9bebb08bc14e016c3a88c6836602ca97595ae32300b
 ```
