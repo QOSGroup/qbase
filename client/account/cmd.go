@@ -24,7 +24,7 @@ func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 			addrStr := viper.GetString(flagAddress)
 			var addr types.Address
 			if len(addrStr) != 0 {
-				address, err := types.GetAddrFromBech32(args[0])
+				address, err := types.GetAddrFromBech32(addrStr)
 				if err != nil {
 					return err
 				}

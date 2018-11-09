@@ -10,6 +10,7 @@ import (
 	cliqcp "github.com/QOSGroup/qbase/client/qcp"
 	btx "github.com/QOSGroup/qbase/client/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
+	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/txs"
 	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 )
 
 const (
@@ -168,11 +168,7 @@ func SendQCPTxCmd(cdc *amino.Codec) *cobra.Command {
 func getChainId() (string, error) {
 	chainId := viper.GetString(client.FlagChainID)
 	if len(chainId) == 0 {
-		cfg, err := tcmd.ParseConfig()
-		if err != nil {
-			return "", err
-		}
-		return btypes.GetChainID(cfg.BaseConfig.RootDir)
+		return btypes.GetChainID(types.DefaultNodeHome)
 	}
 	return chainId, nil
 }
