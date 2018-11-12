@@ -130,7 +130,6 @@ func AddCommands(
 		StartCmd(ctx, appCreator),
 		UnsafeResetAllCmd(ctx),
 		tendermintCmd,
-		version.VersionCmd,
 	)
 }
 
