@@ -9,6 +9,12 @@ import (
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
+
+	"github.com/QOSGroup/qbase/store"
+
+	abci "github.com/tendermint/tendermint/abci/types"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 func newQcpTxResult() (txqcpresult *QcpTxResult) {
@@ -31,7 +37,12 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 func newTxStd(tx ITx) (txstd *TxStd) {
 	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
 	signer := txstd.ITx.GetSigner()
-	var ctx context.Context
+
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db)
+	cms.MountStoreWithDB(store.NewKVStoreKey("test"), store.StoreTypeIAVL, db)
+	cms.LoadLatestVersion()
+	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
 	err := txstd.ValidateBasicData(ctx, true, "qsc1")
 	if err != nil {
 		return nil
