@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/QOSGroup/qbase/client/block"
 	bcli "github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/keys"
@@ -45,10 +46,15 @@ func main() {
 	qcp.AddCommands(rootCmd, cdc)
 	rootCmd.AddCommand(bcli.LineBreak)
 
+	//query
+	block.AddCommands(rootCmd, cdc)
+	rootCmd.AddCommand(bcli.LineBreak)
+
 	// version
 	rootCmd.AddCommand(
 		version.VersionCmd,
 	)
+
 
 	executor := cli.PrepareMainCmd(rootCmd, "BC", types.DefaultCLIHome)
 	err := executor.Execute()
