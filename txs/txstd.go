@@ -123,6 +123,11 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 		return types.ErrInternal("TxStd's MaxGas is less than zero")
 	}
 
+	execGas := tx.ITx.CalcGas()
+	if tx.MaxGas.LT(execGas) {
+		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
+	}
+
 	_, ok := tx.ITx.(*QcpTxResult)
 	if !ok {
 
