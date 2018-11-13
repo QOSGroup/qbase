@@ -87,11 +87,11 @@ func (baseMapper *BaseMapper) GetBool(key []byte) (v bool, exsits bool) {
 	return
 }
 
-func (baseMapper *BaseMapper) Iterator(prefix []byte, process func([]byte) (stop bool)) {
+func (baseMapper *BaseMapper) Iterator(prefix []byte, process func(needDecodeBytes []byte) (stop bool)) {
 	baseMapper.IteratorWithEnd(prefix, store.PrefixEndBytes(prefix), process)
 }
 
-func (baseMapper *BaseMapper) IteratorWithEnd(start []byte, end []byte, process func([]byte) (stop bool)) {
+func (baseMapper *BaseMapper) IteratorWithEnd(start []byte, end []byte, process func(needDecodeBytes []byte) (stop bool)) {
 	iter := baseMapper.GetStore().Iterator(start, end)
 	defer iter.Close()
 
