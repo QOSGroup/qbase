@@ -106,7 +106,9 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 		return types.ErrInternal("TxStd's ITx is nil")
 	}
 
-	itxErr := tx.ITx.ValidateData(ctx)
+	//开启cache执行ITx.ValidateData，在ITx.ValidateData中做数据保存操作将被忽略
+	newCtx, _ := ctx.CacheContext()
+	itxErr := tx.ITx.ValidateData(newCtx)
 	if itxErr != nil {
 		return types.ErrInternal(fmt.Sprintf("TxStd's ITx ValidateData error:  %s", itxErr.Error()))
 	}
