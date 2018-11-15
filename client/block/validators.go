@@ -1,7 +1,6 @@
 package block
 
 import (
-
 	"errors"
 	"fmt"
 	"strconv"
@@ -13,8 +12,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/crypto"
 	go_amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
@@ -51,19 +50,18 @@ func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 			var transferValidators []struct {
 				Address     string
 				VotingPower int64
-				PubKey crypto.PubKey
+				PubKey      crypto.PubKey
 			}
-
 
 			for _, validator := range validatorsRes.Validators {
 				transferValidator := struct {
 					Address     string
 					VotingPower int64
-					PubKey crypto.PubKey
+					PubKey      crypto.PubKey
 				}{
 					Address:     types.Address(validator.Address).String(),
 					VotingPower: validator.VotingPower,
-					PubKey: validator.PubKey,
+					PubKey:      validator.PubKey,
 				}
 
 				transferValidators = append(transferValidators, transferValidator)

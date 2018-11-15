@@ -183,7 +183,7 @@ func TestBaseCoins_Sort(t *testing.T) {
 		NewInt64BaseCoin("GAS", 1),
 		NewInt64BaseCoin("MINERAL", 1),
 	}
-	badSort2 := BaseCoins{ 
+	badSort2 := BaseCoins{
 		NewInt64BaseCoin("GAS", 1),
 		NewInt64BaseCoin("TREE", 1),
 		NewInt64BaseCoin("MINERAL", 1),
@@ -363,7 +363,7 @@ func TestBaseCoins_IsEqual(t *testing.T) {
 
 func TestBaseCoins_IsPositive(t *testing.T) {
 	cases := []struct {
-		input BaseCoins
+		input    BaseCoins
 		expected bool
 	}{
 		{BaseCoins{NewInt64BaseCoin("A", 1), NewInt64BaseCoin("B", 1)}, true},
@@ -379,7 +379,7 @@ func TestBaseCoins_IsPositive(t *testing.T) {
 
 func TestBaseCoins_IsNotNegative(t *testing.T) {
 	cases := []struct {
-		input BaseCoins
+		input    BaseCoins
 		expected bool
 	}{
 		{BaseCoins{NewInt64BaseCoin("A", 1), NewInt64BaseCoin("B", 1)}, true},

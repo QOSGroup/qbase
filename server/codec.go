@@ -18,7 +18,6 @@ func RegisterCrypto(cdc *Codec) {
 	cryptoAmino.RegisterAmino(cdc)
 }
 
-
 func MarshalJSONIndent(cdc *Codec, obj interface{}) ([]byte, error) {
 	bz, err := cdc.MarshalJSON(obj)
 	if err != nil {
