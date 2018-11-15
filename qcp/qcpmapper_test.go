@@ -93,14 +93,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 		From: "a",
 	}
 
+	qcpMapper.SetChainOutTxs("a", 2, txQcp)
 
-	qcpMapper.SetChainOutTxs("a",2,txQcp)
+	a := qcpMapper.GetChainOutTxs("a", 2)
 
-	a := qcpMapper.GetChainOutTxs("a",2)
-
-	require.Equal(t , "a" , a.From)
-
-
+	require.Equal(t, "a", a.From)
 
 }
 

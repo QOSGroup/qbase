@@ -104,9 +104,9 @@ func printCreate(ctx context.CLIContext, info keys.Info, seed string) {
 	default:
 		printKeyInfo(ctx, info, Bech32KeyOutput)
 
-			fmt.Println("**Important** write this seed phrase in a safe place.")
-			fmt.Println("It is the only way to recover your account if you ever forget your password.")
-			fmt.Println()
-			fmt.Println(seed)
+		fmt.Println("**Important** write this seed phrase in a safe place.")
+		fmt.Println("It is the only way to recover your account if you ever forget your password.")
+		fmt.Println()
+		fmt.Println(seed)
 	}
 }

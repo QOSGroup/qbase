@@ -545,7 +545,7 @@ func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (r
 	trustPubkey := GetQcpMapper(ctx).GetChainInTrustPubKey(qcpTx.From)
 
 	if trustPubkey == nil {
-		return types.ErrInvalidPubKey(fmt.Sprintf("chain: %s trust pubkey not found",ctx.ChainID())).Result()
+		return types.ErrInvalidPubKey(fmt.Sprintf("chain: %s trust pubkey not found", ctx.ChainID())).Result()
 	}
 
 	if pubkey == nil {

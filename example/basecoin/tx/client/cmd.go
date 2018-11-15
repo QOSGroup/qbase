@@ -11,6 +11,6 @@ func AddCommands(cmd *cobra.Command, cdc *amino.Codec) {
 	tx.AddCommands(cmd, cdc)
 	cmd.AddCommand(bcli.GetCommands(
 		SendTxCmd(cdc),
-		SendQCPTxCmd(cdc))...
+		SendQCPTxCmd(cdc))...,
 	)
 }

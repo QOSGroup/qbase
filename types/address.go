@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
-const(
+const (
 	PREF_ADD = "address" // 地址前缀
 )
 
@@ -19,16 +19,16 @@ func (add Address) Bytes() []byte {
 }
 
 // 判断地址是否为空
-func (add Address) Empty() bool{
-	if len(add[:]) == 0{
+func (add Address) Empty() bool {
+	if len(add[:]) == 0 {
 		return true
 	}
 	return false
 }
 
 // 判断两地址是否相同
-func (add Address) EqualsTo(anotherAdd Address) bool{
-	if add.Empty() && anotherAdd.Empty(){
+func (add Address) EqualsTo(anotherAdd Address) bool {
+	if add.Empty() && anotherAdd.Empty() {
 		return true
 	}
 	return bytes.Compare(add.Bytes(), anotherAdd.Bytes()) == 0
@@ -45,7 +45,7 @@ func (add Address) String() string {
 
 // 由Bech32编码的地址解码为byte数组
 // prefix_type 验证类型是否相符
-func GetAddrFromBech32(bech32Addr string) (address []byte, err error){
+func GetAddrFromBech32(bech32Addr string) (address []byte, err error) {
 	prefix, bz, err := bech32.DecodeAndConvert(bech32Addr)
 	address = bz
 	if prefix != PREF_ADD {
@@ -84,4 +84,3 @@ func (add *Address) UnmarshalJSON(bech32Addr []byte) error {
 	*add = add2
 	return nil
 }
-

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/QOSGroup/qbase/client/block"
 	bcli "github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/account"
+	"github.com/QOSGroup/qbase/client/block"
 	"github.com/QOSGroup/qbase/client/keys"
 	"github.com/QOSGroup/qbase/client/qcp"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
@@ -54,7 +54,6 @@ func main() {
 	rootCmd.AddCommand(
 		version.VersionCmd,
 	)
-
 
 	executor := cli.PrepareMainCmd(rootCmd, "BC", types.DefaultCLIHome)
 	err := executor.Execute()
