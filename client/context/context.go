@@ -6,8 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/QOSGroup/qbase/client"
-
+	"github.com/QOSGroup/qbase/client/types"
 	go_amino "github.com/tendermint/go-amino"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -29,7 +28,7 @@ type CLIContext struct {
 // command line using Viper.
 func NewCLIContext() CLIContext {
 	var rpc rpcclient.Client
-	nodeURI := viper.GetString(client.FlagNode)
+	nodeURI := viper.GetString(types.FlagNode)
 	if nodeURI != "" {
 		rpc = rpcclient.NewHTTP(nodeURI, "/websocket")
 	}
@@ -37,9 +36,9 @@ func NewCLIContext() CLIContext {
 	return CLIContext{
 		Client:    rpc,
 		NodeURI:   nodeURI,
-		Height:    viper.GetInt64(client.FlagHeight),
-		Async:     viper.GetBool(client.FlagAsync),
-		TrustNode: viper.GetBool(client.FlagTrustNode),
+		Height:    viper.GetInt64(types.FlagHeight),
+		Async:     viper.GetBool(types.FlagAsync),
+		TrustNode: viper.GetBool(types.FlagTrustNode),
 	}
 }
 

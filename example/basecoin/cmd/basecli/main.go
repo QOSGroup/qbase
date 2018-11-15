@@ -2,10 +2,7 @@ package main
 
 import (
 	bcli "github.com/QOSGroup/qbase/client"
-	"github.com/QOSGroup/qbase/client/account"
-	"github.com/QOSGroup/qbase/client/block"
-	"github.com/QOSGroup/qbase/client/keys"
-	"github.com/QOSGroup/qbase/client/qcp"
+	ctypes "github.com/QOSGroup/qbase/client/types"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
 	"github.com/QOSGroup/qbase/example/basecoin/tx/client"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
@@ -23,39 +20,22 @@ var (
 
 func main() {
 	cobra.EnableCommandSorting = false
-
 	cdc := app.MakeCodec()
 
-	rootCmd.AddCommand(bcli.LineBreak)
+	//tx
+	txCommand := bcli.TxCommand()
+	txCommand.AddCommand(ctypes.PostCommands(client.SendTxCmd(cdc), client.SendQCPTxCmd(cdc))...)
 
-	// account
 	rootCmd.AddCommand(
-		bcli.GetCommands(account.QueryAccountCmd(cdc))...)
-	rootCmd.AddCommand(bcli.LineBreak)
-
-	// keys
-	rootCmd.AddCommand(
-		bcli.GetCommands(keys.Commands(cdc))...)
-	rootCmd.AddCommand(bcli.LineBreak)
-
-	// basecoin
-	client.AddCommands(rootCmd, cdc)
-	rootCmd.AddCommand(bcli.LineBreak)
-
-	// qcp
-	qcp.AddCommands(rootCmd, cdc)
-	rootCmd.AddCommand(bcli.LineBreak)
-
-	//query
-	block.AddCommands(rootCmd, cdc)
-	rootCmd.AddCommand(bcli.LineBreak)
-
-	// version
-	rootCmd.AddCommand(
+		txCommand,
+		bcli.KeysCommand(cdc),
+		bcli.QcpCommand(cdc),
+		bcli.QueryCommand(cdc),
+		bcli.TendermintCommand(cdc),
 		version.VersionCmd,
 	)
 
-	executor := cli.PrepareMainCmd(rootCmd, "BC", types.DefaultCLIHome)
+	executor := cli.PrepareBaseCmd(rootCmd, "BC", types.DefaultCLIHome)
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

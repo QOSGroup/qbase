@@ -1,13 +1,14 @@
 package keys
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/QOSGroup/qbase/keys"
-	"github.com/QOSGroup/qbase/types"
+	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tmlibs/cli"
@@ -21,7 +22,7 @@ const KeyDBName = "keys"
 // keybase is used to make GetKeyBase a singleton
 var keybase keys.Keybase
 
-type bechKeyOutFn func(keyInfo keys.Info) (KeyOutput, error)
+type bechKeyOutFn func(ctx context.CLIContext, keyInfo keys.Info) (KeyOutput, error)
 
 // GetKeyInfo returns key info for a given name. An error is returned if the
 // keybase cannot be retrieved or getting the info fails.
@@ -61,10 +62,10 @@ func GetPassphrase(ctx context.CLIContext, name string) (string, error) {
 // ReadPassphraseFromStdin attempts to read a passphrase from STDIN return an
 // error upon failure.
 func ReadPassphraseFromStdin(name string) (string, error) {
-	buf := client.BufferStdin()
+	buf := utils.BufferStdin()
 	prompt := fmt.Sprintf("Password to sign with '%s':", name)
 
-	passphrase, err := client.GetPassword(prompt, buf)
+	passphrase, err := utils.GetPassword(prompt, buf)
 	if err != nil {
 		return passphrase, fmt.Errorf("Error reading passphrase: %v", err)
 	}
@@ -102,10 +103,10 @@ type KeyOutput struct {
 }
 
 // create a list of KeyOutput in bech32 format
-func Bech32KeysOutput(infos []keys.Info) ([]KeyOutput, error) {
+func Bech32KeysOutput(ctx context.CLIContext, infos []keys.Info) ([]KeyOutput, error) {
 	kos := make([]KeyOutput, len(infos))
 	for i, info := range infos {
-		ko, err := Bech32KeyOutput(info)
+		ko, err := Bech32KeyOutput(ctx, info)
 		if err != nil {
 			return nil, err
 		}
@@ -115,19 +116,27 @@ func Bech32KeysOutput(infos []keys.Info) ([]KeyOutput, error) {
 }
 
 // create a KeyOutput in bech32 format
-func Bech32KeyOutput(info keys.Info) (KeyOutput, error) {
-	accAddr := types.Address(info.GetPubKey().Address().Bytes())
+func Bech32KeyOutput(ctx context.CLIContext, info keys.Info) (KeyOutput, error) {
+	accAddr := btypes.Address(info.GetPubKey().Address().Bytes())
+
+	pubkeyBz, err := ctx.Codec.MarshalJSON(info.GetPubKey())
+	if err != nil {
+		return KeyOutput{}, err
+	}
+
+	var pubkeyMap map[string]interface{}
+	json.Unmarshal(pubkeyBz, &pubkeyMap)
 
 	return KeyOutput{
 		Name:    info.GetName(),
 		Type:    info.GetType().String(),
 		Address: accAddr.String(),
-		PubKey:  fmt.Sprintf("%s", info.GetPubKey()),
+		PubKey:  pubkeyMap["value"].(string),
 	}, nil
 }
 
 func printKeyInfo(ctx context.CLIContext, keyInfo keys.Info, bechKeyOut bechKeyOutFn) {
-	ko, err := bechKeyOut(keyInfo)
+	ko, err := bechKeyOut(ctx, keyInfo)
 	if err != nil {
 		panic(err)
 	}
@@ -150,7 +159,7 @@ func printKeyInfo(ctx context.CLIContext, keyInfo keys.Info, bechKeyOut bechKeyO
 }
 
 func printInfos(ctx context.CLIContext, infos []keys.Info) {
-	kos, err := Bech32KeysOutput(infos)
+	kos, err := Bech32KeysOutput(ctx, infos)
 	if err != nil {
 		panic(err)
 	}
@@ -179,8 +188,8 @@ func printKeyOutput(ko KeyOutput) {
 	fmt.Printf("%s\t%s\t%s\t%s\n", ko.Name, ko.Type, ko.Address, ko.PubKey)
 }
 
-func printKeyAddress(info keys.Info, bechKeyOut bechKeyOutFn) {
-	ko, err := bechKeyOut(info)
+func printKeyAddress(ctx context.CLIContext, info keys.Info, bechKeyOut bechKeyOutFn) {
+	ko, err := bechKeyOut(ctx, info)
 	if err != nil {
 		panic(err)
 	}
@@ -188,8 +197,8 @@ func printKeyAddress(info keys.Info, bechKeyOut bechKeyOutFn) {
 	fmt.Println(ko.Address)
 }
 
-func printPubKey(info keys.Info, bechKeyOut bechKeyOutFn) {
-	ko, err := bechKeyOut(info)
+func printPubKey(ctx context.CLIContext, info keys.Info, bechKeyOut bechKeyOutFn) {
+	ko, err := bechKeyOut(ctx, info)
 	if err != nil {
 		panic(err)
 	}
