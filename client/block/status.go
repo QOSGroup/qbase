@@ -3,9 +3,8 @@ package block
 import (
 	"fmt"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
-
+	"github.com/QOSGroup/qbase/client/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -17,7 +16,7 @@ func statusCommand(cdc *go_amino.Codec) *cobra.Command {
 		Use:   "status",
 		Short: "Query remote node for status",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			viper.Set(client.FlagTrustNode, true)
+			viper.Set(types.FlagTrustNode, true)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			node, err := cliCtx.GetNode()
@@ -36,7 +35,8 @@ func statusCommand(cdc *go_amino.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
-	viper.BindPFlag(client.FlagNode, cmd.Flags().Lookup(client.FlagNode))
+	cmd.Flags().StringP(types.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	viper.BindPFlag(types.FlagNode, cmd.Flags().Lookup(types.FlagNode))
+
 	return cmd
 }

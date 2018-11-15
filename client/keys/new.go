@@ -3,8 +3,8 @@ package keys
 import (
 	"fmt"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/QOSGroup/qbase/keys/hd"
 	"github.com/spf13/cobra"
 
@@ -51,12 +51,12 @@ func runNewCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 		return err
 	}
 
-	buf := client.BufferStdin()
+	buf := utils.BufferStdin()
 
 	_, err = kb.Get(name)
 	if err == nil {
 		// account exists, ask for user confirmation
-		if response, err := client.GetConfirmation(
+		if response, err := utils.GetConfirmation(
 			fmt.Sprintf("> override the existing name %s", name), buf); err != nil || !response {
 			return err
 		}
@@ -74,7 +74,7 @@ func runNewCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 	var mnemonic string
 
 	if !useDefaults {
-		mnemonic, err = client.GetString("Enter your bip39 mnemonic, or hit enter to generate one.", buf)
+		mnemonic, err = utils.GetString("Enter your bip39 mnemonic, or hit enter to generate one.", buf)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func runNewCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 	}
 
 	// get the encryption password
-	encryptPassword, err := client.GetCheckPassword(
+	encryptPassword, err := utils.GetCheckPassword(
 		"> Enter a passphrase to encrypt your key to disk(password must be at least 8 characters):",
 		"> Repeat the passphrase:", buf)
 	if err != nil {
@@ -111,7 +111,7 @@ func runNewCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 }
 
 func getBIP44ParamsAndPath(path string, flagSet bool) (*hd.BIP44Params, error) {
-	buf := client.BufferStdin()
+	buf := utils.BufferStdin()
 	bip44Path := path
 
 	// if it wasn't set in the flag, give it a chance to overide interactively
@@ -120,7 +120,7 @@ func getBIP44ParamsAndPath(path string, flagSet bool) (*hd.BIP44Params, error) {
 
 		printStep()
 
-		bip44Path, err = client.GetString(fmt.Sprintf("Enter your bip44 path. Default is %s\n", path), buf)
+		bip44Path, err = utils.GetString(fmt.Sprintf("Enter your bip44 path. Default is %s\n", path), buf)
 		if err != nil {
 			return nil, err
 		}

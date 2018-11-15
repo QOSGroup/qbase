@@ -22,6 +22,11 @@ func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			addrStr := viper.GetString(flagAddress)
+			name := viper.GetString(flagName)
+
+			if addrStr == "" && name == "" {
+				return fmt.Errorf("missing flags. use --addr or --name query account info")
+			}
 			var addr types.Address
 			if len(addrStr) != 0 {
 				address, err := types.GetAddrFromBech32(addrStr)
@@ -30,7 +35,6 @@ func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 				}
 				addr = address
 			} else {
-				name := viper.GetString(flagName)
 				info, err := keys.GetKeyInfo(cliCtx, name)
 				if err != nil {
 					return nil

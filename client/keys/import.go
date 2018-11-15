@@ -6,8 +6,8 @@ import (
 
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
 )
@@ -32,8 +32,8 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 				return fmt.Errorf("name: %s already exsits", name)
 			}
 
-			buf := client.BufferStdin()
-			prikStr, err := client.GetString("Enter ed25519 private key: ", buf)
+			buf := utils.BufferStdin()
+			prikStr, err := utils.GetString("Enter ed25519 private key: ", buf)
 			if err != nil {
 				return err
 			}
@@ -46,7 +46,7 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 			var prikey ed25519.PrivKeyEd25519
 			copy(prikey[:], privBytes)
 
-			encryptPassword, err := client.GetCheckPassword(
+			encryptPassword, err := utils.GetCheckPassword(
 				"> Enter a passphrase for your key:",
 				"> Repeat the passphrase:", buf)
 			if err != nil {

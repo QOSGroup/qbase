@@ -3,8 +3,8 @@ package keys
 import (
 	"fmt"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
 )
@@ -25,19 +25,19 @@ func updateKeyCommand(cdc *go_amino.Codec) *cobra.Command {
 func runUpdateCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error {
 	name := args[0]
 
-	buf := client.BufferStdin()
+	buf := utils.BufferStdin()
 	kb, err := GetKeyBase(ctx)
 	if err != nil {
 		return err
 	}
-	oldpass, err := client.GetPassword(
+	oldpass, err := utils.GetPassword(
 		"Enter the current passphrase:", buf)
 	if err != nil {
 		return err
 	}
 
 	getNewpass := func() (string, error) {
-		return client.GetCheckPassword(
+		return utils.GetCheckPassword(
 			"Enter the new passphrase:",
 			"Repeat the new passphrase:", buf)
 	}

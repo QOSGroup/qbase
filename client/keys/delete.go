@@ -3,8 +3,8 @@ package keys
 import (
 	"fmt"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
 )
@@ -35,8 +35,8 @@ func runDeleteCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) err
 		return err
 	}
 
-	buf := client.BufferStdin()
-	oldpass, err := client.GetPassword(
+	buf := utils.BufferStdin()
+	oldpass, err := utils.GetPassword(
 		"DANGER - enter password to permanently delete key:", buf)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package client
+package types
 
 import (
 	"github.com/spf13/cobra"
@@ -12,6 +12,7 @@ const (
 	FlagNonce     = "nonce"
 	FlagAsync     = "async"
 	FlagTrustNode = "trust-node"
+	FlagMaxGas    = "max-gas"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -37,11 +38,13 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
 		c.Flags().Int64(FlagNonce, 0, "account nonce to sign the tx")
+		c.Flags().Int64(FlagMaxGas, 0, "gas limit to set per tx")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
 		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
+		viper.BindPFlag(FlagMaxGas, c.Flags().Lookup(FlagMaxGas))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
 	}
 	return cmds

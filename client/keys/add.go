@@ -1,11 +1,10 @@
 package keys
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/QOSGroup/qbase/client"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/QOSGroup/qbase/keys"
 	"github.com/QOSGroup/qbase/keys/hd"
 	"github.com/spf13/cobra"
@@ -21,6 +20,7 @@ const (
 func addKeyCommand(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <name>",
+		Args:  cobra.ExactArgs(1),
 		Short: "Create a new key, or import from seed",
 		Long: `Add a public/private key pair to the key store.
 If you select --recover you can recover a key from the seed
@@ -39,10 +39,7 @@ func runAddCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 	var err error
 	var name, pass string
 
-	buf := client.BufferStdin()
-	if len(args) != 1 || len(args[0]) == 0 {
-		return errors.New("missing name parameter")
-	}
+	buf := utils.BufferStdin()
 	name = args[0]
 	kb, err = GetKeyBase(ctx)
 	if err != nil {
@@ -51,13 +48,13 @@ func runAddCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 
 	_, err = kb.Get(name)
 	if err == nil {
-		if response, err := client.GetConfirmation(
+		if response, err := utils.GetConfirmation(
 			fmt.Sprintf("override the existing name %s", name), buf); err != nil || !response {
 			return err
 		}
 	}
 
-	pass, err = client.GetCheckPassword(
+	pass, err = utils.GetCheckPassword(
 		"Enter a passphrase for your key:",
 		"Repeat the passphrase:", buf)
 	if err != nil {
@@ -65,7 +62,7 @@ func runAddCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) error 
 	}
 
 	if viper.GetBool(flagRecover) {
-		seed, err := client.GetSeed(
+		seed, err := utils.GetSeed(
 			"Enter your recovery seed phrase:", buf)
 		if err != nil {
 			return err
@@ -89,7 +86,7 @@ func printCreate(ctx context.CLIContext, info keys.Info, seed string) {
 	output := viper.Get(cli.OutputFlag)
 	switch output {
 	case "json":
-		out, err := Bech32KeyOutput(info)
+		out, err := Bech32KeyOutput(ctx, info)
 		if err != nil {
 			panic(err)
 		}
