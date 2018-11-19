@@ -133,8 +133,8 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 	_, ok := tx.ITx.(*QcpTxResult)
 	if !ok {
 
-		singers := tx.ITx.GetSigner()
-		if len(singers) == 0 {
+		signers := tx.ITx.GetSigner()
+		if len(signers) == 0 {
 			return
 		}
 
@@ -143,8 +143,8 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 			return types.ErrUnauthorized("no signatures in TxStd's ITx")
 		}
 
-		if len(sigs) != len(singers) {
-			return types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , singers count: %d ", len(sigs), len(singers)))
+		if len(sigs) != len(signers) {
+			return types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , signers count: %d ", len(sigs), len(signers)))
 		}
 	}
 

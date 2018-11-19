@@ -48,7 +48,7 @@ func GetPassphrase(ctx context.CLIContext, name string) (string, error) {
 
 	// we only need a passphrase for locally stored keys
 	// TODO: (ref: #864) address security concerns
-	if keyInfo.GetType() == keys.TypeLocal {
+	if keyInfo.GetType() == keys.TypeLocal || keyInfo.GetType() == keys.TypeImport {
 		passphrase, err = ReadPassphraseFromStdin(name)
 		if err != nil {
 			return passphrase, err

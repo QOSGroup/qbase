@@ -9,6 +9,10 @@ import (
 	"github.com/QOSGroup/qbase/types"
 )
 
+var (
+	ErrAccountNotExsits = errors.New("account not exists")
+)
+
 func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) {
 	path := account.BuildAccountStoreQueryPath()
 	res, err := ctx.Query(string(path), account.AddressStoreKey(addr))
@@ -17,7 +21,7 @@ func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) 
 	}
 
 	if len(res) == 0 {
-		return nil, errors.New("account not exists")
+		return nil, ErrAccountNotExsits
 	}
 
 	var acc account.Account

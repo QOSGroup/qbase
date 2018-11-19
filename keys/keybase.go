@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bufio"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -92,6 +93,10 @@ func (kb Keybase) CreateOffline(name string, pub crypto.PubKey) (Info, error) {
 	return kb.writeOfflineKey(pub, name), nil
 }
 
+func (kb Keybase) CreateImportInfo(name, passwd string, priv crypto.PrivKey) (Info, error) {
+	return kb.writeImportInfoKey(priv, name, passwd), nil
+}
+
 func (kb *Keybase) persistDerivedKey(seed []byte, passwd, name, fullHdPath string) (info Info, err error) {
 	// create master key and derive first key:
 	masterPriv, ch := hd.ComputeMastersFromSeed(seed)
@@ -169,6 +174,16 @@ func (kb Keybase) Sign(name, passphrase string, msg []byte) (sig []byte, pub cry
 		if err != nil {
 			return nil, nil, err
 		}
+	case *importInfo:
+		iinfo := info.(*importInfo)
+		encBytes, err := base64.StdEncoding.DecodeString(iinfo.PrivKeyEncrypt)
+		if err != nil {
+			return nil, nil, err
+		}
+		priv, err = decryptPrivKey(iinfo.Salt, encBytes, passphrase)
+		if err != nil {
+			return nil, nil, err
+		}
 	case *offlineInfo:
 		linfo := info.(*offlineInfo)
 		_, err := fmt.Fprintf(os.Stderr, "Bytes to sign:\n%s", msg)
@@ -210,6 +225,16 @@ func (kb Keybase) ExportPrivateKeyObject(name string, passphrase string) (crypto
 			return nil, err
 		}
 		priv, err = UnarmorDecryptPrivKey(linfo.PrivKeyArmor, passphrase)
+		if err != nil {
+			return nil, err
+		}
+	case *importInfo:
+		iinfo := info.(*importInfo)
+		encBytes, err := base64.StdEncoding.DecodeString(iinfo.PrivKeyEncrypt)
+		if err != nil {
+			return nil, err
+		}
+		priv, err = decryptPrivKey(iinfo.Salt, encBytes, passphrase)
 		if err != nil {
 			return nil, err
 		}
@@ -297,6 +322,16 @@ func (kb Keybase) Delete(name, passphrase string) error {
 		kb.db.DeleteSync(addrKey(linfo.GetAddress()))
 		kb.db.DeleteSync(infoKey(name))
 		return nil
+	case *importInfo:
+		iinfo := info.(*importInfo)
+		encBytes, err := base64.StdEncoding.DecodeString(iinfo.PrivKeyEncrypt)
+		if err != nil {
+			return nil
+		}
+		_, err = decryptPrivKey(iinfo.Salt, encBytes, passphrase)
+		if err != nil {
+			return nil
+		}
 	case *offlineInfo:
 		if passphrase != "yes" {
 			return fmt.Errorf("enter 'yes' exactly to delete the key - this cannot be undone")
@@ -333,6 +368,24 @@ func (kb Keybase) Update(name, oldpass string, getNewpass func() (string, error)
 		}
 		kb.writeLocalKey(key, name, newpass)
 		return nil
+	case *importInfo:
+		iinfo := info.(*importInfo)
+		encBytes, err := base64.StdEncoding.DecodeString(iinfo.PrivKeyEncrypt)
+		if err != nil {
+			return err
+		}
+		priv, err := decryptPrivKey(iinfo.Salt, encBytes, oldpass)
+		if err != nil {
+			return err
+		}
+
+		newpass, err := getNewpass()
+		if err != nil {
+			return err
+		}
+		kb.writeImportInfoKey(priv, name, newpass)
+		return nil
+
 	default:
 		return fmt.Errorf("locally stored key required")
 	}
@@ -349,6 +402,16 @@ func (kb Keybase) writeLocalKey(priv crypto.PrivKey, name, passphrase string) In
 	// make Info
 	pub := priv.PubKey()
 	info := newLocalInfo(name, pub, privArmor)
+	kb.writeInfo(info, name)
+	return info
+}
+
+func (kb Keybase) writeImportInfoKey(priv crypto.PrivKey, name, passphrase string) Info {
+	salt, privEncrypt := encryptPrivKey(priv, passphrase)
+	pub := priv.PubKey()
+
+	str := base64.StdEncoding.EncodeToString(privEncrypt)
+	info := newImportInfo(name, pub, salt, str)
 	kb.writeInfo(info, name)
 	return info
 }
@@ -380,13 +443,16 @@ type KeyType uint
 
 // Info KeyTypes
 const (
-	TypeLocal   KeyType = 0
+	TypeLocal   KeyType = 0 //从命令行生成或从助记符中恢复
 	TypeOffline KeyType = 1
+	TypeImport  KeyType = 2 //以私钥的方式导入
+
 )
 
 var keyTypes = map[KeyType]string{
 	TypeLocal:   "local",
 	TypeOffline: "offline",
+	TypeImport:  "import",
 }
 
 // String implements the stringer interface for KeyType.
@@ -408,6 +474,39 @@ type Info interface {
 
 var _ Info = &localInfo{}
 var _ Info = &offlineInfo{}
+var _ Info = &importInfo{}
+
+type importInfo struct {
+	Name           string        `json:"name"`
+	PubKey         crypto.PubKey `json:"pubkey"`
+	Salt           []byte        `json:"salt"`
+	PrivKeyEncrypt string        `json:"encrypt"`
+}
+
+func newImportInfo(name string, pub crypto.PubKey, salt []byte, privKeyEncrypt string) Info {
+	return &importInfo{
+		Name:           name,
+		PubKey:         pub,
+		Salt:           salt,
+		PrivKeyEncrypt: privKeyEncrypt,
+	}
+}
+
+func (i importInfo) GetType() KeyType {
+	return TypeImport
+}
+
+func (i importInfo) GetName() string {
+	return i.Name
+}
+
+func (i importInfo) GetPubKey() crypto.PubKey {
+	return i.PubKey
+}
+
+func (i importInfo) GetAddress() types.Address {
+	return i.PubKey.Address().Bytes()
+}
 
 // localInfo is the public information about a locally stored key
 type localInfo struct {
