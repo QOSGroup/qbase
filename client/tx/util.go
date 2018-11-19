@@ -31,14 +31,14 @@ func SignStdTx(ctx context.CLIContext, name string, nonce int64, txStd *txs.TxSt
 	addr := info.GetAddress()
 	ok := false
 
-	for _, singer := range txStd.ITx.GetSigner() {
-		if bytes.Equal(addr.Bytes(), singer.Bytes()) {
+	for _, signer := range txStd.ITx.GetSigner() {
+		if bytes.Equal(addr.Bytes(), signer.Bytes()) {
 			ok = true
 		}
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("Name %s is not singer", name)
+		return nil, fmt.Errorf("Name %s is not signer", name)
 	}
 
 	pass, err := keys.GetPassphrase(ctx, name)

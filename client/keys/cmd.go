@@ -27,6 +27,9 @@ func Commands(cdc *go_amino.Codec) *cobra.Command {
 		client.LineBreak,
 		deleteKeyCommand(cdc),
 		updateKeyCommand(cdc),
+		client.LineBreak,
+		exportCommand(cdc),
+		importCommand(cdc),
 	)
 	return cmd
 }
