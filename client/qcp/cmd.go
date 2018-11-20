@@ -2,7 +2,9 @@ package qcp
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,17 +17,56 @@ const (
 	flagOutSeq = "seq"
 )
 
-func QueryOutChainSeqCmd(cdc *go_amino.Codec) *cobra.Command {
+func QcpCommands(cdc *go_amino.Codec) []*cobra.Command {
+	return []*cobra.Command{
+		listCommand(cdc),
+		outSeqCmd(cdc),
+		inSeqCmd(cdc),
+		outTxCmd(cdc),
+	}
+}
+
+func listCommand(cdc *go_amino.Codec) *cobra.Command {
 
 	cmd := &cobra.Command{
-		Use:   "outseq [chainID]",
+		Use:   "list",
+		Short: "List all chains info",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			result, err := QueryQcpChainsInfo(cliCtx)
+			if err != nil {
+				return err
+			}
+
+			printTab(result)
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func printTab(res []qcpChainsResult) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+	fmt.Fprintln(w, "|Chain\tType\tMaxSequence\t")
+	fmt.Fprintln(w, "|-----\t----\t-----------\t")
+	for _, qcpRes := range res {
+		fmt.Fprintf(w, "|%s\t%s\t%d\t\n", qcpRes.ChainID, qcpRes.T, qcpRes.Sequence)
+	}
+	w.Flush()
+}
+
+func outSeqCmd(cdc *go_amino.Codec) *cobra.Command {
+
+	cmd := &cobra.Command{
+		Use:   "out [chainID]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Get max sequence to outChain",
 		Long: strings.TrimSpace(`
 Get Max Sequence  to OutChain
 
 example:
-$ basecli qcp outseq [outChainID]
+$ basecli qcp out [outChainID]
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			outChainID := args[0]
@@ -44,16 +85,16 @@ $ basecli qcp outseq [outChainID]
 	return cmd
 }
 
-func QueryOutChainTxCmd(cdc *go_amino.Codec) *cobra.Command {
+func outTxCmd(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "outtx [chainID]",
+		Use:   "tx [chainID]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Query qcp out tx ",
 		Long: strings.TrimSpace(`
 query qcp out tx from chainID and sequence
 
 example:
-$ basecli qcp outtx [chainID] --seq [Seq]
+$ basecli qcp tx [chainID] --seq [Seq]
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -77,16 +118,16 @@ $ basecli qcp outtx [chainID] --seq [Seq]
 	return cmd
 }
 
-func QueryInChainSeqCmd(cdc *go_amino.Codec) *cobra.Command {
+func inSeqCmd(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "inseq [chainID]",
+		Use:   "in [chainID]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Get max sequence received from inChain",
 		Long: strings.TrimSpace(`
 Get max sequence received from inChain
 
 example:
-$ basecli qcp inseq  [inChainID]
+$ basecli qcp in  [inChainID]
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 

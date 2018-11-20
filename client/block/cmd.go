@@ -16,5 +16,7 @@ func InternalBlockCommand(cdc *go_amino.Codec) []*cobra.Command {
 		types.LineBreak,
 		searchTxCmd(cdc),
 		queryTxCmd(cdc),
+		types.LineBreak,
+		storeCommand(cdc),
 	}
 }

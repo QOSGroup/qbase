@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/client/keys"
 	"github.com/QOSGroup/qbase/types"
@@ -18,7 +19,7 @@ const (
 func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "account",
-		Short: "query account by address or name",
+		Short: "Query account info by address or name",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			addrStr := viper.GetString(flagAddress)

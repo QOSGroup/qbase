@@ -3,6 +3,7 @@ package tx
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
@@ -48,6 +49,7 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 			exists = true
 			if c.Amount.LT(tx.Coin.Amount) {
 				result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.Name, c.Amount.Int64())
 				return
 			}
 		}
