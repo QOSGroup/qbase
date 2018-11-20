@@ -13,6 +13,14 @@ const (
 	FlagAsync     = "async"
 	FlagTrustNode = "trust-node"
 	FlagMaxGas    = "max-gas"
+	//qcp flag
+	FlagQcp            = "qcp" //启用QCP模式,发送txQcp消息
+	FlagQcpSigner      = "qcp-signer"
+	FlagQcpSequence    = "qcp-seq"
+	FlagQcpFrom        = "qcp-from"
+	FlagQcpBlockHeight = "qcp-blockheight"
+	FlagQcpTxIndex     = "qcp-txindex"
+	FlagQcpExtends     = "qcp-extends"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -43,6 +51,14 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
 		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
+		c.Flags().Bool(FlagQcp, false, "enable qcp mode. send qcp tx")
+		c.Flags().String(FlagQcpSigner, "", "qcp mode flag. qcp tx signer key name")
+		c.Flags().String(FlagQcpFrom, "", "qcp mode flag. qcp tx source")
+		c.Flags().Int64(FlagQcpSequence, 0, "qcp mode flag.  qcp in sequence")
+		c.Flags().Int64(FlagQcpBlockHeight, 0, "qcp mode flag. original tx blockheight")
+		c.Flags().Int64(FlagQcpTxIndex, 0, "qcp mode flag. original tx index")
+		c.Flags().String(FlagQcpExtends, "", "qcp mode flag. qcp tx extends info")
+
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagMaxGas, c.Flags().Lookup(FlagMaxGas))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
