@@ -2,6 +2,9 @@ package qcp
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/QOSGroup/qbase/store"
 
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/qcp"
@@ -74,4 +77,46 @@ func GetInChainSequence(ctx context.CLIContext, inChainID string) (int64, error)
 	}
 
 	return seq, nil
+}
+
+type qcpChainsResult struct {
+	ChainID  string `json:"chanID"`
+	T        string `json: "type"`
+	Sequence int64  `json:"maxSequence"`
+}
+
+func QueryQcpChainsInfo(ctx context.CLIContext) ([]qcpChainsResult, error) {
+	path := fmt.Sprintf("/store/%s/subspace", qcp.QcpMapperName)
+	data := "sequence/"
+
+	res, err := ctx.Query(path, []byte(data))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, fmt.Errorf("QueryQcpChainsInfo return empty. ")
+	}
+
+	var kvPair []store.KVPair
+	err = ctx.Codec.UnmarshalBinary(res, &kvPair)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]qcpChainsResult, len(kvPair))
+	for i, kv := range kvPair {
+		key := string(kv.Key)
+		var value int64
+		ctx.Codec.UnmarshalBinaryBare(kv.Value, &value)
+
+		kList := strings.Split(key, "/")
+		result[i] = qcpChainsResult{
+			ChainID:  kList[2],
+			T:        kList[1],
+			Sequence: value,
+		}
+	}
+
+	return result, nil
 }

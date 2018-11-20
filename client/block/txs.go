@@ -70,7 +70,7 @@ $ basecli txs --tag test1,test2
 func queryTxCmd(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tx [hash]",
-		Short: "query match hash tx in all commit block",
+		Short: "Query match hash tx in all commit block",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			hashHexStr := args[0]
@@ -94,7 +94,7 @@ func queryTxCmd(cdc *go_amino.Codec) *cobra.Command {
 }
 
 type Result struct {
-	Hash   []byte                 `json:"hash"`
+	Hash   string                 `json:"hash"`
 	Height int64                  `json:"height"`
 	Tx     btypes.Tx              `json:"tx"`
 	Result abci.ResponseDeliverTx `json:"result"`
@@ -110,7 +110,7 @@ func formatTxResult(cdc *go_amino.Codec, res *ctypes.ResultTx) (Result, error) {
 	}
 
 	return Result{
-		Hash:   res.Hash,
+		Hash:   hex.EncodeToString(res.Hash),
 		Height: res.Height,
 		Tx:     tx,
 		Result: res.TxResult,

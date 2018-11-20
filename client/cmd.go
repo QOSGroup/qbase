@@ -34,9 +34,7 @@ var tendermintCommand = &cobra.Command{
 func QcpCommand(cdc *go_amino.Codec) *cobra.Command {
 	qcpCommand.AddCommand(
 		types.GetCommands(
-			qcp.QueryOutChainSeqCmd(cdc),
-			qcp.QueryOutChainTxCmd(cdc),
-			qcp.QueryInChainSeqCmd(cdc),
+			qcp.QcpCommands(cdc)...,
 		)...,
 	)
 
