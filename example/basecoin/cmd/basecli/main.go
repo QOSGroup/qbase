@@ -24,7 +24,7 @@ func main() {
 
 	//tx
 	txCommand := bcli.TxCommand()
-	txCommand.AddCommand(ctypes.PostCommands(client.SendTxCmd(cdc), client.SendQCPTxCmd(cdc))...)
+	txCommand.AddCommand(ctypes.PostCommands(client.Commands(cdc)...)...)
 
 	rootCmd.AddCommand(
 		txCommand,
