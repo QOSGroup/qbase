@@ -14,6 +14,7 @@ import (
 var queryCommand = &cobra.Command{
 	Use:   "query",
 	Short: "query subcommands",
+	Aliases: []string{"q"},
 }
 
 var qcpCommand = &cobra.Command{
@@ -29,6 +30,7 @@ var txCommand = &cobra.Command{
 var tendermintCommand = &cobra.Command{
 	Use:   "tendermint",
 	Short: "tendermint subcommands",
+	Aliases: []string{"t"},
 }
 
 func QcpCommand(cdc *go_amino.Codec) *cobra.Command {
