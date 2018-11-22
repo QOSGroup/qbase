@@ -3,6 +3,9 @@ package keys
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+
+	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
@@ -10,6 +13,10 @@ import (
 	"github.com/QOSGroup/qbase/client/utils"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
+)
+
+const (
+	flagPriFile = "file"
 )
 
 func importCommand(cdc *go_amino.Codec) *cobra.Command {
@@ -33,18 +40,35 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 			}
 
 			buf := utils.BufferStdin()
-			prikStr, err := utils.GetString("Enter ed25519 private key: ", buf)
-			if err != nil {
-				return err
-			}
-
-			privBytes, err := base64.StdEncoding.DecodeString(prikStr)
-			if err != nil {
-				return err
-			}
 
 			var prikey ed25519.PrivKeyEd25519
-			copy(prikey[:], privBytes)
+			priFile := viper.GetString(flagPriFile)
+			if priFile != "" {
+				//import from CA PRI FILE
+
+				bz, err := ioutil.ReadFile(priFile)
+				if err != nil {
+					return err
+				}
+
+				err = ctx.Codec.UnmarshalJSON(bz, &prikey)
+				if err != nil {
+					return err
+				}
+			} else {
+
+				prikStr, err := utils.GetString("Enter ed25519 private key: ", buf)
+				if err != nil {
+					return err
+				}
+
+				privBytes, err := base64.StdEncoding.DecodeString(prikStr)
+				if err != nil {
+					return err
+				}
+
+				copy(prikey[:], privBytes)
+			}
 
 			encryptPassword, err := utils.GetCheckPassword(
 				"> Enter a passphrase for your key:",
@@ -61,6 +85,8 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().String(flagPriFile, "", "import private key from CA Pri File")
 
 	return cmd
 }
