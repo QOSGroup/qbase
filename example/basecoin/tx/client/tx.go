@@ -1,9 +1,7 @@
 package client
 
 import (
-	"fmt"
 	"github.com/QOSGroup/qbase/client/context"
-	"github.com/QOSGroup/qbase/client/keys"
 	btx "github.com/QOSGroup/qbase/client/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
 	"github.com/QOSGroup/qbase/txs"
@@ -30,17 +28,13 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 		Use:   "send",
 		Short: "Create and sign a send tx",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			result, err := btx.BroadcastSignedTx(cliCtx, func(ctx context.CLIContext) (txs.ITx, error) {
-				fromName := viper.GetString(flagFrom)
-				fromInfo, err := keys.GetKeyInfo(cliCtx, fromName)
+			return btx.BroadcastTxAndPrintResult(cdc, func(ctx context.CLIContext) (txs.ITx, error) {
+				fromAddr, err := btx.GetAddrFromFlag(ctx, flagFrom)
 				if err != nil {
 					return nil, err
 				}
-
-				toName := viper.GetString(flagTo)
-				toInfo, err := keys.GetKeyInfo(cliCtx, toName)
+				toAddr, err := btx.GetAddrFromFlag(ctx, flagTo)
 				if err != nil {
 					return nil, err
 				}
@@ -50,14 +44,10 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 				if err != nil {
 					return nil, err
 				}
-				sendTx := tx.NewSendTx(fromInfo.GetAddress(), toInfo.GetAddress(), btypes.BaseCoin{name, btypes.NewInt(amount)})
+				sendTx := tx.NewSendTx(fromAddr, toAddr, btypes.BaseCoin{name, btypes.NewInt(amount)})
 				return &sendTx, nil
+
 			})
-
-			msg, _ := cdc.MarshalJSON(result)
-			fmt.Println(string(msg))
-
-			return err
 		},
 	}
 

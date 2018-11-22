@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"strings"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -14,6 +15,7 @@ import (
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
 
+	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 
 	cflags "github.com/QOSGroup/qbase/client/types"
@@ -22,21 +24,50 @@ import (
 
 type ITxBuilder func(ctx context.CLIContext) (txs.ITx, error)
 
-func BroadcastSignedTx(ctx context.CLIContext, txBuilder ITxBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
+	result, err := BroadcastTx(cdc, txBuilder)
 
-	signedTx, err := BuildAndSignTx(ctx, txBuilder)
+	msg, _ := cdc.MarshalJSON(result)
+	fmt.Println(string(msg))
+
+	return err
+}
+
+func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
+	value := viper.GetString(flag)
+
+	if strings.HasPrefix(value, types.PREF_ADD) {
+		addr, err := types.GetAddrFromBech32(value)
+		if err != nil {
+			return nil, err
+		}
+
+		return addr, nil
+	}
+
+	info, err := keys.GetKeyInfo(ctx, value)
 	if err != nil {
 		return nil, err
 	}
 
-	return ctx.BroadcastTx(ctx.Codec.MustMarshalBinaryBare(signedTx))
+	return info.GetAddress(), nil
 }
 
-func BuildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx types.Tx, err error) {
+func BroadcastTx(cdc *amino.Codec, txBuilder ITxBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	signedTx, err := buildAndSignTx(cliCtx, txBuilder)
+	if err != nil {
+		return nil, err
+	}
+
+	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+}
+
+func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx types.Tx, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("BuildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
 			signedTx = nil
 			err = errors.New(log)
 		}
