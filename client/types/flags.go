@@ -14,6 +14,7 @@ const (
 	FlagTrustNode = "trust-node"
 	FlagMaxGas    = "max-gas"
 	FlagJSONIndet = "indent"
+	FlagNonceNode = "nonce-node"
 	//qcp flag
 	FlagQcp            = "qcp" //启用QCP模式,发送txQcp消息
 	FlagQcpSigner      = "qcp-signer"
@@ -61,6 +62,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Int64(FlagQcpTxIndex, 0, "qcp mode flag. original tx index")
 		c.Flags().String(FlagQcpExtends, "", "qcp mode flag. qcp tx extends info")
 		c.Flags().Bool(FlagJSONIndet, true, "print indent result json")
+		c.Flags().String(FlagNonceNode, "", "tcp://<host>:<port> to tendermint rpc interface for some chain to query account nonce")
 
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagMaxGas, c.Flags().Lookup(FlagMaxGas))
