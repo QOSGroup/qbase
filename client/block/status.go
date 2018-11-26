@@ -1,8 +1,6 @@
 package block
 
 import (
-	"fmt"
-
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/client/types"
 	"github.com/spf13/cobra"
@@ -29,13 +27,12 @@ func statusCommand(cdc *go_amino.Codec) *cobra.Command {
 				return err
 			}
 
-			output, err := cliCtx.ToJSONIndentStr(status)
-			fmt.Println(string(output))
-			return nil
+			return cliCtx.PrintResult(status)
 		},
 	}
 
 	cmd.Flags().StringP(types.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	cmd.Flags().Bool(types.FlagJSONIndet, false, "print indent result json")
 	viper.BindPFlag(types.FlagNode, cmd.Flags().Lookup(types.FlagNode))
 
 	return cmd
