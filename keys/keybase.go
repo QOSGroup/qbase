@@ -332,6 +332,11 @@ func (kb Keybase) Delete(name, passphrase string) error {
 		if err != nil {
 			return nil
 		}
+
+		kb.db.DeleteSync(addrKey(iinfo.GetAddress()))
+		kb.db.DeleteSync(infoKey(name))
+		return nil
+
 	case *offlineInfo:
 		if passphrase != "yes" {
 			return fmt.Errorf("enter 'yes' exactly to delete the key - this cannot be undone")
