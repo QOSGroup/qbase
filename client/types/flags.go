@@ -13,6 +13,7 @@ const (
 	FlagAsync     = "async"
 	FlagTrustNode = "trust-node"
 	FlagMaxGas    = "max-gas"
+	FlagJSONIndet = "indent"
 	//qcp flag
 	FlagQcp            = "qcp" //启用QCP模式,发送txQcp消息
 	FlagQcpSigner      = "qcp-signer"
@@ -36,6 +37,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Int64(FlagHeight, 0, "block height to query, omit to get most recent provable block")
+		c.Flags().Bool(FlagJSONIndet, false, "print indent result json")
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
 	}
@@ -58,6 +60,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Int64(FlagQcpBlockHeight, 0, "qcp mode flag. original tx blockheight")
 		c.Flags().Int64(FlagQcpTxIndex, 0, "qcp mode flag. original tx index")
 		c.Flags().String(FlagQcpExtends, "", "qcp mode flag. qcp tx extends info")
+		c.Flags().Bool(FlagJSONIndet, true, "print indent result json")
 
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagMaxGas, c.Flags().Lookup(FlagMaxGas))

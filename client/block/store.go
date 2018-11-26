@@ -1,9 +1,7 @@
 package block
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/client/types"
@@ -48,19 +46,14 @@ func storeCommand(cdc *go_amino.Codec) *cobra.Command {
 				return err
 			}
 
-			str, err := cliCtx.ToJSONIndentStr(val)
-			if err != nil {
-				bz, _ := json.MarshalIndent(val, "", " ")
-				str = string(bz)
-			}
-			fmt.Println(str)
-			return nil
+			return cliCtx.PrintResult(val)
 		},
 	}
 
 	cmd.Flags().String(flagPath, "", "store query path")
 	cmd.Flags().String(flagData, "", "store query data")
 	cmd.Flags().StringP(types.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	cmd.Flags().Bool(types.FlagJSONIndet, false, "print indent result json")
 	viper.BindPFlag(types.FlagNode, cmd.Flags().Lookup(types.FlagNode))
 
 	cmd.MarkFlagRequired(flagPath)

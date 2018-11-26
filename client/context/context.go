@@ -16,12 +16,13 @@ import (
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	Codec     *go_amino.Codec
-	Client    rpcclient.Client
-	Height    int64
-	NodeURI   string
-	Async     bool
-	TrustNode bool
+	Codec      *go_amino.Codec
+	Client     rpcclient.Client
+	Height     int64
+	NodeURI    string
+	Async      bool
+	TrustNode  bool
+	JSONIndent bool
 }
 
 // NewCLIContext returns a new initialized CLIContext with parameters from the
@@ -34,11 +35,12 @@ func NewCLIContext() CLIContext {
 	}
 
 	return CLIContext{
-		Client:    rpc,
-		NodeURI:   nodeURI,
-		Height:    viper.GetInt64(types.FlagHeight),
-		Async:     viper.GetBool(types.FlagAsync),
-		TrustNode: viper.GetBool(types.FlagTrustNode),
+		Client:     rpc,
+		NodeURI:    nodeURI,
+		Height:     viper.GetInt64(types.FlagHeight),
+		Async:      viper.GetBool(types.FlagAsync),
+		TrustNode:  viper.GetBool(types.FlagTrustNode),
+		JSONIndent: viper.GetBool(types.FlagJSONIndet),
 	}
 }
 
@@ -179,12 +181,21 @@ func (ctx CLIContext) BroadcastTxAsync(tx []byte) (*ctypes.ResultBroadcastTx, er
 	return res, err
 }
 
-func (ctx CLIContext) ToJSONIndentStr(obj interface{}) (string, error) {
+func (ctx CLIContext) PrintResult(obj interface{}) error {
 
-	bz, err := ctx.Codec.MarshalJSONIndent(obj, "", "  ")
-	if err != nil {
-		return "", err
+	var bz []byte
+	var err error
+
+	if ctx.JSONIndent {
+		bz, err = ctx.Codec.MarshalJSONIndent(obj, "", "  ")
+	} else {
+		bz, err = ctx.Codec.MarshalJSON(obj)
 	}
 
-	return string(bz), nil
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(bz))
+	return nil
 }

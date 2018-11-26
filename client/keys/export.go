@@ -63,13 +63,11 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 				}
 			}
 
-			bz, _ := ctx.ToJSONIndentStr(eInfo)
 			fmt.Println("**Important** Don't leak your private key information to others.")
 			fmt.Println("Please keep your private key safely, otherwise your account will be attacked.")
 			fmt.Println()
 
-			fmt.Println(bz)
-			return nil
+			return ctx.PrintResult(eInfo)
 		},
 	}
 
