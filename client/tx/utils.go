@@ -19,6 +19,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 
 	cflags "github.com/QOSGroup/qbase/client/types"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -35,14 +36,11 @@ func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
 
 func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
 	value := viper.GetString(flag)
-
 	if strings.HasPrefix(value, types.PREF_ADD) {
 		addr, err := types.GetAddrFromBech32(value)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			return addr, nil
 		}
-
-		return addr, nil
 	}
 
 	info, err := keys.GetKeyInfo(ctx, value)
@@ -277,5 +275,14 @@ func getDefaultChainID(ctx context.CLIContext) (string, error) {
 }
 
 func getDefaultAccountNonce(ctx context.CLIContext, address []byte) (int64, error) {
-	return account.GetAccountNonce(ctx, address)
+
+	if ctx.NonceNodeURI == "" {
+		return account.GetAccountNonce(ctx, address)
+	}
+
+	//NonceNodeURI不为空,使用NonceNodeURI查询account nonce值
+	rpc := rpcclient.NewHTTP(ctx.NonceNodeURI, "/websocket")
+	newCtx := context.NewCLIContext().WithClient(rpc).WithCodec(ctx.Codec)
+
+	return account.GetAccountNonce(newCtx, address)
 }

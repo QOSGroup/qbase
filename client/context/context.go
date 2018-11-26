@@ -3,6 +3,7 @@ package context
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/spf13/viper"
 
@@ -13,16 +14,19 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
+var nodeRe = regexp.MustCompile(`(?i:^tcp://\S+(:\d+)?$)`)
+
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	Codec      *go_amino.Codec
-	Client     rpcclient.Client
-	Height     int64
-	NodeURI    string
-	Async      bool
-	TrustNode  bool
-	JSONIndent bool
+	Codec        *go_amino.Codec
+	Client       rpcclient.Client
+	Height       int64
+	NodeURI      string
+	Async        bool
+	TrustNode    bool
+	NonceNodeURI string
+	JSONIndent   bool
 }
 
 // NewCLIContext returns a new initialized CLIContext with parameters from the
@@ -34,13 +38,20 @@ func NewCLIContext() CLIContext {
 		rpc = rpcclient.NewHTTP(nodeURI, "/websocket")
 	}
 
+	var nonceNodeURI string
+	nonceNodeValue := viper.GetString(types.FlagNonceNode)
+	if nonceNodeValue != "" && nodeRe.MatchString(nonceNodeValue) {
+		nonceNodeURI = nonceNodeValue
+	}
+
 	return CLIContext{
-		Client:     rpc,
-		NodeURI:    nodeURI,
-		Height:     viper.GetInt64(types.FlagHeight),
-		Async:      viper.GetBool(types.FlagAsync),
-		TrustNode:  viper.GetBool(types.FlagTrustNode),
-		JSONIndent: viper.GetBool(types.FlagJSONIndet),
+		Client:       rpc,
+		NodeURI:      nodeURI,
+		Height:       viper.GetInt64(types.FlagHeight),
+		Async:        viper.GetBool(types.FlagAsync),
+		TrustNode:    viper.GetBool(types.FlagTrustNode),
+		JSONIndent:   viper.GetBool(types.FlagJSONIndet),
+		NonceNodeURI: nonceNodeURI,
 	}
 }
 
