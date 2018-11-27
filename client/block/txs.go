@@ -3,7 +3,6 @@ package block
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/QOSGroup/qbase/client/context"
@@ -43,13 +42,7 @@ $ basecli txs --tag test1,test2
 				return err
 			}
 
-			str, err := cliCtx.ToJSONIndentStr(txs)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(str)
-			return nil
+			return cliCtx.PrintResult(txs)
 		},
 	}
 
@@ -62,6 +55,7 @@ $ basecli txs --tag test1,test2
 	cmd.Flags().StringSlice(flagTags, nil, "Comma-separated list of tags that must match")
 	cmd.Flags().Int(flagPage, 1, "search page")
 	cmd.Flags().Int(flagLimit, 100, "per page limit for result")
+	cmd.Flags().Bool(types.FlagJSONIndet, false, "print indent result json")
 
 	cmd.MarkFlagRequired(flagTags)
 	return cmd
@@ -79,8 +73,7 @@ func queryTxCmd(cdc *go_amino.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(cliCtx.ToJSONIndentStr(output))
-			return nil
+			return cliCtx.PrintResult(output)
 		},
 	}
 

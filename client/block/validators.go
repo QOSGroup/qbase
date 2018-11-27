@@ -1,7 +1,6 @@
 package block
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/QOSGroup/qbase/client/context"
@@ -62,14 +61,12 @@ func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 				transferValidators = append(transferValidators, transferValidator)
 			}
 
-			output, err := cliCtx.ToJSONIndentStr(transferValidators)
-			fmt.Println(string(output))
-
-			return nil
+			return cliCtx.PrintResult(transferValidators)
 		},
 	}
 
 	cmd.Flags().StringP(types.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
 	viper.BindPFlag(types.FlagNode, cmd.Flags().Lookup(types.FlagNode))
+	cmd.Flags().Bool(types.FlagJSONIndet, false, "print indent result json")
 	return cmd
 }

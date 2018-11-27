@@ -25,8 +25,5 @@ func TestGetAccountFromBech32Addr(t *testing.T) {
 
 	fmt.Println(err)
 
-	bz, _ := ctx.ToJSONIndentStr(acc)
-
-	fmt.Println(bz)
-
+	ctx.PrintResult(acc)
 }

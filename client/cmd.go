@@ -12,8 +12,8 @@ import (
 )
 
 var queryCommand = &cobra.Command{
-	Use:   "query",
-	Short: "query subcommands",
+	Use:     "query",
+	Short:   "query subcommands",
 	Aliases: []string{"q"},
 }
 
@@ -28,8 +28,8 @@ var txCommand = &cobra.Command{
 }
 
 var tendermintCommand = &cobra.Command{
-	Use:   "tendermint",
-	Short: "tendermint subcommands",
+	Use:     "tendermint",
+	Short:   "tendermint subcommands",
 	Aliases: []string{"t"},
 }
 
@@ -45,7 +45,7 @@ func QcpCommand(cdc *go_amino.Codec) *cobra.Command {
 
 func TendermintCommand(cdc *go_amino.Codec) *cobra.Command {
 	tendermintCommand.AddCommand(
-		block.InternalBlockCommand(cdc)...,
+		block.BlockCommand(cdc)...,
 	)
 	return tendermintCommand
 }
@@ -54,6 +54,7 @@ func TendermintCommand(cdc *go_amino.Codec) *cobra.Command {
 func QueryCommand(cdc *go_amino.Codec) *cobra.Command {
 	queryAccountCommand := types.GetCommands(account.QueryAccountCmd(cdc))
 	queryCommand.AddCommand(queryAccountCommand[0])
+	queryCommand.AddCommand(block.QueryCommand(cdc)...)
 	return queryCommand
 }
 

@@ -47,13 +47,12 @@ func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(cliCtx.ToJSONIndentStr(output))
-			return nil
+
+			return cliCtx.PrintResult(output)
 		},
 	}
 
 	cmd.Flags().String(flagName, "", "name of account")
 	cmd.Flags().String(flagAddress, "", "address of account")
-
 	return cmd
 }

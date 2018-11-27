@@ -6,7 +6,13 @@ import (
 	go_amino "github.com/tendermint/go-amino"
 )
 
-func InternalBlockCommand(cdc *go_amino.Codec) []*cobra.Command {
+func QueryCommand(cdc *go_amino.Codec) []*cobra.Command {
+	return []*cobra.Command{
+		storeCommand(cdc),
+	}
+}
+
+func BlockCommand(cdc *go_amino.Codec) []*cobra.Command {
 
 	return []*cobra.Command{
 		statusCommand(cdc),
@@ -16,7 +22,5 @@ func InternalBlockCommand(cdc *go_amino.Codec) []*cobra.Command {
 		types.LineBreak,
 		searchTxCmd(cdc),
 		queryTxCmd(cdc),
-		types.LineBreak,
-		storeCommand(cdc),
 	}
 }

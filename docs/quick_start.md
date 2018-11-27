@@ -247,6 +247,9 @@ baseapp.RegisterCustomQueryHandler(customQueryHandler)
 
 
 
+## 客户端命令
+
+参见: [客户端命令](../docs/command.md)
 
 ## 示例
 

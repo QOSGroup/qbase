@@ -108,8 +108,7 @@ $ basecli qcp tx [chainID] --seq [Seq]
 				return err
 			}
 
-			fmt.Println(cliCtx.ToJSONIndentStr(result))
-			return nil
+			return cliCtx.PrintResult(result)
 		},
 	}
 
