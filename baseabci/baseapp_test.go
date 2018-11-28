@@ -227,7 +227,7 @@ func TestTxQcpResult(t *testing.T) {
 		}
 
 		stdTx := txs.NewTxStd(qcpResult, cid, types.OneInt())
-		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 0, 0, true, "")
+		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 2, 0, true, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -293,7 +293,7 @@ func TestTxQcp(t *testing.T) {
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		acc.SetNonce(i)
 		txstd := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
-		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), 0, 0, false, "")
+		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), i, 0, false, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -553,10 +553,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 
 	signerAccount, _ := from.(*testAccount)
 
-	nonceByte := types.Int2Byte(from.GetNonce())
-	signBytes := append(stdTx.GetSignData(), nonceByte...)
-
-	signature, err := signerAccount.PrivKey.Sign(signBytes)
+	signature, err := stdTx.SignTx(signerAccount.PrivKey, from.GetNonce(), cid)
 	if err != nil {
 		panic("signer error")
 	}
@@ -695,7 +692,7 @@ func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps
 		}
 
 		crossTxQcps.TxStd = txs.NewTxStd(ttx, crossTxQcps.To, types.OneInt())
-		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, int64(from.Nonce))
+		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, int64(from.Nonce), cid)
 
 		crossTxQcps.TxStd.Signature = []txs.Signature{
 			txs.Signature{

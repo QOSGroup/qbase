@@ -63,7 +63,7 @@ func newTxStd(tx ITx) (txstd *TxStd) {
 			return nil
 		}
 
-		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce))
+		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce), ctx.ChainID())
 		if signbyte == nil || errsign != nil {
 			return nil
 		}
@@ -125,6 +125,6 @@ func TestTxQcp(t *testing.T) {
 	err = txqcp.ValidateBasicData(true, "qos")
 	require.Nil(t, err)
 
-	data := txqcp.GetSigData()
+	data := txqcp.BuildSignatureBytes()
 	require.NotNil(t, data)
 }

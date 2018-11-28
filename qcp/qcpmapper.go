@@ -106,7 +106,7 @@ func (mapper *QcpMapper) SignAndSaveTxQcp(txQcp *txs.TxQcp, signer crypto.PrivKe
 	txQcp.Sequence = maxSequence + 1
 
 	if signer != nil {
-		signature, err := signer.Sign(txQcp.GetSigData())
+		signature, err := txQcp.SignTx(signer)
 		if err != nil {
 			panic("sign txQcp error")
 		}
