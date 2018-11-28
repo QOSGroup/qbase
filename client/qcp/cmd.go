@@ -30,7 +30,7 @@ func listCommand(cdc *go_amino.Codec) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all chains info",
+		Short: "List all crossQcp chain's sequence info",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			result, err := QueryQcpChainsInfo(cliCtx)
