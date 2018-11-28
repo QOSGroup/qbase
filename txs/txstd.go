@@ -45,11 +45,21 @@ func (tx *TxStd) Type() string {
 	return "txstd"
 }
 
-// 将需要签名的字段拼接成 []byte
-func (tx *TxStd) GetSignData() []byte {
+//BuildSignatureBytes 生成待签名字节切片.
+//nonce: account nonce + 1
+//qcpFromChainID: 生成TxStd的源chainID.
+func (tx *TxStd) BuildSignatureBytes(nonce int64, qcpFromChainID string) []byte {
+	bz := tx.getSignData()
+	bz = append(bz, types.Int2Byte(nonce)...)
+	bz = append(bz, []byte(qcpFromChainID)...)
+
+	return bz
+}
+
+// 获取TxStd中需要参与签名的内容
+func (tx *TxStd) getSignData() []byte {
 	if tx.ITx == nil {
 		panic("ITx shouldn't be nil in TxStd.GetSignData()")
-		return nil
 	}
 
 	ret := tx.ITx.GetSignData()
@@ -60,13 +70,13 @@ func (tx *TxStd) GetSignData() []byte {
 }
 
 // 签名：每个签名者外部调用此方法
-func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64) (signedbyte []byte, err error) {
+func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID string) (signedbyte []byte, err error) {
 	if tx.ITx == nil {
 		return nil, errors.New("Signature txstd err(itx is nil)")
 	}
 
-	sigdata := append(tx.GetSignData(), types.Int2Byte(nonce)...)
-	signedbyte, err = privkey.Sign(sigdata)
+	bz := tx.BuildSignatureBytes(nonce, fromChainID)
+	signedbyte, err = privkey.Sign(bz)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +110,6 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 }
 
 //ValidateBasicData  对txStd进行基础的数据校验
-//tx.ITx == QcpTxResult时 不校验签名相关信息
 func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("TxStd's ITx is nil")
@@ -128,24 +137,6 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 	execGas := tx.ITx.CalcGas()
 	if tx.MaxGas.LT(execGas) {
 		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
-	}
-
-	_, ok := tx.ITx.(*QcpTxResult)
-	if !ok {
-
-		signers := tx.ITx.GetSigner()
-		if len(signers) == 0 {
-			return
-		}
-
-		sigs := tx.Signature
-		if len(sigs) == 0 {
-			return types.ErrUnauthorized("no signatures in TxStd's ITx")
-		}
-
-		if len(sigs) != len(signers) {
-			return types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , signers count: %d ", len(sigs), len(signers)))
-		}
 	}
 
 	return

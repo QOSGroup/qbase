@@ -208,7 +208,7 @@ qcpsigner	import	address103eak408d4yp944wv58epp3neyah8z5dlwyzg4	ish2+qpPsoHxf7m+
 发送qcp跨链交易:
 
 ```
-$ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10 --qcp --qcp-from=qstar --qcp-signer=qcpsigner
+$ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10 --qcp --qcp-from=qstar --qcp-signer=qcpsigner --qcp-blockheight=10
 ```
 
 ```

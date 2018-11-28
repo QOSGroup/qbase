@@ -416,7 +416,7 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	}
 
 	//2. 校验签名
-	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx)
+	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx, ctx.ChainID())
 	if !res.IsOK() {
 		return res
 	}
@@ -425,7 +425,7 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 }
 
 //校验txstd用户签名，签名通过后，增加用户none
-func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd) (newctx ctx.Context, result types.Result) {
+func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd, qcpFromChainID string) (newctx ctx.Context, result types.Result) {
 	//未注册accountProto时， 不做签名校验
 	//用户可以在itx.validate()中自定义签名校验逻辑
 	accounMapper := GetAccountMapper(cctx)
@@ -438,10 +438,23 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 	//签名者为空则不校验签名
 	signers := tx.ITx.GetSigner()
 	if len(signers) == 0 {
+		if qcpFromChainID == tx.ChainID {
+			result = types.ErrUnauthorized("no signers in TxStd's ITx").Result()
+		}
 		return
 	}
 
 	signatures := tx.Signature
+	if len(signatures) == 0 {
+		result = types.ErrUnauthorized("no signatures in TxStd's ITx").Result()
+		return
+	}
+
+	if len(signatures) != len(signers) {
+		result = types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , signers count: %d ", len(signatures), len(signers))).Result()
+		return
+	}
+
 	signerAccount := make([]account.Account, len(signers))
 	for i, addr := range signers {
 		acc := accounMapper.GetAccount(addr)
@@ -484,8 +497,8 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		acc := signerAccount[i]
 		signature := signatures[i]
 		pubkey := acc.GetPubicKey()
-		//1. 根据账户nonce及tx生成signData
-		signBytes := append(tx.GetSignData(), types.Int2Byte(acc.GetNonce()+1)...)
+		//1. 根据账户nonce及txStd源chainID生成signData
+		signBytes := tx.BuildSignatureBytes(acc.GetNonce()+1, qcpFromChainID)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
 			result = types.ErrInternal("txstd's signature verification failed").Result()
 			return
@@ -557,7 +570,7 @@ func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (r
 	}
 
 	//2. 校验签名是否合法
-	sigBytes := qcpTx.GetSigData()
+	sigBytes := qcpTx.BuildSignatureBytes()
 	if !pubkey.VerifyBytes(sigBytes, qcpTx.Sig.Signature) {
 		return types.ErrUnauthorized("txqcp's signature verification failed").Result()
 	}
@@ -585,7 +598,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.deliverTxStd(ctx, implTx)
+		result = app.deliverTxStd(ctx, implTx, ctx.ChainID())
 	case *txs.TxQcp:
 		result = app.deliverTxQcp(ctx, implTx)
 	default:
@@ -608,7 +621,7 @@ func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
-func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Result) {
+func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID string) (result types.Result) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -623,7 +636,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		return err.Result()
 	}
 	//2. 校验签名
-	newctx, res := app.validateTxStdUserSignatureAndNonce(ctx, tx)
+	newctx, res := app.validateTxStdUserSignatureAndNonce(ctx, tx, txStdFromChainID)
 	if !res.IsOK() {
 		return res
 	}
@@ -656,7 +669,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.R
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
+			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
 	}
 
 	if result.IsOK() {
@@ -700,7 +713,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	}
 
 	//5. 执行内部txStd
-	result = app.deliverTxStd(ctx, tx.TxStd)
+	result = app.deliverTxStd(ctx, tx.TxStd, tx.From)
 
 	//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
 	if !tx.IsResult {
@@ -719,7 +732,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 		txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
 		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.GetSigData()))
+			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
 	}
 
 	return

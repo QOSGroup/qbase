@@ -83,6 +83,7 @@ func queryTxCmd(cdc *go_amino.Codec) *cobra.Command {
 	viper.BindPFlag(types.FlagChainID, cmd.Flags().Lookup(types.FlagChainID))
 	cmd.Flags().Bool(types.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 	viper.BindPFlag(types.FlagTrustNode, cmd.Flags().Lookup(types.FlagTrustNode))
+	cmd.Flags().Bool(types.FlagJSONIndet, false, "print indent result json")
 	return cmd
 }
 

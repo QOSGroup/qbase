@@ -30,8 +30,8 @@ func (tx *TxQcp) Type() string {
 
 // 功能：获取 TxQcp 的签名字段
 // 返回：字段拼接后的 []byte
-func (tx *TxQcp) GetSigData() []byte {
-	ret := tx.TxStd.GetSignData()
+func (tx *TxQcp) getSigData() []byte {
+	ret := tx.TxStd.getSignData()
 	if ret == nil {
 		return nil
 	}
@@ -46,10 +46,14 @@ func (tx *TxQcp) GetSigData() []byte {
 	return ret
 }
 
+func (tx *TxQcp) BuildSignatureBytes() []byte {
+	return tx.getSigData()
+}
+
 func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
-	data := tx.GetSigData()
+	data := tx.BuildSignatureBytes()
 	if data == nil {
-		return nil, errors.New("Signature txstd err!")
+		return nil, errors.New("Signature txQcp err!")
 	}
 	signedbyte, err = prvkey.Sign(data)
 	if err != nil {
@@ -83,8 +87,13 @@ func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChaindID string) (err 
 	// 1. From To Sequence Sig 不为空
 	// 2. to == current.chainId
 
-	if tx.From == "" || tx.To == "" || tx.Sequence == 0 || tx.Sig.Signature == nil {
-		return types.ErrInternal("txQcp's basic data is not valid")
+	if tx.From == "" || tx.To == "" || tx.Sequence <= 0 || tx.BlockHeight <= 0 || tx.TxIndex < 0 {
+		return types.ErrInternal(fmt.Sprintf("txQcp's basic data is not valid. basic data: from: %s , to: %s , seq: %d , height: %d,index:%d ",
+			tx.From, tx.To, tx.Sequence, tx.BlockHeight, tx.TxIndex))
+	}
+
+	if tx.Sig.Signature == nil {
+		return types.ErrInternal("txQcp's Signature is nil")
 	}
 
 	if tx.To != currentChaindID {

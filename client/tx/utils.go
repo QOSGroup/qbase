@@ -79,7 +79,7 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 	if qcpMode {
 		return BuildAndSignQcpTx(ctx, itx)
 	} else {
-		return BuildAndSignStdTx(ctx, itx)
+		return BuildAndSignStdTx(ctx, itx, getChainID(ctx))
 	}
 }
 
@@ -101,7 +101,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 
 	fmt.Println("> step 1. build and sign TxStd")
 
-	txStd, err := BuildAndSignStdTx(ctx, tx)
+	txStd, err := BuildAndSignStdTx(ctx, tx, qcpFrom)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 		viper.GetString(cflags.FlagQcpExtends),
 	)
 
-	sig, pubkey := signData(ctx, qcpSignerInfo.GetName(), txQcp.GetSigData())
+	sig, pubkey := signData(ctx, qcpSignerInfo.GetName(), txQcp.BuildSignatureBytes())
 	txQcp.Sig = txs.Signature{
 		Pubkey:    pubkey,
 		Signature: sig,
@@ -127,7 +127,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 	return txQcp, nil
 }
 
-func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxStd, error) {
+func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID string) (*txs.TxStd, error) {
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
 	maxGas := viper.GetInt64(cflags.FlagMaxGas)
@@ -157,7 +157,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxStd, error) {
 			actualNonce = nonce + 1
 		}
 
-		txStd, err = signStdTx(ctx, signerName, actualNonce, txStd)
+		txStd, err = signStdTx(ctx, signerName, actualNonce, txStd, txStdFromChainID)
 		if err != nil {
 			return nil, fmt.Errorf("name %s signStdTx error: %s", signerName, err.Error())
 		}
@@ -166,7 +166,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxStd, error) {
 	return txStd, nil
 }
 
-func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd *txs.TxStd) (*txs.TxStd, error) {
+func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd *txs.TxStd, txStdFromChainID string) (*txs.TxStd, error) {
 
 	info, err := keys.GetKeyInfo(ctx, signerKeyName)
 	if err != nil {
@@ -186,7 +186,7 @@ func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd 
 		return nil, fmt.Errorf("Name %s is not signer", signerKeyName)
 	}
 
-	sigdata := append(txStd.GetSignData(), types.Int2Byte(nonce)...)
+	sigdata := txStd.BuildSignatureBytes(nonce, txStdFromChainID)
 	sig, pubkey := signData(ctx, signerKeyName, sigdata)
 
 	txStd.Signature = append(txStd.Signature, txs.Signature{
