@@ -38,7 +38,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Int64(FlagHeight, 0, "block height to query, omit to get most recent provable block")
-		c.Flags().Bool(FlagJSONIndet, false, "print indent result json")
+		c.Flags().Bool(FlagJSONIndet, false, "add indent to json response")
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
 	}
@@ -53,7 +53,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
-		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
+		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Bool(FlagQcp, false, "enable qcp mode. send qcp tx")
 		c.Flags().String(FlagQcpSigner, "", "qcp mode flag. qcp tx signer key name")
 		c.Flags().String(FlagQcpFrom, "", "qcp mode flag. qcp tx source")
@@ -61,7 +61,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Int64(FlagQcpBlockHeight, 0, "qcp mode flag. original tx blockheight")
 		c.Flags().Int64(FlagQcpTxIndex, 0, "qcp mode flag. original tx index")
 		c.Flags().String(FlagQcpExtends, "", "qcp mode flag. qcp tx extends info")
-		c.Flags().Bool(FlagJSONIndet, true, "print indent result json")
+		c.Flags().Bool(FlagJSONIndet, false, "add indent to json response")
 		c.Flags().String(FlagNonceNode, "", "tcp://<host>:<port> to tendermint rpc interface for some chain to query account nonce")
 
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))

@@ -27,10 +27,8 @@ type ITxBuilder func(ctx context.CLIContext) (txs.ITx, error)
 
 func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
 	result, err := BroadcastTx(cdc, txBuilder)
-
-	msg, _ := cdc.MarshalJSON(result)
-	fmt.Println(string(msg))
-
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	cliCtx.PrintResult(result)
 	return err
 }
 
