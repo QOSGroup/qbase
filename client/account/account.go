@@ -3,10 +3,14 @@ package account
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/client/context"
+	"github.com/QOSGroup/qbase/client/keys"
 	"github.com/QOSGroup/qbase/types"
+
+	"github.com/spf13/viper"
 )
 
 var (
@@ -70,4 +74,25 @@ func IsAccountExists(ctx context.CLIContext, address []byte) bool {
 	}
 
 	return true
+}
+
+func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
+	value := viper.GetString(flag)
+	return GetAddrFromValue(ctx, value)
+}
+
+func GetAddrFromValue(ctx context.CLIContext, value string) (types.Address, error) {
+	if strings.HasPrefix(value, types.PREF_ADD) {
+		addr, err := types.GetAddrFromBech32(value)
+		if err == nil {
+			return addr, nil
+		}
+	}
+
+	info, err := keys.GetKeyInfo(ctx, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return info.GetAddress(), nil
 }

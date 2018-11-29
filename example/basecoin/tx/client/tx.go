@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
 	btx "github.com/QOSGroup/qbase/client/tx"
 	"github.com/QOSGroup/qbase/example/basecoin/tx"
@@ -30,11 +31,11 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			return btx.BroadcastTxAndPrintResult(cdc, func(ctx context.CLIContext) (txs.ITx, error) {
-				fromAddr, err := btx.GetAddrFromFlag(ctx, flagFrom)
+				fromAddr, err := account.GetAddrFromFlag(ctx, flagFrom)
 				if err != nil {
 					return nil, err
 				}
-				toAddr, err := btx.GetAddrFromFlag(ctx, flagTo)
+				toAddr, err := account.GetAddrFromFlag(ctx, flagTo)
 				if err != nil {
 					return nil, err
 				}
