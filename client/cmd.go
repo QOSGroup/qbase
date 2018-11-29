@@ -13,7 +13,7 @@ import (
 
 var queryCommand = &cobra.Command{
 	Use:     "query",
-	Short:   "query subcommands",
+	Short:   "query(alias `q`) subcommands.",
 	Aliases: []string{"q"},
 }
 
@@ -29,7 +29,7 @@ var txCommand = &cobra.Command{
 
 var tendermintCommand = &cobra.Command{
 	Use:     "tendermint",
-	Short:   "tendermint subcommands",
+	Short:   "tendermint(alias `t`)  subcommands",
 	Aliases: []string{"t"},
 }
 

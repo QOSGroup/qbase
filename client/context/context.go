@@ -1,6 +1,7 @@
 package context
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -204,7 +205,11 @@ func (ctx CLIContext) PrintResult(obj interface{}) error {
 	}
 
 	if err != nil {
-		return err
+		if ctx.JSONIndent {
+			bz, err = json.MarshalIndent(obj, "", "  ")
+		} else {
+			bz, err = json.Marshal(obj)
+		}
 	}
 
 	fmt.Println(string(bz))
