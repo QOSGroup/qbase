@@ -29,7 +29,6 @@ func main() {
 	rootCmd.AddCommand(
 		txCommand,
 		bcli.KeysCommand(cdc),
-		bcli.QcpCommand(cdc),
 		bcli.QueryCommand(cdc),
 		bcli.TendermintCommand(cdc),
 		version.VersionCmd,
