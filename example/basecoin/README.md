@@ -51,7 +51,7 @@ $ basecoind start --with-tendermint=true
 ```
 5. 账户查询状态
 ```
-$ basecli query account --name=Jia
+$ basecli query account Jia
 ```
 
 ```
@@ -83,7 +83,7 @@ Password to sign with 'Jia':
 ```
 7. 账户查询状态
 ```
-$ basecli query account --name=Jia
+$ basecli query account Jia
 ```
 
 ```
@@ -110,7 +110,7 @@ $ basecli query account --name=Jia
 ```
 
 ```
-$ basecli query account --name=Liu
+$ basecli query account Liu
 ```
 
 ```

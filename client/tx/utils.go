@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
-	"strings"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -30,23 +29,6 @@ func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 	cliCtx.PrintResult(result)
 	return err
-}
-
-func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
-	value := viper.GetString(flag)
-	if strings.HasPrefix(value, types.PREF_ADD) {
-		addr, err := types.GetAddrFromBech32(value)
-		if err == nil {
-			return addr, nil
-		}
-	}
-
-	info, err := keys.GetKeyInfo(ctx, value)
-	if err != nil {
-		return nil, err
-	}
-
-	return info.GetAddress(), nil
 }
 
 func BroadcastTx(cdc *amino.Codec, txBuilder ITxBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
