@@ -12,9 +12,3 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-
-notifications:
-  email:
-    recipients:
-      - zzgigi2003@163.com
-    on_success: always
