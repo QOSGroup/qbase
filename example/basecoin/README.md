@@ -223,7 +223,7 @@ Password to sign with 'qcpsigner':
 10. QCP sequence 查询
 
 ```
-$ basecli qcp list
+$ basecli query qcp list
 ```
 
 ```
@@ -235,7 +235,7 @@ $ basecli qcp list
 ```
 
 ```
-$ basecli qcp in qstar
+$ basecli query qcp in qstar
 ```
 
 ```
@@ -243,7 +243,7 @@ $ basecli qcp in qstar
 ```
 
 ```
-$ basecli qcp out qstar
+$ basecli query qcp out qstar
 ```
 
 ```
@@ -252,7 +252,7 @@ $ basecli qcp out qstar
 11. QCP 交易结果查询
 
 ```
-$ basecli qcp tx qstar  --seq 1
+$ basecli query qcp tx qstar  --seq 1
 ```
 
 ```

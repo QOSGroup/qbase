@@ -33,7 +33,7 @@ var tendermintCommand = &cobra.Command{
 	Aliases: []string{"t"},
 }
 
-func QcpCommand(cdc *go_amino.Codec) *cobra.Command {
+func qcpSubCommand(cdc *go_amino.Codec) *cobra.Command {
 	qcpCommand.AddCommand(
 		types.GetCommands(
 			qcp.QcpCommands(cdc)...,
@@ -55,6 +55,7 @@ func QueryCommand(cdc *go_amino.Codec) *cobra.Command {
 	queryAccountCommand := types.GetCommands(account.QueryAccountCmd(cdc))
 	queryCommand.AddCommand(queryAccountCommand[0])
 	queryCommand.AddCommand(block.QueryCommand(cdc)...)
+	queryCommand.AddCommand(qcpSubCommand(cdc))
 	return queryCommand
 }
 

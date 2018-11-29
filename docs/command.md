@@ -102,13 +102,13 @@ Query(alias `q`)中包含以下命令:
 |:---| :--- |
 |account| Query account info by address or name |
 |store| Query store data by low level |
-
+|qcp| qcp subcommands|
 `store`命令可以直接查询`abci app`中`store`存储的数据:
 
 * --path=/store/STORENAME/key: 查询key值等于`data`的数据
 * --path=/store/STORENAME/subspace: 查询所有前缀为`data`的数据
 
-### Qcp
+#### Qcp
 
 Qcp中包含以下命令:
 
