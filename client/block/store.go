@@ -41,7 +41,7 @@ func storeCommand(cdc *go_amino.Codec) *cobra.Command {
 				return errors.New("response empty value")
 			}
 
-			val, err := tryDecodeValue(cliCtx.Codec, valueBz)
+			val, err := tryDecodeValue(cliCtx.Codec, valueBz, true)
 			if err != nil {
 				return err
 			}
@@ -71,38 +71,53 @@ func noPaincRegisterInterface(cdc *go_amino.Codec) {
 	cdc.RegisterInterface((*interface{})(nil), nil)
 }
 
+func noPaincRegisterKVPairResult(cdc *go_amino.Codec) {
+	defer func() {
+		if r := recover(); r != nil {
+			//nothing
+		}
+	}()
+	cdc.RegisterConcrete([]kvPairResult{}, "client/store/kvPairResults", nil)
+}
+
 type kvPairResult struct {
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
 }
 
-func tryDecodeValue(cdc *go_amino.Codec, bz []byte) (interface{}, error) {
+func tryDecodeValue(cdc *go_amino.Codec, bz []byte, useKVPairFlag bool) (interface{}, error) {
 	noPaincRegisterInterface(cdc)
 
+	// if len(bz) != 1 {
 	var vInterface interface{}
 	err := cdc.UnmarshalBinaryBare(bz, &vInterface)
 	if err == nil {
 		return vInterface, nil
 	}
 
-	var vKVPair []store.KVPair
-	err = cdc.UnmarshalBinary(bz, &vKVPair)
-	if err == nil {
-		var pairResults []kvPairResult
-		for _, pair := range vKVPair {
-			val, _ := tryDecodeValue(cdc, pair.Value)
-			pairResults = append(pairResults, kvPairResult{
-				Key:   string(pair.Key),
-				Value: val,
-			})
+	if useKVPairFlag {
+		var vKVPair []store.KVPair
+		err = cdc.UnmarshalBinary(bz, &vKVPair)
+		if err == nil {
+			var pairResults []kvPairResult
+			for _, pair := range vKVPair {
+				val, _ := tryDecodeValue(cdc, pair.Value, false)
+				pairResults = append(pairResults, kvPairResult{
+					Key:   string(pair.Key),
+					Value: val,
+				})
+			}
+			// noPaincRegisterKVPairResult(cdc)
+			return pairResults, nil
 		}
-		return pairResults, nil
 	}
 
-	var vString string
-	err = cdc.UnmarshalBinaryBare(bz, &vString)
+	// }
+
+	var vBool bool
+	err = cdc.UnmarshalBinaryBare(bz, &vBool)
 	if err == nil {
-		return vString, nil
+		return vBool, nil
 	}
 
 	var vInt int64
@@ -111,11 +126,11 @@ func tryDecodeValue(cdc *go_amino.Codec, bz []byte) (interface{}, error) {
 		return vInt, nil
 	}
 
-	var vBool bool
-	err = cdc.UnmarshalBinaryBare(bz, &vBool)
+	var vString string
+	err = cdc.UnmarshalBinaryBare(bz, &vString)
 	if err == nil {
-		return vBool, nil
+		return vString, nil
 	}
 
-	return nil, errors.New("can't decode value")
+	return bz, errors.New("can't decode value")
 }
