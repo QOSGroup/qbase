@@ -437,21 +437,18 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 
 	//签名者为空则不校验签名
 	signers := tx.ITx.GetSigner()
-	if len(signers) == 0 {
-		if qcpFromChainID == tx.ChainID {
-			result = types.ErrUnauthorized("no signers in TxStd's ITx").Result()
-		}
-		return
-	}
-
 	signatures := tx.Signature
-	if len(signatures) == 0 {
-		result = types.ErrUnauthorized("no signatures in TxStd's ITx").Result()
-		return
-	}
 
 	if len(signatures) != len(signers) {
 		result = types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , signers count: %d ", len(signatures), len(signers))).Result()
+		return
+	}
+
+	if len(signers) == 0 {
+		//TODO: !!!!Dangerous if signers is empty
+		// if qcpFromChainID == tx.ChainID {
+		// 	result = types.ErrUnauthorized("no signers in TxStd's ITx").Result()
+		// }
 		return
 	}
 
