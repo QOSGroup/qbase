@@ -92,8 +92,8 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 	txQcp := txs.NewTxQCP(txStd, qcpFrom,
 		toChainID,
 		qcpSeq+1,
-		viper.GetInt64(cflags.FlagQcpBlockHeight),
-		viper.GetInt64(cflags.FlagQcpTxIndex),
+		uint64(viper.GetInt64(cflags.FlagQcpBlockHeight)),
+		uint64(viper.GetInt64(cflags.FlagQcpTxIndex)),
 		ok,
 		viper.GetString(cflags.FlagQcpExtends),
 	)
@@ -109,15 +109,15 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 
 func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID string) (*txs.TxStd, error) {
 
-	accountNonce := viper.GetInt64(cflags.FlagNonce)
-	maxGas := viper.GetInt64(cflags.FlagMaxGas)
+	accountNonce := uint64(viper.GetInt64(cflags.FlagNonce))
+	maxGas := uint64(viper.GetInt64(cflags.FlagMaxGas))
 	if maxGas < 0 {
 		return nil, errors.New("max-gas flag not correct")
 	}
 
 	chainID := getChainID(ctx)
 	signers := getSigners(ctx, tx.GetSigner())
-	txStd := txs.NewTxStd(tx, chainID, types.NewInt(maxGas))
+	txStd := txs.NewTxStd(tx, chainID, types.NewUint(maxGas))
 
 	isUseFlagAccountNonce := accountNonce > 0
 	for _, signerName := range signers {
@@ -126,7 +126,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 			return nil, err
 		}
 
-		var actualNonce int64
+		var actualNonce uint64
 		if isUseFlagAccountNonce {
 			actualNonce = accountNonce + 1
 		} else {
@@ -146,7 +146,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 	return txStd, nil
 }
 
-func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd *txs.TxStd, txStdFromChainID string) (*txs.TxStd, error) {
+func signStdTx(ctx context.CLIContext, signerKeyName string, nonce uint64, txStd *txs.TxStd, txStdFromChainID string) (*txs.TxStd, error) {
 
 	info, err := keys.GetKeyInfo(ctx, signerKeyName)
 	if err != nil {
@@ -220,8 +220,8 @@ func getSigners(ctx context.CLIContext, txSignerAddrs []types.Address) []string 
 	return sortNames
 }
 
-func getQcpInSequence(ctx context.CLIContext, inChainID string) int64 {
-	seq := viper.GetInt64(cflags.FlagQcpSequence)
+func getQcpInSequence(ctx context.CLIContext, inChainID string) uint64 {
+	seq := uint64(viper.GetInt64(cflags.FlagQcpSequence))
 	if seq > 0 {
 		return seq
 	}
@@ -254,7 +254,7 @@ func getDefaultChainID(ctx context.CLIContext) (string, error) {
 	return genesis.Genesis.ChainID, nil
 }
 
-func getDefaultAccountNonce(ctx context.CLIContext, address []byte) (int64, error) {
+func getDefaultAccountNonce(ctx context.CLIContext, address []byte) (uint64, error) {
 
 	if ctx.NonceNodeURI == "" {
 		return account.GetAccountNonce(ctx, address)

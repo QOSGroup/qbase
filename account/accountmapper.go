@@ -95,7 +95,7 @@ func (mapper *AccountMapper) GetPubKey(addr types.Address) (crypto.PubKey, types
 }
 
 // 获取地址代表账户的nonce
-func (mapper *AccountMapper) GetNonce(addr types.Address) (int64, types.Error) {
+func (mapper *AccountMapper) GetNonce(addr types.Address) (uint64, types.Error) {
 	acc := mapper.GetAccount(addr)
 	if acc == nil {
 		return 0, types.ErrUnknownAddress(addr.String())
@@ -104,7 +104,7 @@ func (mapper *AccountMapper) GetNonce(addr types.Address) (int64, types.Error) {
 }
 
 // 为特定账户设置新的nonce值
-func (mapper *AccountMapper) SetNonce(addr types.Address, nonce int64) types.Error {
+func (mapper *AccountMapper) SetNonce(addr types.Address, nonce uint64) types.Error {
 	acc := mapper.GetAccount(addr)
 	if acc == nil {
 		return types.ErrUnknownAddress(addr.String())

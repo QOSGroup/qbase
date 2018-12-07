@@ -29,7 +29,7 @@ func BuildOutSequenceKey(outChainID string) []byte {
 	return []byte(fmt.Sprintf(outSequenceKey, outChainID))
 }
 
-func BuildOutSequenceTxKey(outChainID string, sequence int64) []byte {
+func BuildOutSequenceTxKey(outChainID string, sequence uint64) []byte {
 	return []byte(fmt.Sprintf(outSequenceTxKey, outChainID, sequence))
 }
 
@@ -70,31 +70,31 @@ func (mapper *QcpMapper) SetChainInTrustPubKey(inChain string, pubkey crypto.Pub
 	mapper.Set(BuildInPubkeyKey(inChain), pubkey)
 }
 
-func (mapper *QcpMapper) GetMaxChainOutSequence(outChain string) (seq int64) {
+func (mapper *QcpMapper) GetMaxChainOutSequence(outChain string) (seq uint64) {
 	mapper.Get(BuildOutSequenceKey(outChain), &seq)
 	return
 }
 
-func (mapper *QcpMapper) SetMaxChainOutSequence(outChain string, sequence int64) {
+func (mapper *QcpMapper) SetMaxChainOutSequence(outChain string, sequence uint64) {
 	mapper.Set(BuildOutSequenceKey(outChain), sequence)
 }
 
-func (mapper *QcpMapper) GetChainOutTxs(outChain string, sequence int64) *txs.TxQcp {
+func (mapper *QcpMapper) GetChainOutTxs(outChain string, sequence uint64) *txs.TxQcp {
 	var txQcp txs.TxQcp
 	mapper.Get(BuildOutSequenceTxKey(outChain, sequence), &txQcp)
 	return &txQcp
 }
 
-func (mapper *QcpMapper) SetChainOutTxs(outChain string, sequence int64, txQcp *txs.TxQcp) {
+func (mapper *QcpMapper) SetChainOutTxs(outChain string, sequence uint64, txQcp *txs.TxQcp) {
 	mapper.Set(BuildOutSequenceTxKey(outChain, sequence), *txQcp)
 }
 
-func (mapper *QcpMapper) GetMaxChainInSequence(inChain string) (seq int64) {
+func (mapper *QcpMapper) GetMaxChainInSequence(inChain string) (seq uint64) {
 	mapper.Get(BuildInSequenceKey(inChain), &seq)
 	return
 }
 
-func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence int64) {
+func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence uint64) {
 	mapper.Set(BuildInSequenceKey(inChain), sequence)
 }
 

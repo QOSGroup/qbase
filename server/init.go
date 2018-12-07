@@ -69,7 +69,7 @@ func GenTxCmd(ctx *Context, cdc *Codec, appInit AppInit) *cobra.Command {
 
 			ip := viper.GetString(FlagIP)
 			if len(ip) == 0 {
-				eip, err := externalIP()
+				eip, err := ExternalIP()
 				if err != nil {
 					return err
 				}
@@ -196,6 +196,7 @@ func InitCmd(ctx *Context, cdc *Codec, appInit AppInit) *cobra.Command {
 	cmd.Flags().AddFlagSet(appInit.FlagsAppGenState)
 	cmd.Flags().AddFlagSet(appInit.FlagsAppGenTx) // need to add this flagset for when no GenTx's provided
 	cmd.AddCommand(GenTxCmd(ctx, cdc, appInit))
+	cmd.MarkFlagRequired(FlagName)
 	return cmd
 }
 

@@ -2,7 +2,9 @@ package types
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -340,4 +342,35 @@ var _ sort.Interface = BaseCoins{}
 func (coins BaseCoins) Sort() BaseCoins {
 	sort.Sort(coins)
 	return coins
+}
+
+func ParseCoins(str string) ([]*BaseCoin, error) {
+	if len(str) == 0 {
+		return nil, nil
+	}
+	reDnm := `[[:alpha:]][[:alnum:]]{2,15}`
+	reAmt := `[[:digit:]]+`
+	reSpc := `[[:space:]]*`
+	reCoin := regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reAmt, reSpc, reDnm))
+
+	var coins []*BaseCoin
+	arr := strings.Split(str, ",")
+	for _, q := range arr {
+		coin := reCoin.FindStringSubmatch(q)
+		if len(coin) != 3 {
+			return coins, fmt.Errorf("coins str: %s parse faild", q)
+		}
+		coin[2] = strings.TrimSpace(coin[2])
+		amount, err := strconv.ParseInt(strings.TrimSpace(coin[1]), 10, 64)
+		if err != nil {
+			return coins, err
+		}
+
+		coins = append(coins, &BaseCoin{
+			coin[2],
+			NewInt(amount),
+		})
+	}
+
+	return coins, nil
 }

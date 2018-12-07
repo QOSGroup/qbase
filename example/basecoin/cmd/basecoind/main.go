@@ -26,8 +26,7 @@ func main() {
 	// version cmd
 	rootCmd.AddCommand(version.VersionCmd)
 
-	server.AddCommands(ctx, cdc, rootCmd, types.BaseCoinInit(),
-		server.ConstructAppCreator(newApp, "basecoin"))
+	server.AddCommands(ctx, cdc, rootCmd, types.BaseCoinInit(), newApp)
 
 	executor := cli.PrepareBaseCmd(rootCmd, "basecoin", types.DefaultNodeHome)
 

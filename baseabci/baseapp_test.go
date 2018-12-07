@@ -207,27 +207,27 @@ func TestTxQcpResult(t *testing.T) {
 
 	for i := uint64(1); i < 10; i++ {
 
-		var code int64
+		var code types.CodeType
 		seed := rand.Int63n(10)
 
 		if seed > int64(5) {
-			code = int64(0)
+			code = types.CodeOK
 		} else {
-			code = int64(1)
+			code = types.CodeInternal
 		}
 
 		qcpResult := &txs.QcpTxResult{
 			Result: types.Result{
-				Code:    types.ABCICodeType(code),
-				GasUsed: types.OneInt().Int64(),
+				Code:    code,
+				GasUsed: types.OneUint().Uint64(),
 				Tags: types.Tags{
 					types.MakeTag("key", []byte("value")),
 				},
 			},
 		}
 
-		stdTx := txs.NewTxStd(qcpResult, cid, types.OneInt())
-		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 2, 0, true, "")
+		stdTx := txs.NewTxStd(qcpResult, cid, types.OneUint())
+		txQcp := txs.NewTxQCP(stdTx, cid, cid, uint64(i), 2, 0, true, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -288,12 +288,12 @@ func TestTxQcp(t *testing.T) {
 
 	var txQcpBytes [][]byte
 
-	for i := int64(1); i < 10; i++ {
+	for i := uint64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		acc.SetNonce(i)
 		txstd := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
-		txQcp := txs.NewTxQCP(txstd, cid, cid, int64(i), i, 0, false, "")
+		txQcp := txs.NewTxQCP(txstd, cid, cid, i, i, 0, false, "")
 
 		signature, _ := txQcp.SignTx(signer)
 		txQcp.Sig.Pubkey = signer.PubKey()
@@ -395,7 +395,7 @@ func TestCrossStdTx(t *testing.T) {
 
 	var txss [][]byte
 	//创建转账stdTx: pid3 转账 pid4
-	for i := int64(1); i < 10; i++ {
+	for i := uint64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount3.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())
@@ -439,11 +439,11 @@ func TestCrossStdTx(t *testing.T) {
 	}
 
 	res := app.Query(queryHeight1)
-	var seq int64
+	var seq uint64
 	app.GetCdc().UnmarshalBinaryBare(res.GetValue(), &seq)
-	require.Equal(t, int64(5), seq)
+	require.Equal(t, uint64(5), seq)
 
-	for i := int64(1); i <= seq; i++ {
+	for i := uint64(1); i <= seq; i++ {
 		k2 := []byte(fmt.Sprintf("tx/out/%s/%d", cid, i))
 		queryHeight2 := abci.RequestQuery{
 			Path:   "/store/qcp/key",
@@ -482,7 +482,7 @@ func TestStdTx(t *testing.T) {
 
 	var txs [][]byte
 	//创建转账stdTx: pid1 转账 pid2
-	for i := int64(1); i < 10; i++ {
+	for i := uint64(1); i < 10; i++ {
 
 		acc := accMapper.GetAccount(pidAccount1.GetAddress())
 		require.Equal(t, i-1, acc.GetNonce())
@@ -549,7 +549,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 		Amount:    amount,
 	}
 
-	stdTx := txs.NewTxStd(tx, cid, types.OneInt())
+	stdTx := txs.NewTxStd(tx, cid, types.OneUint())
 
 	signerAccount, _ := from.(*testAccount)
 
@@ -691,14 +691,14 @@ func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps
 			ToUsers:   []types.Address{to.AccountAddress},
 		}
 
-		crossTxQcps.TxStd = txs.NewTxStd(ttx, crossTxQcps.To, types.OneInt())
-		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, int64(from.Nonce), cid)
+		crossTxQcps.TxStd = txs.NewTxStd(ttx, crossTxQcps.To, types.OneUint())
+		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, from.Nonce, cid)
 
 		crossTxQcps.TxStd.Signature = []txs.Signature{
 			txs.Signature{
 				Pubkey:    from.PrivKey.PubKey(),
 				Signature: txStdSig,
-				Nonce:     int64(from.Nonce),
+				Nonce:     from.Nonce,
 			},
 		}
 
@@ -711,8 +711,8 @@ func (t *transferTx) GetSigner() []types.Address {
 	return t.FromUsers
 }
 
-func (t *transferTx) CalcGas() types.BigInt {
-	return types.ZeroInt()
+func (t *transferTx) CalcGas() types.Uint {
+	return types.ZeroUint()
 }
 
 func (t *transferTx) GetGasPayer() types.Address {
@@ -721,7 +721,7 @@ func (t *transferTx) GetGasPayer() types.Address {
 
 func (t *transferTx) GetSignData() []byte {
 	signData := make([]byte, 100)
-	signData = append(signData, types.Int2Byte(t.Amount)...)
+	signData = append(signData, types.Int2Byte(uint64(t.Amount))...)
 
 	for _, addr := range t.FromUsers {
 		signData = append(signData, []byte(addr)...)

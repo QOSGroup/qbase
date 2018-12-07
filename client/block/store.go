@@ -97,7 +97,7 @@ func tryDecodeValue(cdc *go_amino.Codec, bz []byte, useKVPairFlag bool) (interfa
 
 	if useKVPairFlag {
 		var vKVPair []store.KVPair
-		err = cdc.UnmarshalBinary(bz, &vKVPair)
+		err = cdc.UnmarshalBinaryLengthPrefixed(bz, &vKVPair)
 		if err == nil {
 			var pairResults []kvPairResult
 			for _, pair := range vKVPair {

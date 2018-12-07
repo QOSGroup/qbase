@@ -11,7 +11,7 @@ import (
 	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tmlibs/cli"
+	"github.com/tendermint/tendermint/libs/cli"
 
 	dbm "github.com/tendermint/tendermint/libs/db"
 )

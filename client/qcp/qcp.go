@@ -16,7 +16,7 @@ func query(ctx context.CLIContext, key []byte) ([]byte, error) {
 	return ctx.Query(string(path), key)
 }
 
-func GetOutChainSequence(ctx context.CLIContext, outChainID string) (int64, error) {
+func GetOutChainSequence(ctx context.CLIContext, outChainID string) (uint64, error) {
 	key := qcp.BuildOutSequenceKey(outChainID)
 	bz, err := query(ctx, key)
 
@@ -28,7 +28,7 @@ func GetOutChainSequence(ctx context.CLIContext, outChainID string) (int64, erro
 		return 0, fmt.Errorf("GetOutChainSequence return empty. there is not exists %s out sequence", outChainID)
 	}
 
-	var seq int64
+	var seq uint64
 	err = ctx.Codec.UnmarshalBinaryBare(bz, &seq)
 	if err != nil {
 		return 0, err
@@ -37,7 +37,7 @@ func GetOutChainSequence(ctx context.CLIContext, outChainID string) (int64, erro
 	return seq, nil
 }
 
-func GetGetOutChainTx(ctx context.CLIContext, outChainID string, seq int64) (*txs.TxQcp, error) {
+func GetGetOutChainTx(ctx context.CLIContext, outChainID string, seq uint64) (*txs.TxQcp, error) {
 	key := qcp.BuildOutSequenceTxKey(outChainID, seq)
 	bz, err := query(ctx, key)
 
@@ -58,7 +58,7 @@ func GetGetOutChainTx(ctx context.CLIContext, outChainID string, seq int64) (*tx
 	return &tx, nil
 }
 
-func GetInChainSequence(ctx context.CLIContext, inChainID string) (int64, error) {
+func GetInChainSequence(ctx context.CLIContext, inChainID string) (uint64, error) {
 	key := qcp.BuildInSequenceKey(inChainID)
 	bz, err := query(ctx, key)
 
@@ -70,7 +70,7 @@ func GetInChainSequence(ctx context.CLIContext, inChainID string) (int64, error)
 		return 0, fmt.Errorf("GetInChainSequence return empty. there is not exists %s in sequence", key)
 	}
 
-	var seq int64
+	var seq uint64
 	err = ctx.Codec.UnmarshalBinaryBare(bz, &seq)
 	if err != nil {
 		return 0, err
@@ -99,7 +99,7 @@ func QueryQcpChainsInfo(ctx context.CLIContext) ([]qcpChainsResult, error) {
 	}
 
 	var kvPair []store.KVPair
-	err = ctx.Codec.UnmarshalBinary(res, &kvPair)
+	err = ctx.Codec.UnmarshalBinaryLengthPrefixed(res, &kvPair)
 	if err != nil {
 		return nil, err
 	}

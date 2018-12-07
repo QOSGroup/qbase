@@ -102,7 +102,7 @@ $ basecli qcp tx [chainID] --seq [Seq]
 			seq := viper.GetInt64(flagOutSeq)
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			result, err := GetGetOutChainTx(cliCtx, outChainID, seq)
+			result, err := GetGetOutChainTx(cliCtx, outChainID, uint64(seq))
 
 			if err != nil {
 				return err

@@ -36,22 +36,22 @@ func TestAccountMarshal(t *testing.T) {
 
 	err := baseAccount.SetPublicKey(pub)
 	require.Nil(t, err)
-	err = baseAccount.SetNonce(int64(7))
+	err = baseAccount.SetNonce(7)
 	require.Nil(t, err)
 
-	add_binary, err := cdc.MarshalBinary(baseAccount)
+	add_binary, err := cdc.MarshalBinaryLengthPrefixed(baseAccount)
 	require.Nil(t, err)
 
 	another_add := BaseAccount{}
 	another_json := []byte{}
-	err = cdc.UnmarshalBinary(add_binary, &another_add)
+	err = cdc.UnmarshalBinaryLengthPrefixed(add_binary, &another_add)
 	require.Nil(t, err)
 	require.Equal(t, baseAccount, another_add)
 
 	// error on bad bytes
 	another_add = BaseAccount{}
 	another_json = []byte{}
-	err = cdc.UnmarshalBinary(add_binary[:len(add_binary)/2], &another_json)
+	err = cdc.UnmarshalBinaryLengthPrefixed(add_binary[:len(add_binary)/2], &another_json)
 	require.NotNil(t, err)
 
 }

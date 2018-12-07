@@ -4,6 +4,7 @@ package context
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/QOSGroup/qbase/mapper"
 
@@ -36,7 +37,7 @@ type Context struct {
 
 // create a new context
 // nolint: unparam
-func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger log.Logger, registeSeedMapper map[string]mapper.IMapper) Context {
+func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger log.Logger, registSeedMapper map[string]mapper.IMapper) Context {
 	c := Context{
 		Context: context.Background(),
 		pst:     newThePast(),
@@ -49,8 +50,10 @@ func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger 
 	c = c.WithIsCheckTx(isCheckTx)
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
-	c = c.WithSigningValidators(nil)
-	c = c.withRegisteredMap(registeSeedMapper)
+	c = c.WithVoteInfos(nil)
+	c = c.WithConsensusParams(nil)
+	c = c.WithMinimumFees([]types.Coin{&types.BaseCoin{}})
+	c = c.withRegisteredMap(registSeedMapper)
 	c = c.copyKVStoreMapperFromSeed()
 	return c
 }
@@ -77,12 +80,12 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key store.StoreKey) store.KVStore {
-	return c.multiStore().GetKVStore(key)
+	return c.MultiStore().GetKVStore(key)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
 func (c Context) TransientStore(key store.StoreKey) store.KVStore {
-	return c.multiStore().GetKVStore(key)
+	return c.MultiStore().GetKVStore(key)
 }
 
 //----------------------------------------
@@ -146,12 +149,13 @@ const (
 	contextKeyBlockHeader
 	contextKeyBlockHeight
 	contextKeyConsensusParams
-	contextKeyChainID // chainId 与 qscName相同
+	contextKeyChainID
 	contextKeyIsCheckTx
 	contextKeyTxBytes
 	contextKeyLogger
-	contextKeySigningValidators
+	contextKeyVoteInfos
 	contextKeyGasMeter
+	contextKeyBlockGasMeter
 	contextKeyMinimumFees
 	//增加特定的context key
 	contextKeyBlockTxIndex       // tx在block中的索引
@@ -166,7 +170,7 @@ const ContextKeySigners contextKey = 99999
 // NOTE: Do not expose MultiStore.
 // MultiStore exposes all the keys.
 // Instead, pass the context and the store key.
-func (c Context) multiStore() store.MultiStore {
+func (c Context) MultiStore() store.MultiStore {
 	return c.Value(contextKeyMultiStore).(store.MultiStore)
 }
 
@@ -174,8 +178,12 @@ func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeade
 
 func (c Context) BlockHeight() int64 { return c.Value(contextKeyBlockHeight).(int64) }
 
-func (c Context) ConsensusParams() abci.ConsensusParams {
-	return c.Value(contextKeyConsensusParams).(abci.ConsensusParams)
+func (c Context) ConsensusParams() *abci.ConsensusParams {
+	return c.Value(contextKeyConsensusParams).(*abci.ConsensusParams)
+}
+
+func (c Context) VoteInfos() []abci.VoteInfo {
+	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
 
 func (c Context) ChainID() string { return c.Value(contextKeyChainID).(string) }
@@ -183,10 +191,6 @@ func (c Context) ChainID() string { return c.Value(contextKeyChainID).(string) }
 func (c Context) TxBytes() []byte { return c.Value(contextKeyTxBytes).([]byte) }
 
 func (c Context) Logger() log.Logger { return c.Value(contextKeyLogger).(log.Logger) }
-
-func (c Context) SigningValidators() []abci.SigningValidator {
-	return c.Value(contextKeySigningValidators).([]abci.SigningValidator)
-}
 
 func (c Context) GasMeter() types.GasMeter { return c.Value(contextKeyGasMeter).(types.GasMeter) }
 
@@ -217,16 +221,28 @@ func (c Context) WithBlockHeader(header abci.Header) Context {
 	return c.withValue(contextKeyBlockHeader, header)
 }
 
-func (c Context) WithBlockHeight(height int64) Context {
-	return c.withValue(contextKeyBlockHeight, height)
+func (c Context) WithBlockTime(newTime time.Time) Context {
+	newHeader := c.BlockHeader()
+	newHeader.Time = newTime
+	return c.WithBlockHeader(newHeader)
 }
 
+func (c Context) WithProposer(addr types.Address) Context {
+	newHeader := c.BlockHeader()
+	newHeader.ProposerAddress = addr.Bytes()
+	return c.WithBlockHeader(newHeader)
+}
+
+func (c Context) WithBlockHeight(height int64) Context {
+	newHeader := c.BlockHeader()
+	newHeader.Height = height
+	return c.withValue(contextKeyBlockHeight, height).withValue(contextKeyBlockHeader, newHeader)
+}
 func (c Context) WithConsensusParams(params *abci.ConsensusParams) Context {
 	if params == nil {
 		return c
 	}
-	return c.withValue(contextKeyConsensusParams, params).
-		WithGasMeter(types.NewGasMeter(params.TxSize.MaxGas))
+	return c.withValue(contextKeyConsensusParams, params)
 }
 
 func (c Context) WithChainID(chainID string) Context { return c.withValue(contextKeyChainID, chainID) }
@@ -235,8 +251,8 @@ func (c Context) WithTxBytes(txBytes []byte) Context { return c.withValue(contex
 
 func (c Context) WithLogger(logger log.Logger) Context { return c.withValue(contextKeyLogger, logger) }
 
-func (c Context) WithSigningValidators(SigningValidators []abci.SigningValidator) Context {
-	return c.withValue(contextKeySigningValidators, SigningValidators)
+func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
+	return c.withValue(contextKeyVoteInfos, VoteInfos)
 }
 
 //
@@ -270,6 +286,10 @@ func (c Context) WithGasMeter(meter types.GasMeter) Context {
 	return c.withValue(contextKeyGasMeter, meter)
 }
 
+func (c Context) WithBlockGasMeter(meter types.GasMeter) Context {
+	return c.withValue(contextKeyBlockGasMeter, meter)
+}
+
 func (c Context) WithIsCheckTx(isCheckTx bool) Context {
 	return c.withValue(contextKeyIsCheckTx, isCheckTx)
 }
@@ -293,7 +313,7 @@ func (c Context) ResetBlockTxIndex() Context {
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.
 func (c Context) CacheContext() (cc Context, writeCache func()) {
-	cms := c.multiStore().CacheMultiStore()
+	cms := c.MultiStore().CacheMultiStore()
 	cc = c.WithMultiStore(cms)
 	return cc, cms.Write
 }

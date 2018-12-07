@@ -88,5 +88,5 @@ func sendKVTx(k, v, chainID string, http *client.HTTP, cdc *go_amino.Codec) {
 
 func wrapToStdTx(key, value, chainID string) *txs.TxStd {
 	kv := kvstore.NewKvstoreTx([]byte(key), []byte(value))
-	return txs.NewTxStd(kv, chainID, types.NewInt(int64(10000)))
+	return txs.NewTxStd(kv, chainID, types.NewUint(uint64(10000)))
 }

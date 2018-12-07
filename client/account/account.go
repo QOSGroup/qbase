@@ -52,7 +52,7 @@ func GetAccountFromBech32Addr(ctx context.CLIContext, bech32Addr string) (accoun
 	return queryAccount(ctx, addrBytes)
 }
 
-func GetAccountNonce(ctx context.CLIContext, address []byte) (int64, error) {
+func GetAccountNonce(ctx context.CLIContext, address []byte) (uint64, error) {
 	account, err := queryAccount(ctx, address)
 
 	if err == ErrAccountNotExsits {

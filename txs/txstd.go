@@ -18,17 +18,17 @@ type ITx interface {
 	// 业务端实现中crossTxQcp只需包含`to` 和 `txStd`
 	Exec(ctx context.Context) (result types.Result, crossTxQcp *TxQcp)
 	GetSigner() []types.Address //签名者
-	CalcGas() types.BigInt      //计算gas
+	CalcGas() types.Uint        //计算gas
 	GetGasPayer() types.Address //gas付费人
 	GetSignData() []byte        //获取签名字段
 }
 
 // 标准Tx结构体
 type TxStd struct {
-	ITx       ITx          `json:"itx"`      //ITx接口，将被具体Tx结构实例化
-	Signature []Signature  `json:"sigature"` //签名数组
-	ChainID   string       `json:"chainid"`  //ChainID: 执行ITx.exec方法的链ID
-	MaxGas    types.BigInt `json:"maxgas"`   //Gas消耗的最大值
+	ITx       ITx         `json:"itx"`      //ITx接口，将被具体Tx结构实例化
+	Signature []Signature `json:"sigature"` //签名数组
+	ChainID   string      `json:"chainid"`  //ChainID: 执行ITx.exec方法的链ID
+	MaxGas    types.Uint  `json:"maxgas"`   //Gas消耗的最大值
 }
 
 var _ types.Tx = (*TxStd)(nil)
@@ -37,7 +37,7 @@ var _ types.Tx = (*TxStd)(nil)
 type Signature struct {
 	Pubkey    crypto.PubKey `json:"pubkey"`    //可选
 	Signature []byte        `json:"signature"` //签名内容
-	Nonce     int64         `json:"nonce"`     //nonce的值
+	Nonce     uint64        `json:"nonce"`     //nonce的值
 }
 
 // Type: just for implements types.Tx
@@ -46,11 +46,14 @@ func (tx *TxStd) Type() string {
 }
 
 //BuildSignatureBytes 生成待签名字节切片.
-//nonce: account nonce + 1
-//qcpFromChainID: 生成TxStd的源chainID.
-func (tx *TxStd) BuildSignatureBytes(nonce int64, qcpFromChainID string) []byte {
+//nonce: current account nonce + 1
+//qcpFromChainID: qcp下为生成TxStd的源chainID. 其他可为空或当前chainID
+func (tx *TxStd) BuildSignatureBytes(nonce uint64, qcpFromChainID string) []byte {
 	bz := tx.getSignData()
 	bz = append(bz, types.Int2Byte(nonce)...)
+	if qcpFromChainID == "" {
+		qcpFromChainID = tx.ChainID
+	}
 	bz = append(bz, []byte(qcpFromChainID)...)
 
 	return bz
@@ -64,13 +67,13 @@ func (tx *TxStd) getSignData() []byte {
 
 	ret := tx.ITx.GetSignData()
 	ret = append(ret, []byte(tx.ChainID)...)
-	ret = append(ret, types.Int2Byte(tx.MaxGas.Int64())...)
+	ret = append(ret, types.Int2Byte(tx.MaxGas.Uint64())...)
 
 	return ret
 }
 
 // 签名：每个签名者外部调用此方法
-func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID string) (signedbyte []byte, err error) {
+func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce uint64, fromChainID string) (signedbyte []byte, err error) {
 	if tx.ITx == nil {
 		return nil, errors.New("Signature txstd err(itx is nil)")
 	}
@@ -86,7 +89,7 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID string)
 
 // 构建结构体
 // 调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
-func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
+func NewTxStd(itx ITx, cid string, mgas types.Uint) (rTx *TxStd) {
 	rTx = &TxStd{
 		itx,
 		[]Signature{},
@@ -110,12 +113,12 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 }
 
 //ValidateBasicData  对txStd进行基础的数据校验
-func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
+func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChainID string) (err types.Error) {
 	if tx.ITx == nil {
 		return types.ErrInternal("TxStd's ITx is nil")
 	}
 
-	//开启cache执行ITx.ValidateData，在ITx.ValidateData中做数据保存操作将被忽略
+	//开启cache执行ITx.ValidateData，在ITx.ValidateData中数据保存将被丢弃
 	newCtx, _ := ctx.CacheContext()
 	itxErr := tx.ITx.ValidateData(newCtx)
 	if itxErr != nil {
@@ -126,17 +129,13 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 		return types.ErrInternal("TxStd's ChainID is empty")
 	}
 
-	if tx.ChainID != currentChaindID {
-		return types.ErrInternal(fmt.Sprintf("chainId not match. expect: %s , actual: %s", currentChaindID, tx.ChainID))
+	if tx.ChainID != currentChainID {
+		return types.ErrInternal(fmt.Sprintf("chainId not match. expect: %s , actual: %s", currentChainID, tx.ChainID))
 	}
 
-	if tx.MaxGas.LT(types.ZeroInt()) {
-		return types.ErrInternal("TxStd's MaxGas is less than zero")
-	}
-
-	execGas := tx.ITx.CalcGas()
-	if tx.MaxGas.LT(execGas) {
-		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
+	calcGas := tx.ITx.CalcGas()
+	if tx.MaxGas.LT(calcGas) {
+		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx calc gas. maxGas: %s , calcGas: %s", tx.MaxGas, calcGas))
 	}
 
 	return

@@ -1,9 +1,6 @@
 package txs
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
 	tcommon "github.com/tendermint/tendermint/libs/common"
@@ -12,7 +9,7 @@ import (
 // qos端对TxQcp的执行结果
 type QcpTxResult struct {
 	Result              types.Result `json:"result"`              //对应TxQcp执行结果
-	QcpOriginalSequence int64        `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
+	QcpOriginalSequence uint64       `json:"qcporiginalsequence"` //此结果对应的TxQcp.Sequence
 	QcpOriginalExtends  string       `json:"qcpextends"`          //此结果对应的 TxQcp.Extends
 	Info                string       `json:"info"`                //结果信息
 }
@@ -25,15 +22,6 @@ func (tx *QcpTxResult) IsOk() bool {
 
 // 功能：检测结构体字段的合法性
 func (tx *QcpTxResult) ValidateData(ctx context.Context) error {
-
-	if types.NewInt(tx.Result.GasUsed).LT(types.ZeroInt()) {
-		return errors.New("QcpTxResult's  GasUsed is less then zero")
-	}
-
-	if tx.QcpOriginalSequence <= 0 {
-		return fmt.Errorf("QcpTxResult's QcpOriginalSequence Illegal data, except bigger than 0 , actual: %d ", tx.QcpOriginalSequence)
-	}
-
 	return nil
 }
 
@@ -59,8 +47,8 @@ func (tx *QcpTxResult) GetSigner() []types.Address {
 
 // 功能：计算gas
 // 备注：暂返回0，后期可根据实际情况调整
-func (tx *QcpTxResult) CalcGas() types.BigInt {
-	return types.ZeroInt()
+func (tx *QcpTxResult) CalcGas() types.Uint {
+	return types.ZeroUint()
 }
 
 // 功能：获取gas付费人
@@ -71,7 +59,7 @@ func (tx *QcpTxResult) GetGasPayer() types.Address {
 
 // 获取签名字段
 func (tx *QcpTxResult) GetSignData() []byte {
-	ret := types.Int2Byte(int64(tx.Result.Code))
+	ret := types.Int2Byte(uint64(tx.Result.Code))
 	ret = append(ret, tx.Result.Data...)
 	ret = append(ret, Extends2Byte(tx.Result.Tags)...)
 	ret = append(ret, types.Int2Byte(tx.Result.GasUsed)...)
@@ -83,7 +71,7 @@ func (tx *QcpTxResult) GetSignData() []byte {
 }
 
 // 功能：构建 QcpTxReasult 结构体
-func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info string) *QcpTxResult {
+func NewQcpTxResult(result types.Result, qcpSequence uint64, qcpExtends, info string) *QcpTxResult {
 	return &QcpTxResult{
 		Result:              result,
 		QcpOriginalSequence: qcpSequence,

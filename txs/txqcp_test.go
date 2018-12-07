@@ -35,7 +35,7 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 }
 
 func newTxStd(tx ITx) (txstd *TxStd) {
-	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
+	txstd = NewTxStd(tx, "qsc1", types.NewUint(100))
 	signer := txstd.ITx.GetSigner()
 
 	db := dbm.NewMemDB()
@@ -63,7 +63,7 @@ func newTxStd(tx ITx) (txstd *TxStd) {
 			return nil
 		}
 
-		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce), ctx.ChainID())
+		signbyte, errsign := txstd.SignTx(prvKey, nonce, ctx.ChainID())
 		if signbyte == nil || errsign != nil {
 			return nil
 		}
@@ -71,7 +71,7 @@ func newTxStd(tx ITx) (txstd *TxStd) {
 		signdata := Signature{
 			prvKey.PubKey(),
 			signbyte,
-			int64(nonce),
+			nonce,
 		}
 
 		txstd.Signature = append(txstd.Signature, signdata)
@@ -87,7 +87,7 @@ func TestNewQcpTxResult(t *testing.T) {
 	txResult.GetSigner()
 	txResult.GetGasPayer()
 
-	gas := txResult.CalcGas().Int64() < 0
+	gas := txResult.CalcGas().Uint64() < 0
 	require.Equal(t, gas, false)
 }
 

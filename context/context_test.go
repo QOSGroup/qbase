@@ -156,7 +156,7 @@ func TestContextWithCustom(t *testing.T) {
 	require.Panics(t, func() { ctx.ChainID() })
 	require.Panics(t, func() { ctx.TxBytes() })
 	require.Panics(t, func() { ctx.Logger() })
-	require.Panics(t, func() { ctx.SigningValidators() })
+	require.Panics(t, func() { ctx.VoteInfos() })
 	require.Panics(t, func() { ctx.GasMeter() })
 
 	header := abci.Header{}
@@ -165,7 +165,7 @@ func TestContextWithCustom(t *testing.T) {
 	ischeck := true
 	txbytes := []byte("txbytes")
 	logger := NewMockLogger()
-	signvals := []abci.SigningValidator{{}}
+	signvals := []abci.VoteInfo{{}}
 	meter := types.NewGasMeter(10000)
 	minFees := make([]types.Coin, 1)
 	blockTxIndex := int64(100)
@@ -178,19 +178,18 @@ func TestContextWithCustom(t *testing.T) {
 		WithBlockHeight(height).
 		WithChainID(chainid).
 		WithTxBytes(txbytes).
-		WithSigningValidators(signvals).
+		WithVoteInfos(signvals).
 		WithGasMeter(meter).
 		WithMinimumFees(minFees).
 		WithBlockTxIndex(blockTxIndex).
 		WithTxQcpResultHandler(handerler)
 
-	require.Equal(t, header, ctx.BlockHeader())
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, ischeck, ctx.IsCheckTx())
 	require.Equal(t, txbytes, ctx.TxBytes())
 	require.Equal(t, logger, ctx.Logger())
-	require.Equal(t, signvals, ctx.SigningValidators())
+	require.Equal(t, signvals, ctx.VoteInfos())
 	require.Equal(t, meter, ctx.GasMeter())
 	require.Equal(t, blockTxIndex, ctx.BlockTxIndex())
 

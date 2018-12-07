@@ -14,7 +14,7 @@ $ go install
 ```
 2. 初始化
 ```
-$ basecoind init
+$ basecoind init --chain-id basecoin --name node
 ```
 
 ```
@@ -47,7 +47,7 @@ book distance cart design another view olympic orbit leopard indoor tumble dutch
 ```
 4. 启动basecoin app
 ```
-$ basecoind start --with-tendermint=true
+$ basecoind start
 ```
 5. 账户查询状态
 ```

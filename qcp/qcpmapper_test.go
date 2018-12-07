@@ -34,11 +34,11 @@ func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
 	qcpMapper, _ = ctx.Mapper(qcpMapper.MapperName()).(*QcpMapper)
 
 	outChain := "qsc"
-	seq := int64(12)
-	cseq := int64(13)
+	seq := uint64(12)
+	cseq := uint64(13)
 
 	maxSeq := qcpMapper.GetMaxChainOutSequence(outChain)
-	require.Equal(t, int64(0), maxSeq)
+	require.Equal(t, uint64(0), maxSeq)
 
 	qcpMapper.SetMaxChainOutSequence(outChain, seq)
 	maxSeq = qcpMapper.GetMaxChainOutSequence(outChain)

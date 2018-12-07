@@ -8,15 +8,15 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 )
 
-// 功能：
+// 功能： QCP协议数据结构
 type TxQcp struct {
 	TxStd       *TxStd    `json:"txstd"`       //TxStd结构
-	From        string    `json:"from"`        //qscName
-	To          string    `json:"to"`          //qosName
-	Sequence    int64     `json:"sequence"`    //发送Sequence
+	From        string    `json:"from"`        //`From` chainID
+	To          string    `json:"to"`          //`To` chainID
+	Sequence    uint64    `json:"sequence"`    //发送Sequence
 	Sig         Signature `json:"sig"`         //签名
-	BlockHeight int64     `json:"blockheight"` //Tx所在block高度
-	TxIndex     int64     `json:"txindex"`     //Tx在block的位置
+	BlockHeight uint64    `json:"blockheight"` //Tx所在block高度
+	TxIndex     uint64    `json:"txindex"`     //Tx在block的位置
 	IsResult    bool      `json:"isresult"`    //是否为Result
 	Extends     string    `json:"extends"`     //扩展字段
 }
@@ -50,12 +50,12 @@ func (tx *TxQcp) BuildSignatureBytes() []byte {
 	return tx.getSigData()
 }
 
-func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
+func (tx *TxQcp) SignTx(privkey crypto.PrivKey) (signedbyte []byte, err error) {
 	data := tx.BuildSignatureBytes()
 	if data == nil {
 		return nil, errors.New("Signature txQcp err!")
 	}
-	signedbyte, err = prvkey.Sign(data)
+	signedbyte, err = privkey.Sign(data)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +64,8 @@ func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
 }
 
 // 构建TxQCP结构体
-func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
-	blockheigh int64, txindex int64, isResult bool, extends string) (rTx *TxQcp) {
+func NewTxQCP(txStd *TxStd, from string, to string, seqence uint64,
+	blockheight uint64, txindex uint64, isResult bool, extends string) (rTx *TxQcp) {
 
 	rTx = &TxQcp{
 		txStd,
@@ -73,7 +73,7 @@ func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
 		to,
 		seqence,
 		Signature{},
-		blockheigh,
+		blockheight,
 		txindex,
 		isResult,
 		extends,
