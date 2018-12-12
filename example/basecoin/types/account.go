@@ -7,21 +7,21 @@ import (
 
 type AppAccount struct {
 	account.BaseAccount `json:"base_account"`
-	Coins               types.BaseCoins `json:"coins"`
+	Coins               types.Coins `json:"coins"`
 }
 
 func NewAppAccount() account.Account {
 	return &AppAccount{
 		BaseAccount: account.BaseAccount{},
-		Coins:       types.BaseCoins{},
+		Coins:       types.Coins{},
 	}
 }
 
-func (acc *AppAccount) GetCoins() types.BaseCoins {
+func (acc *AppAccount) GetCoins() types.Coins {
 	return acc.Coins
 }
 
-func (acc *AppAccount) SetCoins(coins types.BaseCoins) error {
+func (acc *AppAccount) SetCoins(coins types.Coins) error {
 	acc.Coins = coins
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/QOSGroup/qbase/txs"
 	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/tendermint/go-amino"
-	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,11 +40,11 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 				}
 
 				name := viper.GetString(flagCoinName)
-				amount, err := strconv.ParseInt(viper.GetString(flagCoinAmount), 10, 64)
+				amount := viper.GetInt64(flagCoinAmount)
 				if err != nil {
 					return nil, err
 				}
-				sendTx := tx.NewSendTx(fromAddr, toAddr, btypes.BaseCoin{name, btypes.NewInt(amount)})
+				sendTx := tx.NewSendTx(fromAddr, toAddr, btypes.Coin{name, btypes.NewInt(amount)})
 				return &sendTx, nil
 
 			})
@@ -55,7 +54,7 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 	cmd.Flags().String(flagFrom, "", "Address to send coins")
 	cmd.Flags().String(flagTo, "", "Address to receive coins")
 	cmd.Flags().String(flagCoinName, "", "Name of coin to send")
-	cmd.Flags().String(flagCoinAmount, "", "Amount of coin to send")
+	cmd.Flags().Int64(flagCoinAmount, 0, "Amount of coin to send")
 
 	cmd.MarkFlagRequired(flagFrom)
 	cmd.MarkFlagRequired(flagTo)

@@ -38,8 +38,8 @@ type GenesisState struct {
 
 // 初始账户
 type GenesisAccount struct {
-	Address types.Address   `json:"address"`
-	Coins   types.BaseCoins `json:"coins"`
+	Address types.Address `json:"address"`
+	Coins   types.Coins   `json:"coins"`
 }
 
 // 给定 AppAccpunt 创建 GenesisAccount

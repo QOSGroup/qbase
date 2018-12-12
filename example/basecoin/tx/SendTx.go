@@ -13,14 +13,14 @@ import (
 )
 
 type SendTx struct {
-	From btypes.Address  `json:"from"`
-	To   btypes.Address  `json:"to"`
-	Coin btypes.BaseCoin `json:"coin"`
+	From btypes.Address `json:"from"`
+	To   btypes.Address `json:"to"`
+	Coin btypes.Coin    `json:"coin"`
 }
 
 var _ txs.ITx = (*SendTx)(nil)
 
-func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) SendTx {
+func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.Coin) SendTx {
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
@@ -45,17 +45,18 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	// 校验发送金额
 	exists := false
 	for _, c := range fromAcc.Coins {
-		if c.Name == tx.Coin.Name {
+		if c.Denom == tx.Coin.Denom {
 			exists = true
 			if c.Amount.LT(tx.Coin.Amount) {
 				result.Code = btypes.ABCICodeType(btypes.CodeInternal)
-				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.Name, c.Amount.Int64())
+				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.Denom, c.Amount.Int64())
 				return
 			}
 		}
 	}
 	if !exists {
 		result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+		result.Log = fmt.Sprintf("coin %s not exists", tx.Coin.Denom)
 		return
 	}
 
@@ -67,20 +68,20 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	toAccount := toAcc.(*types.AppAccount)
 	// 更新账户状态
 	for i, c := range fromAcc.Coins {
-		if c.Name == tx.Coin.Name {
+		if c.Denom == tx.Coin.Denom {
 			fromAcc.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount.Neg())
 		}
 	}
 	mapper.SetAccount(fromAcc)
 	exists = false
 	for i, c := range toAccount.Coins {
-		if c.Name == tx.Coin.Name {
+		if c.Denom == tx.Coin.Denom {
 			exists = true
 			toAccount.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount)
 		}
 	}
 	if !exists {
-		toAccount.Coins = append(toAccount.Coins, &(tx.Coin))
+		toAccount.Coins = append(toAccount.Coins, (tx.Coin))
 	}
 	mapper.SetAccount(toAccount)
 	return
