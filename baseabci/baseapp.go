@@ -421,7 +421,7 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Res
 	}
 
 	//2. 校验签名
-	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx, ctx.ChainID())
+	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx, "")
 	if !res.IsOK() {
 		return res
 	}
@@ -600,7 +600,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.deliverTxStd(ctx, implTx, ctx.ChainID())
+		result = app.deliverTxStd(ctx, implTx, "")
 	case *txs.TxQcp:
 		result = app.deliverTxQcp(ctx, implTx)
 	default:

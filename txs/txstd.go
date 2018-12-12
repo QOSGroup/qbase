@@ -70,12 +70,15 @@ func (tx *TxStd) GetSigners() []types.Address {
 
 //BuildSignatureBytes 生成待签名字节切片.
 //nonce: account nonce + 1
-//qcpFromChainID: 生成TxStd的源chainID.
-func (tx *TxStd) BuildSignatureBytes(nonce int64, qcpFromChainID string) []byte {
+//currentChainID: 当前链chainID
+func (tx *TxStd) BuildSignatureBytes(nonce int64, fromChainID string) []byte {
 	bz := tx.getSignData()
 	bz = append(bz, types.Int2Byte(nonce)...)
-	bz = append(bz, []byte(qcpFromChainID)...)
-
+	if fromChainID != "" && fromChainID != tx.ChainID {
+		bz = append(bz, []byte(fromChainID)...)
+	} else {
+		bz = append(bz, []byte(tx.ChainID)...)
+	}
 	return bz
 }
 
@@ -93,9 +96,14 @@ func (tx *TxStd) getSignData() []byte {
 }
 
 // 签名：每个签名者外部调用此方法
-func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID string) (signedbyte []byte, err error) {
+// 当tx不包含在跨链交易中时,fromChainID为 ""
+func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID, toChainID string) (signedbyte []byte, err error) {
 	if tx.ITx == nil {
 		return nil, errors.New("Signature txstd err(itx is nil)")
+	}
+
+	if tx.ChainID != toChainID {
+		return nil, errors.New("toChainID not match txStd's chainID")
 	}
 
 	bz := tx.BuildSignatureBytes(nonce, fromChainID)

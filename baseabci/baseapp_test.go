@@ -553,7 +553,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 
 	signerAccount, _ := from.(*testAccount)
 
-	signature, err := stdTx.SignTx(signerAccount.PrivKey, from.GetNonce(), cid)
+	signature, err := stdTx.SignTx(signerAccount.PrivKey, from.GetNonce(), "", cid)
 	if err != nil {
 		panic("signer error")
 	}
@@ -692,7 +692,7 @@ func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps
 		}
 
 		crossTxQcps.TxStd = txs.NewTxStd(ttx, crossTxQcps.To, types.OneInt())
-		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, int64(from.Nonce), cid)
+		txStdSig, _ := crossTxQcps.TxStd.SignTx(from.PrivKey, int64(from.Nonce), cid, cid)
 
 		crossTxQcps.TxStd.Signature = []txs.Signature{
 			txs.Signature{
