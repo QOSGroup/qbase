@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/QOSGroup/qbase/client/context"
@@ -18,15 +19,7 @@ func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validators [height]",
 		Short: "Get validator set at given height",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			h, err := strconv.Atoi(args[0])
-			if err != nil {
-				return err
-			}
-
-			height := int64(h)
 
 			viper.Set(types.FlagTrustNode, true)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -34,6 +27,23 @@ func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 			node, err := cliCtx.GetNode()
 			if err != nil {
 				return err
+			}
+
+			height := int64(1)
+
+			if len(args) >= 1 {
+				h, err := strconv.Atoi(args[0])
+				if err != nil {
+					return err
+				}
+
+				height = int64(h)
+			} else {
+				info, err := node.ABCIInfo()
+				if err != nil {
+					return err
+				}
+				height = info.Response.LastBlockHeight
 			}
 
 			validatorsRes, err := node.Validators(&height)
@@ -61,6 +71,7 @@ func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 				transferValidators = append(transferValidators, transferValidator)
 			}
 
+			fmt.Println("current query height:", height)
 			return cliCtx.PrintResult(transferValidators)
 		},
 	}
