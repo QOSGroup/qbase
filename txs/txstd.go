@@ -45,6 +45,29 @@ func (tx *TxStd) Type() string {
 	return "txstd"
 }
 
+func (tx *TxStd) GetSigners() []types.Address {
+
+	if tx.ITx == nil {
+		panic("ITx shouldn't be nil in TxStd.GetSigners()")
+	}
+
+	originSigners := tx.ITx.GetSigner()
+	if len(originSigners) <= 1 {
+		return originSigners
+	}
+
+	signers := make([]types.Address, 0, len(originSigners))
+	m := make(map[string]struct{})
+
+	for _, signer := range originSigners {
+		if _, ok := m[signer.String()]; !ok {
+			m[signer.String()] = struct{}{}
+			signers = append(signers, signer)
+		}
+	}
+	return signers
+}
+
 //BuildSignatureBytes 生成待签名字节切片.
 //nonce: account nonce + 1
 //qcpFromChainID: 生成TxStd的源chainID.

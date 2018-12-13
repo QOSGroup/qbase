@@ -436,11 +436,11 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 	}
 
 	//签名者为空则不校验签名
-	signers := tx.ITx.GetSigner()
+	signers := tx.GetSigners()
 	signatures := tx.Signature
 
 	if len(signatures) != len(signers) {
-		result = types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , signers count: %d ", len(signatures), len(signers))).Result()
+		result = types.ErrUnauthorized(fmt.Sprintf("signatures and signers not match. signatures count: %d , non-dup signers count: %d ", len(signatures), len(signers))).Result()
 		return
 	}
 

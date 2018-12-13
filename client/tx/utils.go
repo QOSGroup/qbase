@@ -116,8 +116,9 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 	}
 
 	chainID := getChainID(ctx)
-	signers := getSigners(ctx, tx.GetSigner())
 	txStd := txs.NewTxStd(tx, chainID, types.NewInt(maxGas))
+
+	signers := getSigners(ctx, txStd.GetSigners())
 
 	isUseFlagAccountNonce := accountNonce > 0
 	for _, signerName := range signers {
@@ -156,7 +157,7 @@ func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd 
 	addr := info.GetAddress()
 	ok := false
 
-	for _, signer := range txStd.ITx.GetSigner() {
+	for _, signer := range txStd.GetSigners() {
 		if bytes.Equal(addr.Bytes(), signer.Bytes()) {
 			ok = true
 		}
