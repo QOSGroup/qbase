@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/QOSGroup/qbase/account"
+	"github.com/QOSGroup/qbase/consensus"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/version"
@@ -88,6 +89,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	}
 
 	app.registerQcpMapper()
+	app.RegisterMapper(consensus.NewConsensusMapper(cdc))
 	return app
 }
 
@@ -218,6 +220,9 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 
 	// 保存初始QCP配置
 	initQCP(app.deliverState.ctx, app.GetCdc(), req.AppStateBytes)
+
+	//保存共识配置
+	storeConsParams(app.deliverState.ctx, req.ConsensusParams)
 
 	if app.initChainer == nil {
 		return
@@ -779,5 +784,12 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,
+	}
+}
+
+func storeConsParams(ctx ctx.Context, consParams *abci.ConsensusParams) {
+	consMapper := GetConsMapper(ctx)
+	if consMapper != nil && consParams != nil {
+		consMapper.Set(consensus.BuildConsKey(), consParams)
 	}
 }
