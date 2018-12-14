@@ -3,6 +3,8 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
@@ -11,7 +13,7 @@ const (
 )
 
 // 地址，类型byte数组
-type Address []byte
+type Address crypto.Address
 
 // 地址转换为bytes
 func (add Address) Bytes() []byte {
