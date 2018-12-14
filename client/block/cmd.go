@@ -9,6 +9,7 @@ import (
 func QueryCommand(cdc *go_amino.Codec) []*cobra.Command {
 	return []*cobra.Command{
 		storeCommand(cdc),
+		consensusCommand(cdc),
 	}
 }
 
