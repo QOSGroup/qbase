@@ -63,7 +63,7 @@ func newTxStd(tx ITx) (txstd *TxStd) {
 			return nil
 		}
 
-		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce), ctx.ChainID())
+		signbyte, errsign := txstd.SignTx(prvKey, int64(nonce), "", ctx.ChainID())
 		if signbyte == nil || errsign != nil {
 			return nil
 		}
