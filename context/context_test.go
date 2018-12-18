@@ -170,8 +170,8 @@ func TestContextWithCustom(t *testing.T) {
 	minFees := make([]types.Coin, 1)
 	blockTxIndex := int64(100)
 
-	handerler := func(ctx context.Context, itx interface{}) types.Result {
-		return types.Result{}
+	handerler := func(ctx context.Context, itx interface{}) {
+		//todo
 	}
 
 	ctx = context.NewContext(nil, header, ischeck, logger, nil).
@@ -198,7 +198,7 @@ func TestContextWithCustom(t *testing.T) {
 
 	// tye := reflect.TypeOf(h)
 
-	fmt.Println(h(ctx, ctx))
+	h(ctx, ctx)
 
 	ctx = context.NewContext(nil, header, ischeck, logger, nil)
 
