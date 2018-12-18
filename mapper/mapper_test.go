@@ -87,14 +87,14 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 	})
 
 	count := 0
-	baseMapper.Iterator(nil, func(bz []byte) (stop bool) {
+	baseMapper.Iterator(nil, func(k, bz []byte) (stop bool) {
 		count++
 		return
 	})
 	require.Equal(t, 3, count)
 
 	count = 0
-	baseMapper.Iterator([]byte("interkey"), func(bz []byte) (stop bool) {
+	baseMapper.Iterator([]byte("interkey"), func(k, bz []byte) (stop bool) {
 		count++
 		return
 	})
