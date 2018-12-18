@@ -2,7 +2,7 @@
 
 ### 业务流程
 
-![qcp-arth](https://github.com/QOSGroup/static/blob/master/qcp_relay_qos.jpg)
+![qcp-arth](https://github.com/QOSGroup/static/blob/master/qcp_relay_qos.jpg?raw=true)
 
 ### 数据存储
 
