@@ -187,7 +187,7 @@ type YourAccount struct {
 
 ## QCP跨链协议
 
-参见: [QCP](../docs/qcp.md)
+参见: [QCP](../spec/qcp.md)
 
 ## 扩展
 
@@ -249,11 +249,11 @@ baseapp.RegisterCustomQueryHandler(customQueryHandler)
 
 ## 客户端命令
 
-参见: [客户端命令](../docs/command.md)
+参见: [客户端命令](../client/command.md)
 
 ## 示例
 
-* [basecoin](../example/basecoin/README.md)
+* [basecoin](../../example/basecoin/README.md)
 
-* [kvstore](../example/kvstore/README.md)
+* [kvstore](../../example/kvstore/README.md)
 
