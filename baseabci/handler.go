@@ -24,4 +24,5 @@ type CustomQueryHandler func(ctx ctx.Context, route []string, req abci.RequestQu
 
 //TxQcpResultHandler qcpTx result 回调函数，在TxQcpResult.Exec中调用
 //Important!: txQcpResult 类型为 *txs.QcpTxResult
-type TxQcpResultHandler func(ctx ctx.Context, txQcpResult interface{}) types.Result
+//Important!: 该方法panic时,在其中保存的数据将会被丢弃
+type TxQcpResultHandler func(ctx ctx.Context, txQcpResult interface{})

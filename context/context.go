@@ -203,8 +203,8 @@ func (c Context) BlockTxIndex() int64 {
 	return index.(int64)
 }
 
-func (c Context) TxQcpResultHandler() func(ctx Context, itx interface{}) types.Result {
-	return c.Value(contextKeyTxQcpResultHandler).(func(ctx Context, itx interface{}) types.Result)
+func (c Context) TxQcpResultHandler() func(ctx Context, itx interface{}) {
+	return c.Value(contextKeyTxQcpResultHandler).(func(ctx Context, itx interface{}))
 }
 
 func (c Context) WithMultiStore(ms store.MultiStore) Context {
@@ -282,7 +282,7 @@ func (c Context) WithBlockTxIndex(blockTxIndex int64) Context {
 	return c.withValue(contextKeyBlockTxIndex, blockTxIndex)
 }
 
-func (c Context) WithTxQcpResultHandler(txQcpResultHandler func(ctx Context, itx interface{}) types.Result) Context {
+func (c Context) WithTxQcpResultHandler(txQcpResultHandler func(ctx Context, itx interface{})) Context {
 	return c.withValue(contextKeyTxQcpResultHandler, txQcpResultHandler)
 }
 

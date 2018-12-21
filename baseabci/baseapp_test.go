@@ -183,13 +183,8 @@ func TestTxQcpResult(t *testing.T) {
 
 	app := mockApp()
 
-	app.RegisterTxQcpResultHandler(func(ctx context.Context, txQcpResult interface{}) (result types.Result) {
-		qcpResult, ok := txQcpResult.(*txs.QcpTxResult)
-
-		if !ok {
-			return types.ErrInternal("wrong type").Result()
-		}
-
+	app.RegisterTxQcpResultHandler(func(ctx context.Context, txQcpResult interface{}) {
+		qcpResult, _ := txQcpResult.(*txs.QcpTxResult)
 		fmt.Println(qcpResult)
 		return
 	})

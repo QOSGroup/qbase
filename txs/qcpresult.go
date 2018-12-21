@@ -3,6 +3,7 @@ package txs
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
@@ -40,6 +41,14 @@ func (tx *QcpTxResult) ValidateData(ctx context.Context) error {
 // 功能：tx执行
 // 备注：用户根据tx.QcpOriginalSequence,需自行实现此接口
 func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQcps *TxQcp) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("QcpTxResult Exec recovered : %v\nstack:\n%v", r, string(debug.Stack()))
+			result = types.ErrInternal(log).Result()
+		}
+	}()
+
 	handler := ctx.TxQcpResultHandler()
 
 	if handler == nil {
@@ -47,7 +56,7 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 		return
 	}
 
-	result = handler(ctx, tx)
+	handler(ctx, tx)
 	return
 }
 
