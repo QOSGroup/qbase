@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.0.8
+2018.12.21
+
+**BREAKING CHANGES**
+* [baseapp] 修改TxQcpResultHandler调用逻辑
+
+**IMPROVEMENTS**
+* [tx] TxStd屏蔽重复签名
+* [consuses] 增加共识参数查询
+* [baseapp] 删除多余依赖库
+* [account] 修改Address类型
+
+
 ## v0.0.7
 2018.11.29
 
