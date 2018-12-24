@@ -17,8 +17,6 @@ func KeysCommand(cdc *go_amino.Codec) *cobra.Command {
     needs to sign with a private key.`,
 	}
 	cmd.AddCommand(
-		mnemonicKeyCommand(),
-		newKeyCommand(cdc),
 		addKeyCommand(cdc),
 		listKeysCmd(cdc),
 		types.LineBreak,
