@@ -99,7 +99,7 @@ func QueryQcpChainsInfo(ctx context.CLIContext) ([]qcpChainsResult, error) {
 	}
 
 	var kvPair []store.KVPair
-	err = ctx.Codec.UnmarshalBinary(res, &kvPair)
+	err = ctx.Codec.UnmarshalBinaryLengthPrefixed(res, &kvPair)
 	if err != nil {
 		return nil, err
 	}

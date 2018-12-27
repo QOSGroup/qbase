@@ -1,12 +1,12 @@
 package txs
 
 import (
-	"errors"
 	"fmt"
 	"runtime/debug"
 
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/types"
+	"github.com/pkg/errors"
 	tcommon "github.com/tendermint/tendermint/libs/common"
 )
 
@@ -27,7 +27,7 @@ func (tx *QcpTxResult) IsOk() bool {
 // 功能：检测结构体字段的合法性
 func (tx *QcpTxResult) ValidateData(ctx context.Context) error {
 
-	if types.NewInt(tx.Result.GasUsed).LT(types.ZeroInt()) {
+	if types.NewInt(int64(tx.Result.GasUsed)).LT(types.ZeroInt()) {
 		return errors.New("QcpTxResult's  GasUsed is less then zero")
 	}
 
@@ -83,7 +83,7 @@ func (tx *QcpTxResult) GetSignData() []byte {
 	ret := types.Int2Byte(int64(tx.Result.Code))
 	ret = append(ret, tx.Result.Data...)
 	ret = append(ret, Extends2Byte(tx.Result.Tags)...)
-	ret = append(ret, types.Int2Byte(tx.Result.GasUsed)...)
+	ret = append(ret, types.Int2Byte(int64(tx.Result.GasUsed))...)
 	ret = append(ret, types.Int2Byte(tx.QcpOriginalSequence)...)
 	ret = append(ret, []byte(tx.QcpOriginalExtends)...)
 	ret = append(ret, []byte(tx.Info)...)
