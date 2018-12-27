@@ -200,7 +200,7 @@ func (kb Keybase) Sign(name, passphrase string, msg []byte) (sig []byte, pub cry
 		if err != nil {
 			return nil, nil, err
 		}
-		kb.cdc.MustUnmarshalBinary([]byte(signed), sig)
+		kb.cdc.MustUnmarshalBinaryLengthPrefixed([]byte(signed), sig)
 		return sig, linfo.GetPubKey(), nil
 	}
 	sig, err = priv.Sign(msg)
@@ -575,11 +575,11 @@ func (i offlineInfo) GetAddress() types.Address {
 
 // encoding info
 func writeInfo(cdc *go_amino.Codec, i Info) []byte {
-	return cdc.MustMarshalBinary(i)
+	return cdc.MustMarshalBinaryLengthPrefixed(i)
 }
 
 // decoding info
 func readInfo(cdc *go_amino.Codec, bz []byte) (info Info, err error) {
-	err = cdc.UnmarshalBinary(bz, &info)
+	err = cdc.UnmarshalBinaryLengthPrefixed(bz, &info)
 	return
 }

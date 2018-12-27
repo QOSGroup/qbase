@@ -45,9 +45,9 @@ type BaseApp struct {
 	// Volatile
 	// checkState is set on initialization and reset on Commit.
 	// deliverState is set in InitChain and BeginBlock and cleared on Commit.
-	checkState       *state                  // for CheckTx
-	deliverState     *state                  // for DeliverTx
-	signedValidators []abci.SigningValidator // absent validators from begin block
+	checkState   *state          // for CheckTx
+	deliverState *state          // for DeliverTx
+	voteInfos    []abci.VoteInfo // absent validators from begin block
 
 	//--------------------------------------------------------------
 
@@ -283,15 +283,20 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abc
 		var result interface{}
 		switch path[1] {
 		case "version":
-			result = version.Version
+			return abci.ResponseQuery{
+				Code:      uint32(types.CodeOK),
+				Codespace: string(types.CodespaceRoot),
+				Value:     []byte(version.GetVersion()),
+			}
 		default:
 			result = types.ErrUnknownRequest(fmt.Sprintf("Unknown query: %s", path)).Result()
 		}
 
 		value := app.cdc.MustMarshalBinaryBare(result)
 		return abci.ResponseQuery{
-			Code:  uint32(types.ABCICodeOK),
-			Value: value,
+			Code:      uint32(types.CodeOK),
+			Codespace: string(types.CodespaceRoot),
+			Value:     value,
 		}
 	}
 	msg := "Expected second parameter to be either simulate or version, neither was present"
@@ -309,13 +314,14 @@ func handlerCustomQuery(app *BaseApp, path []string, req abci.RequestQuery) (res
 
 	if err != nil {
 		return abci.ResponseQuery{
-			Code: uint32(err.ABCICode()),
-			Log:  err.ABCILog(),
+			Code:      uint32(err.Code()),
+			Codespace: string(err.Codespace()),
+			Log:       err.ABCILog(),
 		}
 	}
 
 	return abci.ResponseQuery{
-		Code:  uint32(types.ABCICodeOK),
+		Code:  uint32(types.CodeOK),
 		Value: bz,
 	}
 
@@ -360,7 +366,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	// set the signed validators for addition to context in deliverTx
-	app.signedValidators = req.LastCommitInfo.GetValidators()
+	app.voteInfos = req.LastCommitInfo.GetVotes()
 
 	return
 }
@@ -398,8 +404,8 @@ func toResponseCheckTx(result types.Result) abci.ResponseCheckTx {
 		Code:      uint32(result.Code),
 		Data:      result.Data,
 		Log:       result.Log,
-		GasWanted: result.GasWanted,
-		GasUsed:   result.GasUsed,
+		GasWanted: int64(result.GasWanted),
+		GasUsed:   int64(result.GasUsed),
 		Tags:      result.Tags,
 	}
 }
@@ -596,7 +602,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	}
 
 	//初始化context相关数据
-	ctx := app.deliverState.ctx.WithTxBytes(txBytes).WithSigningValidators(app.signedValidators)
+	ctx := app.deliverState.ctx.WithTxBytes(txBytes).WithVoteInfos(app.voteInfos)
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
@@ -614,10 +620,11 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 	return abci.ResponseDeliverTx{
 		Code:      uint32(result.Code),
+		Codespace: string(result.Codespace),
 		Data:      result.Data,
 		Log:       result.Log,
-		GasWanted: result.GasWanted,
-		GasUsed:   result.GasUsed,
+		GasWanted: int64(result.GasWanted),
+		GasUsed:   int64(result.GasUsed),
 		Tags:      result.Tags,
 	}
 }
