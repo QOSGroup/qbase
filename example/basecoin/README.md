@@ -14,7 +14,7 @@ $ go install
 ```
 2. 初始化
 ```
-$ basecoind init
+$ basecoind init --chain-id basecoin --name basecoind-node
 ```
 
 ```
@@ -24,7 +24,7 @@ $ basecoind init
   "app_message": {
     "name": "Jia",
     "pass": "12345678",
-    "secret": "problem dutch dilemma climb endorse client despair ostrich cannon path once suspect place base brisk deposit area spike veteran coin injury dove electric famous"
+    "secret": "problem dutch dilemma climb endorse clitnt despair ostrich cannon path once suspect place base brisk deposit area spike veteran coin injury dove electric famous"
   }
 }
 ```
@@ -47,7 +47,7 @@ book distance cart design another view olympic orbit leopard indoor tumble dutch
 ```
 4. 启动basecoin app
 ```
-$ basecoind start --with-tendermint=true
+$ basecoind start
 ```
 5. 账户查询状态
 ```

@@ -43,17 +43,17 @@ func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps 
 	accMapper := baseabci.GetAccountMapper(ctx)
 	qcpMapper := baseabci.GetQcpMapper(ctx)
 
-	logger.Info("kvMapper", kvMapper)
-	logger.Info("qcpMapper", qcpMapper)
-	logger.Info("accMapper", accMapper)
+	logger.Info("mapper", "kvMapper", kvMapper)
+	logger.Info("mapper", "qcpMapper", qcpMapper)
+	logger.Info("mapper", "accMapper", accMapper)
 
 	key := string(kv.Key)
 	value := kvMapper.GetKey(key)
-	logger.Info("origin is: ", key, "=", value)
+	logger.Info("before", "origin is: ", key, "value", value)
 
 	kvMapper.SaveKV(key, string(kv.Value))
 	value = kvMapper.GetKey(key)
-	logger.Info("after is: ", key, value)
+	logger.Info("after", "after is: ", key, "value", value)
 
 	return
 }

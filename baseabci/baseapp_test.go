@@ -202,19 +202,19 @@ func TestTxQcpResult(t *testing.T) {
 
 	for i := uint64(1); i < 10; i++ {
 
-		var code int64
+		var code types.CodeType
 		seed := rand.Int63n(10)
 
 		if seed > int64(5) {
-			code = int64(0)
+			code = types.CodeOK
 		} else {
-			code = int64(1)
+			code = types.CodeInternal
 		}
 
 		qcpResult := &txs.QcpTxResult{
 			Result: types.Result{
-				Code:    types.ABCICodeType(code),
-				GasUsed: types.OneInt().Int64(),
+				Code:    code,
+				GasUsed: types.OneUint().Uint64(),
 				Tags: types.Tags{
 					types.MakeTag("key", []byte("value")),
 				},
