@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+	"math"
+	"testing"
 
 	"math/big"
 	"math/rand"
@@ -391,6 +393,17 @@ func (i Uint) IsUint64() bool {
 	return i.i.IsUint64()
 }
 
+func (i Uint) IsNil() bool {
+	return i.i == nil
+}
+
+func (i Uint) NilToZero() Uint {
+	if i.IsNil() {
+		return ZeroUint()
+	}
+	return i
+}
+
 // IsZero returns true if Uint is zero
 func (i Uint) IsZero() bool {
 	return i.i.Sign() == 0
@@ -537,4 +550,27 @@ func (i *Uint) UnmarshalJSON(bz []byte) error {
 		i.i = new(big.Int)
 	}
 	return unmarshalJSON(i.i, bz)
+}
+
+//__________________________________________________________________________
+
+// UintOverflow returns true if a given unsigned integer overflows and false
+// otherwise.
+func UintOverflow(x Uint) bool {
+	return x.i.Sign() == -1 || x.i.Sign() == 1 && x.i.BitLen() > 256
+}
+
+// AddUint64Overflow performs the addition operation on two uint64 integers and
+// returns a boolean on whether or not the result overflows.
+func AddUint64Overflow(a, b uint64) (uint64, bool) {
+	if math.MaxUint64-a < b {
+		return 0, true
+	}
+
+	return a + b, false
+}
+
+// intended to be used with require/assert:  require.True(IntEq(...))
+func IntEq(t *testing.T, exp, got BigInt) (*testing.T, bool, string, string, string) {
+	return t, exp.Equal(got), "expected:\t%v\ngot:\t\t%v", exp.String(), got.String()
 }

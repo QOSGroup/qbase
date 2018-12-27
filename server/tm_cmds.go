@@ -2,13 +2,14 @@ package server
 
 import (
 	"fmt"
-	"github.com/QOSGroup/qbase/types"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/types"
 )
 
 const (
@@ -47,10 +48,16 @@ func ShowValidatorCmd(ctx *Context) *cobra.Command {
 				return printlnJSON(valPubKey)
 			}
 
+			cdc := New()
+			bz, err := cdc.MarshalJSON(valPubKey)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(bz))
 			return nil
 		},
 	}
-	cmd.Flags().Bool(FlagJson, true, "get machine parseable output")
+	cmd.Flags().Bool(FlagJson, false, "get machine parseable output")
 	return &cmd
 }
 
@@ -58,17 +65,17 @@ func ShowValidatorCmd(ctx *Context) *cobra.Command {
 func ShowAddressCmd(ctx *Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show-address",
-		Short: "Shows this node's tendermint validator address",
+		Short: "Shows this node's tendermint validator consensus address",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := ctx.Config
 			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorFile())
-			valAddr := (types.Address)(privValidator.Address)
+			valConsAddr := (types.Address)(privValidator.Address)
 
 			if viper.GetBool(FlagJson) {
-				return printlnJSON(valAddr)
+				return printlnJSON(valConsAddr)
 			}
 
-			fmt.Println(valAddr.String())
+			fmt.Println(valConsAddr.String())
 			return nil
 		},
 	}

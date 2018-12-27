@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/QOSGroup/qbase/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 )
 
@@ -38,9 +39,9 @@ func (ts *transientStore) Prefix(prefix []byte) KVStore {
 }
 
 // Implements KVStore
-//func (ts *transientStore) Gas(meter types.GasMeter, config types.GasConfig) KVStore {
-//	return NewGasKVStore(meter, config, ts)
-//}
+func (ts *transientStore) Gas(meter types.GasMeter, config types.GasConfig) KVStore {
+	return NewGasKVStore(meter, config, ts)
+}
 
 // Implements Store.
 func (ts *transientStore) GetStoreType() StoreType {
