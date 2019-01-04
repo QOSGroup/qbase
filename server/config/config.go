@@ -17,13 +17,6 @@ const (
 	defaultMinimumFees = ""
 )
 
-type GenTx struct {
-	Name      string
-	CliRoot   string
-	Overwrite bool
-	IP        string
-}
-
 // BaseConfig defines the server's basic configuration
 type BaseConfig struct {
 	// Tx minimum fee
