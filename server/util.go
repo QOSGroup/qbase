@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -15,12 +16,17 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	go_amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/libs/common"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cfg "github.com/tendermint/tendermint/config"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/types"
 )
 
 // server context
@@ -114,8 +120,7 @@ func validateConfig(conf *cfg.Config) error {
 // add server commands
 func AddCommands(
 	ctx *Context, cdc *go_amino.Codec,
-	rootCmd *cobra.Command, appInit AppInit,
-	appCreator AppCreator) {
+	rootCmd *cobra.Command, appCreator AppCreator) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 
@@ -131,7 +136,6 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		InitCmd(ctx, cdc, appInit),
 		StartCmd(ctx, appCreator),
 		UnsafeResetAllCmd(ctx),
 		tendermintCmd,
@@ -224,4 +228,55 @@ func addrToIP(addr net.Addr) net.IP {
 		ip = v.IP
 	}
 	return ip
+}
+
+func SaveGenDoc(genFile string, genDoc types.GenesisDoc) error {
+	if err := genDoc.ValidateAndComplete(); err != nil {
+		return err
+	}
+
+	return genDoc.SaveAs(genFile)
+}
+
+// read of create the private key file for this config
+func ReadOrCreatePrivValidator(privValFile string) crypto.PubKey {
+	var privValidator *privval.FilePV
+
+	if common.FileExists(privValFile) {
+		privValidator = privval.LoadFilePV(privValFile)
+	} else {
+		privValidator = privval.GenFilePV(privValFile)
+		privValidator.Save()
+	}
+
+	return privValidator.GetPubKey()
+}
+
+// InitializeNodeValidatorFiles creates private validator and p2p configuration files.
+func InitializeNodeValidatorFiles(
+	config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error,
+) {
+
+	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
+	if err != nil {
+		return nodeID, valPubKey, err
+	}
+
+	nodeID = string(nodeKey.ID())
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorFile())
+
+	return nodeID, valPubKey, nil
+}
+
+func loadGenesisDoc(cdc *go_amino.Codec, genFile string) (genDoc types.GenesisDoc, err error) {
+	genContents, err := ioutil.ReadFile(genFile)
+	if err != nil {
+		return genDoc, err
+	}
+
+	if err := cdc.UnmarshalJSON(genContents, &genDoc); err != nil {
+		return genDoc, err
+	}
+
+	return genDoc, err
 }
