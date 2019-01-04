@@ -6,10 +6,13 @@ import (
 	"github.com/QOSGroup/qbase/server"
 	"github.com/QOSGroup/qbase/version"
 	"github.com/spf13/cobra"
+	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/types"
 	"io"
 )
 
@@ -26,7 +29,10 @@ func main() {
 	// version cmd
 	rootCmd.AddCommand(version.VersionCmd)
 
-	server.AddCommands(ctx, cdc, rootCmd, types.BaseCoinInit(), newApp)
+	//add init command
+	rootCmd.AddCommand(server.InitCmd(ctx, cdc, genBaseCoindGenesisDoc, types.DefaultNodeHome))
+
+	server.AddCommands(ctx, cdc, rootCmd, newApp)
 
 	executor := cli.PrepareBaseCmd(rootCmd, "basecoin", types.DefaultNodeHome)
 
@@ -38,4 +44,30 @@ func main() {
 
 func newApp(logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Application {
 	return app.NewApp(logger, db, storeTracer)
+}
+
+func genBaseCoindGenesisDoc(ctx *server.Context, cdc *go_amino.Codec, chainID string, nodeValidatorPubKey crypto.PubKey) (tmtypes.GenesisDoc, error) {
+
+	validator := tmtypes.GenesisValidator{
+		PubKey: nodeValidatorPubKey,
+		Power:  10,
+	}
+
+	addr, _, err := types.GenerateCoinKey(cdc, types.DefaultCLIHome)
+	if err != nil {
+		return tmtypes.GenesisDoc{}, err
+	}
+
+	genTx := types.BaseCoinGenTx{addr}
+	appState, err := types.BaseCoinAppGenState(cdc, genTx)
+	if err != nil {
+		return tmtypes.GenesisDoc{}, err
+	}
+
+	return tmtypes.GenesisDoc{
+		ChainID:    chainID,
+		Validators: []tmtypes.GenesisValidator{validator},
+		AppState:   appState,
+	}, nil
+
 }
