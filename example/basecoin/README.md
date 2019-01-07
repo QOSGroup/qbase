@@ -14,23 +14,50 @@ $ go install
 ```
 2. 初始化
 ```
-$ basecoind init
+$ basecoind init --chain-id basecoin --moniker basecoin-node
 ```
 
 ```
 {
-  "chain_id": "basecoin",
-  "node_id": "bada889c78e1a3936863e6a89eb766c28b398032",
-  "app_message": {
-    "name": "Jia",
-    "pass": "12345678",
-    "secret": "problem dutch dilemma climb endorse client despair ostrich cannon path once suspect place base brisk deposit area spike veteran coin injury dove electric famous"
-  }
+ "moniker": "basecoin-node",
+ "chain_id": "basecoin",
+ "node_id": "0048c2db694c91b2b3b272ec901cce0636d13ff3",
+ "gentxs_dir": "",
+ "app_message": {
+  "qcps": [
+   {
+    "name": "qstar",
+    "chain_id": "qstar",
+    "pub_key": {
+     "type": "tendermint/PubKeyEd25519",
+     "value": "ish2+qpPsoHxf7m+uwi8FOAWw6iMaDZgLKl1la4yMAs="
+    }
+   }
+  ],
+  "accounts": [
+   {
+    "address": "address1y0nwp6hmxm0g0zhvuglr2jdgglns8tsdctdre6",
+    "coins": [
+     {
+      "coin_name": "qstar",
+      "amount": "100000000"
+     }
+    ]
+   }
+  ]
+ }
 }
 ```
-创建配置文件，以及创世账户“Jia”
 
-3. 创建账户"Liu"
+命令执行完成后,配置文件初始化完成并创建了创世账户“address1y0nwp6hmxm0g0zhvuglr2jdgglns8tsdctdre6”.
+
+> 配置文件默认目录为$HOME/.basecoind/config
+
+> 创世账户默认名称为`Jia`,密码为`123456`. 可以通过`basecli keys命令进行查看操作`
+
+
+
+3. 创建本地账户"Liu"
 
 ```
 $ basecli keys add Liu
@@ -47,9 +74,9 @@ book distance cart design another view olympic orbit leopard indoor tumble dutch
 ```
 4. 启动basecoin app
 ```
-$ basecoind start --with-tendermint=true
+$ basecoind start
 ```
-5. 账户查询状态
+5. 查询账户信息
 ```
 $ basecli query account Jia
 ```
@@ -70,8 +97,19 @@ $ basecli query account Jia
       }
     ]
   }
-} <nil>
+}
 ```
+
+```
+$ basecli query account Liu
+```
+
+```
+ERROR: account not exists
+```
+
+> 本地账户`Liu`未在链上
+
 6. 链内交易
 ```
 $ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10
@@ -81,7 +119,7 @@ $ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10
 Password to sign with 'Jia':
 {"check_tx":{},"deliver_tx":{},"hash":"0677BB2E156496064960ED759BFEDBE6D09A8282","height":"22"}
 ```
-7. 账户查询状态
+7. 查询账户信息
 ```
 $ basecli query account Jia
 ```
@@ -105,7 +143,7 @@ $ basecli query account Jia
       }
     ]
   }
-} <nil>
+}
 
 ```
 
@@ -129,7 +167,7 @@ $ basecli query account Liu
       }
     ]
   }
-} <nil>
+}
 ```
 
 8. 查询交易

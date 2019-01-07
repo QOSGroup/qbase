@@ -33,13 +33,13 @@ func (tx *SendTx) ValidateData(ctx context.Context) error {
 
 func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *txs.TxQcp) {
 	result = btypes.Result{
-		Code: btypes.ABCICodeOK,
+		Code: btypes.CodeOK,
 	}
 	// 查询发送方账户信息
 	mapper := baseabci.GetAccountMapper(ctx)
 	fromAcc := mapper.GetAccount(tx.From).(*types.AppAccount)
 	if fromAcc.AccountAddress == nil {
-		result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+		result.Code = btypes.CodeInternal
 		return
 	}
 	// 校验发送金额
@@ -48,14 +48,14 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 		if c.Name == tx.Coin.Name {
 			exists = true
 			if c.Amount.LT(tx.Coin.Amount) {
-				result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+				result.Code = btypes.CodeInternal
 				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.Name, c.Amount.Int64())
 				return
 			}
 		}
 	}
 	if !exists {
-		result.Code = btypes.ABCICodeType(btypes.CodeInternal)
+		result.Code = btypes.CodeInternal
 		return
 	}
 

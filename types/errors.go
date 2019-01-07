@@ -4,43 +4,28 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tendermint/go-amino"
+	amino "github.com/tendermint/go-amino"
 	cmn "github.com/tendermint/tendermint/libs/common"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-// ABCICodeType - combined codetype / codespace
-type ABCICodeType uint32
-
-// CodeType - code identifier within codespace
-type CodeType uint16
+// CodeType - ABCI code identifier within codespace
+type CodeType uint32
 
 // CodespaceType - codespace identifier
-type CodespaceType uint16
+type CodespaceType string
 
 // IsOK - is everything okay?
-func (code ABCICodeType) IsOK() bool {
-	if code == ABCICodeOK {
+func (code CodeType) IsOK() bool {
+	if code == CodeOK {
 		return true
 	}
 	return false
 }
 
-// get the abci code from the local code and codespace
-func ToABCICode(space CodespaceType, code CodeType) ABCICodeType {
-	// TODO: Make Tendermint more aware of codespaces.
-	if space == CodespaceRoot && code == CodeOK {
-		return ABCICodeOK
-	}
-	return ABCICodeType((uint32(space) << 16) | uint32(code))
-}
-
 // SDK error codes
 const (
-	// ABCI error codes
-	ABCICodeOK ABCICodeType = 0
-
 	// Base error codes
 	CodeOK                CodeType = 0
 	CodeInternal          CodeType = 1
@@ -56,15 +41,14 @@ const (
 	CodeInvalidCoins      CodeType = 11
 	CodeOutOfGas          CodeType = 12
 	CodeMemoTooLarge      CodeType = 13
+	CodeInsufficientFee   CodeType = 14
+	CodeTooManySignatures CodeType = 15
 
 	// CodespaceRoot is a codespace for error codes in this file only.
 	// Notice that 0 is an "unset" codespace, which can be overridden with
 	// Error.WithDefaultCodespace().
-	CodespaceUndefined CodespaceType = 0
-	CodespaceRoot      CodespaceType = 1
-
-	// Maximum reservable codespace (2^16 - 1)
-	MaximumCodespace CodespaceType = 65535
+	CodespaceUndefined CodespaceType = ""
+	CodespaceRoot      CodespaceType = "sdk"
 )
 
 func unknownCodeMsg(code CodeType) string {
@@ -72,7 +56,6 @@ func unknownCodeMsg(code CodeType) string {
 }
 
 // NOTE: Don't stringer this, we'll put better messages in later.
-// nolint: gocyclo
 func CodeToDefaultMsg(code CodeType) string {
 	switch code {
 	case CodeInternal:
@@ -101,6 +84,10 @@ func CodeToDefaultMsg(code CodeType) string {
 		return "out of gas"
 	case CodeMemoTooLarge:
 		return "memo too large"
+	case CodeInsufficientFee:
+		return "insufficient fee"
+	case CodeTooManySignatures:
+		return "maximum numer of signatures exceeded"
 	default:
 		return unknownCodeMsg(code)
 	}
@@ -150,6 +137,12 @@ func ErrOutOfGas(msg string) Error {
 func ErrMemoTooLarge(msg string) Error {
 	return newErrorWithRootCodespace(CodeMemoTooLarge, msg)
 }
+func ErrInsufficientFee(msg string) Error {
+	return newErrorWithRootCodespace(CodeInsufficientFee, msg)
+}
+func ErrTooManySignatures(msg string) Error {
+	return newErrorWithRootCodespace(CodeTooManySignatures, msg)
+}
 
 //----------------------------------------
 // Error & sdkError
@@ -174,7 +167,6 @@ type Error interface {
 	Code() CodeType
 	Codespace() CodespaceType
 	ABCILog() string
-	ABCICode() ABCICodeType
 	Result() Result
 	QueryResult() abci.ResponseQuery
 }
@@ -226,18 +218,12 @@ func (err *sdkError) TraceSDK(format string, args ...interface{}) Error {
 }
 
 // Implements ABCIError.
-// Overrides err.Error.Error().
 func (err *sdkError) Error() string {
 	return fmt.Sprintf(`ERROR:
-Codespace: %d
+Codespace: %s
 Code: %d
 Message: %#v
-`, err.codespace, err.code, parseCmnError(err.cmnError.Error()))
-}
-
-// Implements ABCIError.
-func (err *sdkError) ABCICode() ABCICodeType {
-	return ToABCICode(err.codespace, err.code)
+`, err.codespace, err.code, err.cmnError.Error())
 }
 
 // Implements Error.
@@ -253,12 +239,11 @@ func (err *sdkError) Code() CodeType {
 // Implements ABCIError.
 func (err *sdkError) ABCILog() string {
 	cdc := amino.NewCodec()
-	parsedErrMsg := parseCmnError(err.cmnError.Error())
+	errMsg := err.cmnError.Error()
 	jsonErr := humanReadableError{
 		Codespace: err.codespace,
 		Code:      err.code,
-		ABCICode:  err.ABCICode(),
-		Message:   parsedErrMsg,
+		Message:   errMsg,
 	}
 	bz, er := cdc.MarshalJSON(jsonErr)
 	if er != nil {
@@ -270,30 +255,51 @@ func (err *sdkError) ABCILog() string {
 
 func (err *sdkError) Result() Result {
 	return Result{
-		Code: err.ABCICode(),
-		Log:  err.ABCILog(),
+		Code:      err.Code(),
+		Codespace: err.Codespace(),
+		Log:       err.ABCILog(),
 	}
 }
 
 // QueryResult allows us to return sdk.Error.QueryResult() in query responses
 func (err *sdkError) QueryResult() abci.ResponseQuery {
 	return abci.ResponseQuery{
-		Code: uint32(err.ABCICode()),
-		Log:  err.ABCILog(),
+		Code:      uint32(err.Code()),
+		Codespace: string(err.Codespace()),
+		Log:       err.ABCILog(),
 	}
 }
 
-func parseCmnError(err string) string {
-	if idx := strings.Index(err, "{"); idx != -1 {
-		err = err[idx+1 : len(err)-1]
+//----------------------------------------
+// REST error utilities
+
+// appends a message to the head of the given error
+func AppendMsgToErr(msg string, err string) string {
+	msgIdx := strings.Index(err, "message\":\"")
+	if msgIdx != -1 {
+		errMsg := err[msgIdx+len("message\":\"") : len(err)-2]
+		errMsg = fmt.Sprintf("%s; %s", msg, errMsg)
+		return fmt.Sprintf("%s%s%s",
+			err[:msgIdx+len("message\":\"")],
+			errMsg,
+			err[len(err)-2:],
+		)
 	}
-	return err
+	return fmt.Sprintf("%s; %s", msg, err)
 }
 
-// nolint
+// returns the index of the message in the ABCI Log
+func mustGetMsgIndex(abciLog string) int {
+	msgIdx := strings.Index(abciLog, "message\":\"")
+	if msgIdx == -1 {
+		panic(fmt.Sprintf("invalid error format: %s", abciLog))
+	}
+	return msgIdx + len("message\":\"")
+}
+
+// parses the error into an object-like struct for exporting
 type humanReadableError struct {
 	Codespace CodespaceType `json:"codespace"`
 	Code      CodeType      `json:"code"`
-	ABCICode  ABCICodeType  `json:"abci_code"`
 	Message   string        `json:"message"`
 }

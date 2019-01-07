@@ -2,20 +2,31 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/QOSGroup/qbase/version"
+	"io/ioutil"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
+
+	"github.com/QOSGroup/qbase/version"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	go_amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/libs/common"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cfg "github.com/tendermint/tendermint/config"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/types"
 )
 
 // server context
@@ -86,7 +97,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		conf.P2P.RecvRate = 5120000
 		conf.P2P.SendRate = 5120000
 		conf.TxIndex.IndexAllTags = true
-		conf.Consensus.TimeoutCommit = 5000
+		conf.Consensus.TimeoutCommit = 5 * time.Second
 		cfg.WriteConfigFile(configFilePath, conf)
 		// Fall through, just so that its parsed into memory.
 	}
@@ -108,9 +119,8 @@ func validateConfig(conf *cfg.Config) error {
 
 // add server commands
 func AddCommands(
-	ctx *Context, cdc *Codec,
-	rootCmd *cobra.Command, appInit AppInit,
-	appCreator AppCreator) {
+	ctx *Context, cdc *go_amino.Codec,
+	rootCmd *cobra.Command, appCreator AppCreator) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 
@@ -126,7 +136,6 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		InitCmd(ctx, cdc, appInit),
 		StartCmd(ctx, appCreator),
 		UnsafeResetAllCmd(ctx),
 		tendermintCmd,
@@ -140,7 +149,7 @@ func AddCommands(
 //
 // NOTE: The ordering of the keys returned as the resulting JSON message is
 // non-deterministic, so the client should not rely on key ordering.
-func InsertKeyJSON(cdc *Codec, baseJSON []byte, key string, value json.RawMessage) ([]byte, error) {
+func InsertKeyJSON(cdc *go_amino.Codec, baseJSON []byte, key string, value json.RawMessage) ([]byte, error) {
 	var jsonMap map[string]json.RawMessage
 
 	if err := cdc.UnmarshalJSON(baseJSON, &jsonMap); err != nil {
@@ -148,14 +157,14 @@ func InsertKeyJSON(cdc *Codec, baseJSON []byte, key string, value json.RawMessag
 	}
 
 	jsonMap[key] = value
-	bz, err := MarshalJSONIndent(cdc, jsonMap)
+	bz, err := cdc.MarshalJSONIndent(jsonMap, "", " ")
 
 	return json.RawMessage(bz), err
 }
 
 // https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
 // TODO there must be a better way to get external IP
-func externalIP() (string, error) {
+func ExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err
@@ -183,6 +192,23 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
+// TrapSignal traps SIGINT and SIGTERM and terminates the server correctly.
+func TrapSignal(cleanupFunc func()) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigs
+		switch sig {
+		case syscall.SIGTERM:
+			defer cleanupFunc()
+			os.Exit(128 + int(syscall.SIGTERM))
+		case syscall.SIGINT:
+			defer cleanupFunc()
+			os.Exit(128 + int(syscall.SIGINT))
+		}
+	}()
+}
+
 func skipInterface(iface net.Interface) bool {
 	if iface.Flags&net.FlagUp == 0 {
 		return true // interface down
@@ -202,4 +228,55 @@ func addrToIP(addr net.Addr) net.IP {
 		ip = v.IP
 	}
 	return ip
+}
+
+func SaveGenDoc(genFile string, genDoc types.GenesisDoc) error {
+	if err := genDoc.ValidateAndComplete(); err != nil {
+		return err
+	}
+
+	return genDoc.SaveAs(genFile)
+}
+
+// read of create the private key file for this config
+func ReadOrCreatePrivValidator(privValFile string) crypto.PubKey {
+	var privValidator *privval.FilePV
+
+	if common.FileExists(privValFile) {
+		privValidator = privval.LoadFilePV(privValFile)
+	} else {
+		privValidator = privval.GenFilePV(privValFile)
+		privValidator.Save()
+	}
+
+	return privValidator.GetPubKey()
+}
+
+// InitializeNodeValidatorFiles creates private validator and p2p configuration files.
+func InitializeNodeValidatorFiles(
+	config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error,
+) {
+
+	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
+	if err != nil {
+		return nodeID, valPubKey, err
+	}
+
+	nodeID = string(nodeKey.ID())
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorFile())
+
+	return nodeID, valPubKey, nil
+}
+
+func loadGenesisDoc(cdc *go_amino.Codec, genFile string) (genDoc types.GenesisDoc, err error) {
+	genContents, err := ioutil.ReadFile(genFile)
+	if err != nil {
+		return genDoc, err
+	}
+
+	if err := cdc.UnmarshalJSON(genContents, &genDoc); err != nil {
+		return genDoc, err
+	}
+
+	return genDoc, err
 }
