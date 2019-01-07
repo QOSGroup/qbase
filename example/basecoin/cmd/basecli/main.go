@@ -2,6 +2,7 @@ package main
 
 import (
 	bcli "github.com/QOSGroup/qbase/client"
+	"github.com/QOSGroup/qbase/client/config"
 	ctypes "github.com/QOSGroup/qbase/client/types"
 	"github.com/QOSGroup/qbase/example/basecoin/app"
 	"github.com/QOSGroup/qbase/example/basecoin/tx/client"
@@ -27,6 +28,7 @@ func main() {
 	txCommand.AddCommand(ctypes.PostCommands(client.Commands(cdc)...)...)
 
 	rootCmd.AddCommand(
+		config.Cmd(types.DefaultCLIHome),
 		txCommand,
 		bcli.KeysCommand(cdc),
 		bcli.QueryCommand(cdc),
@@ -35,6 +37,7 @@ func main() {
 	)
 
 	executor := cli.PrepareBaseCmd(rootCmd, "BC", types.DefaultCLIHome)
+
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
