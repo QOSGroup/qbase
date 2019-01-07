@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"regexp"
 
 	"github.com/spf13/viper"
 
 	"github.com/QOSGroup/qbase/client/types"
 	go_amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -33,6 +36,9 @@ type CLIContext struct {
 // NewCLIContext returns a new initialized CLIContext with parameters from the
 // command line using Viper.
 func NewCLIContext() CLIContext {
+	//优先从$config-home/config.toml文件中加载选项
+	loadCliConfiguration()
+
 	var rpc rpcclient.Client
 	nodeURI := viper.GetString(types.FlagNode)
 	if nodeURI != "" {
@@ -213,5 +219,27 @@ func (ctx CLIContext) PrintResult(obj interface{}) error {
 	}
 
 	fmt.Println(string(bz))
+	return nil
+}
+
+func loadCliConfiguration() error {
+
+	homeDir := viper.GetString(cli.HomeFlag)
+	cfgFile := path.Join(homeDir, "config", "config.toml")
+	if _, err := os.Stat(cfgFile); err == nil {
+		viper.SetConfigFile(cfgFile)
+
+		if err := viper.ReadInConfig(); err != nil {
+			return err
+		}
+
+		//override value
+		// if tree, err := toml.LoadFile(cfgFile); err == nil {
+		// 	for _, k := range tree.Keys() {
+		// 		viper.Set(k, tree.Get(k))
+		// 	}
+		// }
+	}
+
 	return nil
 }

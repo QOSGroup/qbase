@@ -15,6 +15,7 @@ const (
 	FlagMaxGas    = "max-gas"
 	FlagJSONIndet = "indent"
 	FlagNonceNode = "nonce-node"
+
 	//qcp flag
 	FlagQcp            = "qcp" //启用QCP模式,发送txQcp消息
 	FlagQcpSigner      = "qcp-signer"
