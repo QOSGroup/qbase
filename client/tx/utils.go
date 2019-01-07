@@ -55,20 +55,21 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 	if err != nil {
 		return nil, err
 	}
+	toChainID := getChainID(ctx)
 	qcpMode := viper.GetBool(cflags.FlagQcp)
 	if qcpMode {
-		return BuildAndSignQcpTx(ctx, itx)
+		fromChainID := viper.GetString(cflags.FlagQcpFrom)
+		return BuildAndSignQcpTx(ctx, itx, fromChainID, toChainID)
 	} else {
-		return BuildAndSignStdTx(ctx, itx, getChainID(ctx))
+		return BuildAndSignStdTx(ctx, itx, "", toChainID)
 	}
 }
 
-func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
+func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxQcp, error) {
 
 	qcpSigner := viper.GetString(cflags.FlagQcpSigner)
-	qcpFrom := viper.GetString(cflags.FlagQcpFrom)
 
-	if qcpSigner == "" || qcpFrom == "" {
+	if qcpSigner == "" || fromChainID == "" {
 		return nil, errors.New("in qcp mode, --qcp-from and --qcp-signer flag must set")
 	}
 	qcpSignerInfo, err := keys.GetKeyInfo(ctx, qcpSigner)
@@ -76,12 +77,11 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 		return nil, errors.New("query qcp singer info error.")
 	}
 
-	toChainID := getChainID(ctx)
-	qcpSeq := getQcpInSequence(ctx, qcpFrom)
+	qcpSeq := getQcpInSequence(ctx, fromChainID)
 
 	fmt.Println("> step 1. build and sign TxStd")
 
-	txStd, err := BuildAndSignStdTx(ctx, tx, qcpFrom)
+	txStd, err := BuildAndSignStdTx(ctx, tx, fromChainID, toChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 	fmt.Println("> step 2. build and sign TxQcp")
 	_, ok := tx.(*txs.QcpTxResult)
 
-	txQcp := txs.NewTxQCP(txStd, qcpFrom,
+	txQcp := txs.NewTxQCP(txStd, fromChainID,
 		toChainID,
 		qcpSeq+1,
 		viper.GetInt64(cflags.FlagQcpBlockHeight),
@@ -107,7 +107,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx) (*txs.TxQcp, error) {
 	return txQcp, nil
 }
 
-func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID string) (*txs.TxStd, error) {
+func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxStd, error) {
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
 	maxGas := viper.GetInt64(cflags.FlagMaxGas)
@@ -115,8 +115,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 		return nil, errors.New("max-gas flag not correct")
 	}
 
-	chainID := getChainID(ctx)
-	txStd := txs.NewTxStd(tx, chainID, types.NewInt(maxGas))
+	txStd := txs.NewTxStd(tx, toChainID, types.NewInt(maxGas))
 
 	signers := getSigners(ctx, txStd.GetSigners())
 
@@ -138,7 +137,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 			actualNonce = nonce + 1
 		}
 
-		txStd, err = signStdTx(ctx, signerName, actualNonce, txStd, txStdFromChainID)
+		txStd, err = signStdTx(ctx, signerName, actualNonce, txStd, fromChainID)
 		if err != nil {
 			return nil, fmt.Errorf("name %s signStdTx error: %s", signerName, err.Error())
 		}
@@ -147,7 +146,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, txStdFromChainID stri
 	return txStd, nil
 }
 
-func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd *txs.TxStd, txStdFromChainID string) (*txs.TxStd, error) {
+func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd *txs.TxStd, fromChainID string) (*txs.TxStd, error) {
 
 	info, err := keys.GetKeyInfo(ctx, signerKeyName)
 	if err != nil {
@@ -167,7 +166,7 @@ func signStdTx(ctx context.CLIContext, signerKeyName string, nonce int64, txStd 
 		return nil, fmt.Errorf("Name %s is not signer", signerKeyName)
 	}
 
-	sigdata := txStd.BuildSignatureBytes(nonce, txStdFromChainID)
+	sigdata := txStd.BuildSignatureBytes(nonce, fromChainID)
 	sig, pubkey := signData(ctx, signerKeyName, sigdata)
 
 	txStd.Signature = append(txStd.Signature, txs.Signature{
