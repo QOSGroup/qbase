@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.0.10
+2019.01.08
+
+**BREAKING CHANGES**
+* [baseapp] tendermint依赖版本升级到v0.27.3
+* [server]  server init command修改
+
+**FEATURES**
+* [client] client命令行增加从配置文件读取参数
+* [client] client tx签名工具类优化
+
 ## v0.0.9
 2018.12.24
 
