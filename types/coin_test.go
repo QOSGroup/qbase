@@ -1,20 +1,21 @@
 package types
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestCoin_SameNameAs(t *testing.T) {
 	cases := []struct {
-		inputOne Coin
-		inputTwo Coin
+		inputOne BaseCoin
+		inputTwo BaseCoin
 		expected bool
 	}{
 		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(1)), true},
-		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("a", NewInt(1)), false},
+		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("a", NewInt(1)), true},
 		{NewBaseCoin("steak", NewInt(10)), NewBaseCoin("steak", NewInt(10)), true},
 		{NewBaseCoin("steak", NewInt(-10)), NewBaseCoin("steak", NewInt(10)), true},
 	}
@@ -27,12 +28,12 @@ func TestCoin_SameNameAs(t *testing.T) {
 
 func TestCoin_AmountEquality(t *testing.T) {
 	cases := []struct {
-		inputOne Coin
-		inputTwo Coin
+		inputOne BaseCoin
+		inputTwo BaseCoin
 		expected bool
 	}{
 		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(1)), true},
-		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("a", NewInt(1)), false},
+		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("a", NewInt(1)), true},
 		{NewBaseCoin("a", NewInt(1)), NewBaseCoin("b", NewInt(1)), false},
 		{NewBaseCoin("steak", NewInt(1)), NewBaseCoin("steak", NewInt(10)), false},
 		{NewBaseCoin("steak", NewInt(-10)), NewBaseCoin("steak", NewInt(10)), false},
@@ -44,8 +45,8 @@ func TestCoin_AmountEquality(t *testing.T) {
 	}
 
 	cases = []struct {
-		inputOne Coin
-		inputTwo Coin
+		inputOne BaseCoin
+		inputTwo BaseCoin
 		expected bool
 	}{
 		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(1)), false},
@@ -72,10 +73,10 @@ func TestCoin_AmountEquality(t *testing.T) {
 
 func TestCoin_AmountOpr(t *testing.T) {
 	cases := []struct {
-		inputOne       Coin
-		inputTwo       Coin
-		add_expected   Coin
-		minus_expected Coin
+		inputOne       BaseCoin
+		inputTwo       BaseCoin
+		add_expected   BaseCoin
+		minus_expected BaseCoin
 	}{
 		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("B", NewInt(1)), NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(1))},
 		{NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(1)), NewBaseCoin("A", NewInt(2)), NewBaseCoin("A", NewInt(0))},
@@ -166,6 +167,58 @@ func TestBaseCoins_Plus(t *testing.T) {
 		assert.True(t, res.IsValid())
 		require.Equal(t, tc.expected, res, "sum of coins is incorrect, tc #%d", tcIndex)
 	}
+
+	cases = []struct {
+		inputOne BaseCoins
+		inputTwo BaseCoins
+		expected BaseCoins
+	}{
+		{BaseCoins{{"A", one}, {"B", one}}, BaseCoins{NewBaseCoin("a", one), {"B", one}}, BaseCoins{{"A", two}, {"B", two}}},
+		{BaseCoins{{"B", one}, {"A", one}}, BaseCoins{{"A", one}, {"B", one}}, BaseCoins{{"A", two}, {"B", two}}},
+		{BaseCoins{{"A", zero}, {"B", one}}, BaseCoins{{"B", zero}, {"A", zero}}, BaseCoins{{"B", one}}},
+		{BaseCoins{{"A", zero}, {"B", zero}}, BaseCoins{{"B", zero}, {"A", zero}}, BaseCoins(nil)},
+		{BaseCoins{{"A", one}, {"B", zero}}, BaseCoins{NewBaseCoin("a", negone), NewBaseCoin("b", zero)}, BaseCoins(nil)},
+		{BaseCoins{{"A", negone}, {"B", zero}}, BaseCoins{NewBaseCoin("b", zero), {"A", zero}}, BaseCoins{{"A", negone}}},
+	}
+
+	for tcIndex, tc := range cases {
+		res := tc.inputOne.Plus(tc.inputTwo)
+		assert.True(t, res.IsValid())
+		require.Equal(t, tc.expected, res, "sum of coins is incorrect, tc #%d", tcIndex)
+	}
+
+}
+
+func TestBaseCoin_IgnoreName(t *testing.T) {
+	coin := BaseCoin{}
+	require.Equal(t, "", coin.GetName())
+
+	coin = NewBaseCoin("qos", NewInt(1))
+	require.Equal(t, "QOS", coin.GetName())
+
+	coinB := NewBaseCoin("QoS", NewInt(2))
+	coin = coin.Plus(coinB)
+
+	require.Equal(t, int64(3), coin.GetAmount().Int64())
+}
+
+func TestBaseCoins_Amount(t *testing.T) {
+
+	good := BaseCoins{
+		NewInt64BaseCoin("a", 1),
+		NewInt64BaseCoin("z", 1),
+		NewInt64BaseCoin("B", 1),
+	}
+
+	total := good.AmountOf("b")
+	require.Equal(t, int64(1), total.Int64())
+
+	total = good.AmountOf("A")
+	require.Equal(t, int64(1), total.Int64())
+
+	total = good.AmountOf("C")
+	require.Equal(t, int64(0), total.Int64())
+
 }
 
 func TestBaseCoins_Sort(t *testing.T) {

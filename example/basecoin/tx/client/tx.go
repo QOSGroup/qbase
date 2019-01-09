@@ -45,7 +45,7 @@ func sendTxCmd(cdc *amino.Codec) *cobra.Command {
 				if err != nil {
 					return nil, err
 				}
-				sendTx := tx.NewSendTx(fromAddr, toAddr, btypes.BaseCoin{name, btypes.NewInt(amount)})
+				sendTx := tx.NewSendTx(fromAddr, toAddr, btypes.NewBaseCoin(name, btypes.NewInt(amount)))
 				return &sendTx, nil
 
 			})

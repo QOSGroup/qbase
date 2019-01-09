@@ -52,7 +52,7 @@ func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger 
 	c = c.WithLogger(logger)
 	c = c.WithVoteInfos(nil)
 	c = c.WithConsensusParams(nil)
-	c = c.WithMinimumFees([]types.Coin{&types.BaseCoin{}})
+	c = c.WithMinimumFees([]types.BaseCoin{types.BaseCoin{}})
 	c = c.withRegisteredMap(registSeedMapper)
 	c = c.copyKVStoreMapperFromSeed()
 	return c
@@ -196,7 +196,9 @@ func (c Context) GasMeter() types.GasMeter { return c.Value(contextKeyGasMeter).
 
 func (c Context) IsCheckTx() bool { return c.Value(contextKeyIsCheckTx).(bool) }
 
-func (c Context) MinimumFees() []types.Coin { return c.Value(contextKeyMinimumFees).([]types.Coin) }
+func (c Context) MinimumFees() []types.BaseCoin {
+	return c.Value(contextKeyMinimumFees).([]types.BaseCoin)
+}
 
 func (c Context) BlockTxIndex() int64 {
 	index := c.Value(contextKeyBlockTxIndex)
@@ -294,7 +296,7 @@ func (c Context) WithIsCheckTx(isCheckTx bool) Context {
 	return c.withValue(contextKeyIsCheckTx, isCheckTx)
 }
 
-func (c Context) WithMinimumFees(minFees []types.Coin) Context {
+func (c Context) WithMinimumFees(minFees []types.BaseCoin) Context {
 	return c.withValue(contextKeyMinimumFees, minFees)
 }
 

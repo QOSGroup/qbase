@@ -75,7 +75,7 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs BaseCoinGenTx) (appState js
     		"address": "%s",
     		"coins": [
       			{
-        			"coin_name":"qstar",
+        			"coin_name":"QSTAR",
         			"amount":"100000000"
       			}
 			]

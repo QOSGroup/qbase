@@ -167,7 +167,7 @@ func TestContextWithCustom(t *testing.T) {
 	logger := NewMockLogger()
 	signvals := []abci.VoteInfo{{}}
 	meter := types.NewGasMeter(10000)
-	minFees := make([]types.Coin, 1)
+	minFees := make([]types.BaseCoin, 1)
 	blockTxIndex := int64(100)
 
 	handerler := func(ctx context.Context, itx interface{}) {

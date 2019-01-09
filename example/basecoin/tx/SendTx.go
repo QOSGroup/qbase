@@ -25,7 +25,7 @@ func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) Sen
 }
 
 func (tx *SendTx) ValidateData(ctx context.Context) error {
-	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
+	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.GetAmount()) {
 		return errors.New("SendTx ValidateData error")
 	}
 	return nil
@@ -45,11 +45,11 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	// 校验发送金额
 	exists := false
 	for _, c := range fromAcc.Coins {
-		if c.Name == tx.Coin.Name {
+		if c.GetName() == tx.Coin.GetName() {
 			exists = true
-			if c.Amount.LT(tx.Coin.Amount) {
+			if c.GetAmount().LT(tx.Coin.GetAmount()) {
 				result.Code = btypes.CodeInternal
-				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.Name, c.Amount.Int64())
+				result.Log = fmt.Sprintf("coin %s has not much amount %d", c.GetName(), c.GetAmount().Int64())
 				return
 			}
 		}
@@ -67,20 +67,20 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	toAccount := toAcc.(*types.AppAccount)
 	// 更新账户状态
 	for i, c := range fromAcc.Coins {
-		if c.Name == tx.Coin.Name {
-			fromAcc.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount.Neg())
+		if c.GetName() == tx.Coin.GetName() {
+			fromAcc.Coins[i] = btypes.NewBaseCoin(c.GetName(), c.GetAmount().Add(tx.Coin.GetAmount().Neg()))
 		}
 	}
 	mapper.SetAccount(fromAcc)
 	exists = false
 	for i, c := range toAccount.Coins {
-		if c.Name == tx.Coin.Name {
+		if c.GetName() == tx.Coin.GetName() {
 			exists = true
-			toAccount.Coins[i].Amount = c.Amount.Add(tx.Coin.Amount)
+			toAccount.Coins[i] = btypes.NewBaseCoin(c.GetName(), c.GetAmount().Add(tx.Coin.GetAmount()))
 		}
 	}
 	if !exists {
-		toAccount.Coins = append(toAccount.Coins, &(tx.Coin))
+		toAccount.Coins = append(toAccount.Coins, (tx.Coin))
 	}
 	mapper.SetAccount(toAccount)
 	return

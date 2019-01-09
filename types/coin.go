@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -8,135 +9,106 @@ import (
 	"strings"
 )
 
-// 币的通用接口
-type Coin interface {
-	// getters and setters
-	GetName() string
-	GetAmount() BigInt
-	SetAmount(amount BigInt)
-
-	// 判断是否同种币
-	SameNameAs(Coin) bool
-	String() string
-
-	// 判断币的数量
-	IsZero() bool
-	IsPositive() bool
-	IsNotNegative() bool
-	IsNegative() bool
-	IsGreaterThan(Coin) bool
-	IsLessThan(Coin) bool
-	IsEqual(Coin) bool
-
-	// 币的数量运算
-	Plus(coinB Coin) Coin
-	Minus(coinB Coin) Coin
-}
-
 type BaseCoin struct {
-	Name   string `json:"coin_name"`
-	Amount BigInt `json:"amount"`
+	name   string `json:"coin_name"`
+	amount BigInt `json:"amount"`
 }
 
-func NewBaseCoin(name string, amount BigInt) *BaseCoin {
-	return &BaseCoin{
-		Name:   name,
-		Amount: amount.NilToZero(),
+func NewBaseCoin(name string, amount BigInt) BaseCoin {
+	return BaseCoin{
+		name:   strings.ToUpper(name), //币种不区分大小写,默认大写
+		amount: amount.NilToZero(),
 	}
 }
 
-func NewInt64BaseCoin(name string, amount int64) *BaseCoin {
+func NewInt64BaseCoin(name string, amount int64) BaseCoin {
 	return NewBaseCoin(name, NewInt(amount))
 }
 
-func (coin *BaseCoin) GetName() string {
-	return coin.Name
+func (coin BaseCoin) GetName() string {
+	return strings.ToUpper(coin.name)
 }
 
-func (coin *BaseCoin) GetAmount() BigInt {
-	return coin.Amount
-}
-
-func (coin *BaseCoin) SetAmount(amount BigInt) {
-	coin.Amount = amount
+func (coin BaseCoin) GetAmount() BigInt {
+	return coin.amount
 }
 
 // 将币的信息输出为可读字符串
-func (coin *BaseCoin) String() string {
-	return fmt.Sprintf("%v%v", coin.Amount, coin.Name)
+func (coin BaseCoin) String() string {
+	return fmt.Sprintf("%v%v", coin.GetAmount(), coin.GetName())
 }
 
 // 判断是否与另一币同名
-func (coin *BaseCoin) SameNameAs(another Coin) bool {
-	return (coin.Name == another.GetName())
+func (coin BaseCoin) SameNameAs(another BaseCoin) bool {
+	return coin.GetName() == another.GetName()
 }
 
 // 判断币的数量是否为零
-func (coin *BaseCoin) IsZero() bool {
-	return coin.Amount.IsZero()
+func (coin BaseCoin) IsZero() bool {
+	return coin.GetAmount().IsZero()
 }
 
 // 判断币的数量是否为正值
-func (coin *BaseCoin) IsPositive() bool {
-	return (coin.Amount.Sign() == 1)
+func (coin BaseCoin) IsPositive() bool {
+	return (coin.GetAmount().Sign() == 1)
 }
 
 // 判断币的数量是否为非负值
-func (coin *BaseCoin) IsNotNegative() bool {
-	return (coin.Amount.Sign() != -1)
+func (coin BaseCoin) IsNotNegative() bool {
+	return (coin.GetAmount().Sign() != -1)
 }
 
 // 判断币的数量是否为负值
-func (coin *BaseCoin) IsNegative() bool {
-	return (coin.Amount.Sign() == -1)
+func (coin BaseCoin) IsNegative() bool {
+	return (coin.GetAmount().Sign() == -1)
 }
 
 // 同名币，判断数量是否相等
-func (coin *BaseCoin) IsEqual(another Coin) bool {
-	return coin.SameNameAs(another) && (coin.Amount.Equal(another.GetAmount()))
+func (coin BaseCoin) IsEqual(another BaseCoin) bool {
+	return coin.SameNameAs(another) && (coin.GetAmount().Equal(another.GetAmount()))
 }
 
 // 同名币，判断数量是否更大
-func (coin *BaseCoin) IsGreaterThan(another Coin) bool {
-	return coin.SameNameAs(another) && (coin.Amount.GT(another.GetAmount()))
+func (coin BaseCoin) IsGreaterThan(another BaseCoin) bool {
+	return coin.SameNameAs(another) && (coin.GetAmount().GT(another.GetAmount()))
 }
 
 // 同名币，判断数量是否更小
-func (coin *BaseCoin) IsLessThan(another Coin) bool {
-	return coin.SameNameAs(another) && coin.Amount.LT(another.GetAmount())
+func (coin BaseCoin) IsLessThan(another BaseCoin) bool {
+	return coin.SameNameAs(another) && coin.GetAmount().LT(another.GetAmount())
 }
 
 // 增加一定数量的币
-func (coin *BaseCoin) PlusByAmount(amountplus BigInt) {
-	coin.SetAmount(coin.Amount.Add(amountplus))
+func (coin BaseCoin) PlusByAmount(amountplus BigInt) BaseCoin {
+	return NewBaseCoin(coin.GetName(), coin.GetAmount().Add(amountplus))
 }
 
 // 对同名币的数量做加法运算；如果不同名则返回原值
-func (coin *BaseCoin) Plus(coinB Coin) Coin {
+func (coin BaseCoin) Plus(coinB BaseCoin) BaseCoin {
 	if !coin.SameNameAs(coinB) {
 		return coin
 	}
-	return NewBaseCoin(coin.Name, coin.Amount.Add(coinB.GetAmount()))
+	return NewBaseCoin(coin.GetName(), coin.GetAmount().Add(coinB.GetAmount()))
 }
 
 // 减掉一定数量的币
-func (coin *BaseCoin) MinusByAmount(amountminus BigInt) {
-	coin.SetAmount(coin.Amount.Sub(amountminus))
+func (coin BaseCoin) MinusByAmount(amountminus BigInt) BaseCoin {
+	return BaseCoin{coin.GetName(), coin.GetAmount().Sub(amountminus)}
 }
 
 // 对同名币的数量做减法运算；如果不同名则返回原值
-func (coin *BaseCoin) Minus(coinB Coin) Coin {
+func (coin BaseCoin) Minus(coinB BaseCoin) BaseCoin {
 	if !coin.SameNameAs(coinB) {
 		return coin
 	}
-	return NewBaseCoin(coin.Name, coin.Amount.Sub(coinB.GetAmount()))
+	return NewBaseCoin(coin.GetName(), coin.GetAmount().Sub(coinB.GetAmount()))
 }
 
 //----------------------------------------
 // BaseCoins
 
 // BaseCoin集合
-type BaseCoins []*BaseCoin
+type BaseCoins []BaseCoin
 
 func (coins BaseCoins) String() string {
 	if len(coins) == 0 {
@@ -160,16 +132,16 @@ func (coins BaseCoins) IsValid() bool {
 	case 1:
 		return !coins[0].IsZero()
 	default:
-		lowDenom := coins[0].Name
+		lowDenom := coins[0].GetName()
 		for _, coin := range coins[1:] {
-			if coin.Name <= lowDenom {
+			if coin.GetName() <= lowDenom {
 				return false
 			}
 			if coin.IsZero() {
 				return false
 			}
 			// we compare each coin against the last name
-			lowDenom = coin.Name
+			lowDenom = coin.GetName()
 		}
 		return true
 	}
@@ -184,7 +156,7 @@ func (coins BaseCoins) Plus(coinsB BaseCoins) BaseCoins {
 	if len(coinsB) > 1 {
 		coinsB = coinsB.Sort()
 	}
-	sum := ([]*BaseCoin)(nil)
+	sum := ([]BaseCoin)(nil)
 	indexA, indexB := 0, 0
 	lenA, lenB := len(coins), len(coinsB)
 	for {
@@ -197,15 +169,15 @@ func (coins BaseCoins) Plus(coinsB BaseCoins) BaseCoins {
 			return append(sum, coins[indexA:]...)
 		}
 		coinA, coinB := coins[indexA], coinsB[indexB]
-		switch strings.Compare(coinA.Name, coinB.Name) {
+		switch strings.Compare(coinA.GetName(), coinB.GetName()) {
 		case -1:
 			sum = append(sum, coinA)
 			indexA++
 		case 0:
-			if coinA.Amount.Add(coinB.Amount).IsZero() {
+			if coinA.GetAmount().Add(coinB.GetAmount()).IsZero() {
 				// ignore 0 sum coin type
 			} else {
-				sum = append(sum, coinA.Plus(coinB).(*BaseCoin))
+				sum = append(sum, coinA.Plus(coinB))
 			}
 			indexA++
 			indexB++
@@ -218,12 +190,9 @@ func (coins BaseCoins) Plus(coinsB BaseCoins) BaseCoins {
 
 // 返回相反值
 func (coins BaseCoins) Negative() BaseCoins {
-	res := make([]*BaseCoin, 0, len(coins))
+	res := make([]BaseCoin, 0, len(coins))
 	for _, coin := range coins {
-		res = append(res, &BaseCoin{
-			Name:   coin.Name,
-			Amount: coin.Amount.Neg(),
-		})
+		res = append(res, NewBaseCoin(coin.GetName(), coin.GetAmount().Neg()))
 	}
 	return res
 }
@@ -272,7 +241,7 @@ func (coins BaseCoins) IsEqual(coinsB BaseCoins) bool {
 		coinsB = coinsB.Sort()
 	}
 	for i := 0; i < len(coins); i++ {
-		if coins[i].Name != coinsB[i].Name || !coins[i].Amount.Equal(coinsB[i].Amount) {
+		if coins[i].GetName() != coinsB[i].GetName() || !coins[i].GetAmount().Equal(coinsB[i].GetAmount()) {
 			return false
 		}
 	}
@@ -307,25 +276,28 @@ func (coins BaseCoins) IsNotNegative() bool {
 
 // 返回coins内给定币种币值
 func (coins BaseCoins) AmountOf(name string) BigInt {
+	coins = coins.Sort()
+	upperName := strings.ToUpper(name)
+
 	switch len(coins) {
 	case 0:
 		return ZeroInt()
 	case 1:
 		coin := coins[0]
-		if coin.Name == name {
-			return coin.Amount
+		if coin.GetName() == upperName {
+			return coin.GetAmount()
 		}
 		return ZeroInt()
 	default:
 		coins = coins.Sort()
 		midIdx := len(coins) / 2
 		coin := coins[midIdx]
-		if name < coin.Name {
-			return coins[:midIdx].AmountOf(name)
-		} else if name == coin.Name {
-			return coin.Amount
+		if upperName < coin.GetName() {
+			return coins[:midIdx].AmountOf(upperName)
+		} else if upperName == coin.GetName() {
+			return coin.GetAmount()
 		} else {
-			return coins[midIdx+1:].AmountOf(name)
+			return coins[midIdx+1:].AmountOf(upperName)
 		}
 	}
 }
@@ -334,7 +306,7 @@ func (coins BaseCoins) AmountOf(name string) BigInt {
 // 排序
 
 func (coins BaseCoins) Len() int           { return len(coins) }
-func (coins BaseCoins) Less(i, j int) bool { return coins[i].Name < coins[j].Name }
+func (coins BaseCoins) Less(i, j int) bool { return coins[i].GetName() < coins[j].GetName() }
 func (coins BaseCoins) Swap(i, j int)      { coins[i], coins[j] = coins[j], coins[i] }
 
 var _ sort.Interface = BaseCoins{}
@@ -344,7 +316,7 @@ func (coins BaseCoins) Sort() BaseCoins {
 	return coins
 }
 
-func ParseCoins(str string) ([]*BaseCoin, error) {
+func ParseCoins(str string) ([]BaseCoin, error) {
 	if len(str) == 0 {
 		return nil, nil
 	}
@@ -353,7 +325,7 @@ func ParseCoins(str string) ([]*BaseCoin, error) {
 	reSpc := `[[:space:]]*`
 	reCoin := regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reAmt, reSpc, reDnm))
 
-	var coins []*BaseCoin
+	var coins []BaseCoin
 	arr := strings.Split(str, ",")
 	for _, q := range arr {
 		coin := reCoin.FindStringSubmatch(q)
@@ -366,11 +338,85 @@ func ParseCoins(str string) ([]*BaseCoin, error) {
 			return coins, err
 		}
 
-		coins = append(coins, &BaseCoin{
+		coins = append(coins, BaseCoin{
 			coin[2],
 			NewInt(amount),
 		})
 	}
 
 	return coins, nil
+}
+
+//amino序列化支持
+//amino格式: len(amount) + amount + name
+func (coin BaseCoin) MarshalAmino() (string, error) {
+	bz, err := marshalBaseCoinAmino(coin)
+	if err != nil {
+		return "", err
+	}
+	return string(bz), nil
+}
+
+func (coin *BaseCoin) UnmarshalAmino(text string) error {
+	return unmarshalBaseCoinAmino([]byte(text), coin)
+}
+
+func marshalBaseCoinAmino(coin BaseCoin) ([]byte, error) {
+	if coin.amount.IsNil() {
+		coin.amount = NewInt(0)
+	}
+
+	aminoBytes := make([]byte, 1, 37)
+
+	a, err := coin.amount.MarshalAmino()
+	if err != nil {
+		return nil, err
+	}
+
+	bz := []byte(a)
+	len := len(bz)
+
+	aminoBytes[0] = (byte)(int8(len))
+	aminoBytes = append(aminoBytes, bz...)
+	aminoBytes = append(aminoBytes, []byte(coin.name)...)
+
+	return aminoBytes, nil
+}
+
+func unmarshalBaseCoinAmino(bz []byte, coin *BaseCoin) error {
+	amountBz := bz[1 : int8(bz[0])+1]
+	err := coin.amount.UnmarshalAmino(string(amountBz))
+	if err != nil {
+		return err
+	}
+	coin.name = string(bz[int8(bz[0])+1:])
+	return nil
+}
+
+//json序列化支持
+
+type innerBaseCoin struct {
+	Name   string `json:"coin_name"`
+	Amount BigInt `json:"amount"`
+}
+
+func (coin BaseCoin) MarshalJSON() ([]byte, error) {
+	return json.Marshal(innerBaseCoin{
+		Name:   coin.name,
+		Amount: coin.amount,
+	})
+}
+
+func (coin *BaseCoin) UnmarshalJSON(bz []byte) error {
+	var i innerBaseCoin
+
+	err := json.Unmarshal(bz, &i)
+	if err != nil {
+		return err
+	}
+
+	coin.amount = i.Amount
+	coin.name = i.Name
+
+	return nil
 }
