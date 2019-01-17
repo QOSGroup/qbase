@@ -46,7 +46,7 @@ func mockApp() *BaseApp {
 
 	app.SetInitChainer(func(ctx context.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		for i := int64(0); i < 10; i++ {
-			createAccount(i, int64(5000), ctx)
+			createAccount(i, int64(5500), ctx)
 		}
 
 		//测试： 使用签名者的公钥作为trustKey. 正式环境不能这么用
@@ -219,9 +219,10 @@ func TestTxQcpResult(t *testing.T) {
 					types.MakeTag("key", []byte("value")),
 				},
 			},
+			QcpOriginalSequence: int64(i),
 		}
 
-		stdTx := txs.NewTxStd(qcpResult, cid, types.OneInt())
+		stdTx := txs.NewTxStd(qcpResult, cid, types.NewInt(10000))
 		txQcp := txs.NewTxQCP(stdTx, cid, cid, int64(i), 2, 0, true, "")
 
 		signature, _ := txQcp.SignTx(signer)
@@ -523,7 +524,7 @@ func TestStdTx(t *testing.T) {
 	res := app.Query(queryHeight1)
 	var acc1 testAccount
 	app.GetCdc().UnmarshalBinaryBare(res.GetValue(), &acc1)
-	require.Equal(t, int64(5000), acc1.Money)
+	require.Equal(t, int64(5500), acc1.Money)
 
 	queryHeight2 := abci.RequestQuery{
 		Path:   "/store/acc/key",
@@ -533,7 +534,7 @@ func TestStdTx(t *testing.T) {
 	res = app.Query(queryHeight2)
 	var acc2 testAccount
 	app.GetCdc().UnmarshalBinaryBare(res.GetValue(), &acc2)
-	require.Equal(t, int64(0), acc2.Money)
+	require.Equal(t, int64(500), acc2.Money)
 
 }
 
@@ -544,7 +545,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 		Amount:    amount,
 	}
 
-	stdTx := txs.NewTxStd(tx, cid, types.OneInt())
+	stdTx := txs.NewTxStd(tx, cid, types.NewInt(10000))
 
 	signerAccount, _ := from.(*testAccount)
 
