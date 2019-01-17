@@ -1,6 +1,9 @@
 package app
 
 import (
+	"fmt"
+	"github.com/QOSGroup/qbase/account"
+	btypes "github.com/QOSGroup/qbase/types"
 	"io"
 
 	"github.com/QOSGroup/qbase/baseabci"
@@ -14,6 +17,9 @@ import (
 
 const (
 	appName = "basecoin"
+
+	// how much gas = 1 qstar
+	gasPerUnitCost = 1000
 )
 
 type BaseCoinApp struct {
@@ -25,12 +31,16 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec)
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
+	//baseApp.
+
 	app := &BaseCoinApp{
 		BaseApp: baseApp,
 	}
 
 	// 设置 InitChainer
 	app.SetInitChainer(app.initChainer)
+
+	app.SetGasHandler(app.gasHandler)
 
 	// 账户mapper
 	app.RegisterAccountProto(types.NewAppAccount)
@@ -68,4 +78,24 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	}
 
 	return abci.ResponseInitChain{}
+}
+
+func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) btypes.Error {
+	gasFeeUsed := int64(ctx.GasMeter().GasConsumed()) / gasPerUnitCost
+
+	if gasFeeUsed > 0 {
+		accountMapper := ctx.Mapper(account.AccountMapperName).(*account.AccountMapper)
+		account := accountMapper.GetAccount(payer).(*types.AppAccount)
+
+		if account.Coins.AmountOf("qstar").Int64() < gasFeeUsed {
+			log := fmt.Sprintf("%s no enough coins to pay the gas after this tx done", payer)
+			return btypes.ErrInternal(log)
+		}
+
+		account.Coins = account.Coins.Minus(btypes.BaseCoins{btypes.NewInt64BaseCoin("qstar", gasFeeUsed)})
+		accountMapper.SetAccount(account)
+
+	}
+
+	return nil
 }

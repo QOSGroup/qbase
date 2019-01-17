@@ -101,3 +101,10 @@ func (app *BaseApp) RegisterTxQcpResultHandler(txQcpResultHandler TxQcpResultHan
 	}
 	app.txQcpResultHandler = txQcpResultHandler
 }
+
+func (app *BaseApp) SetGasHandler(handler GasHandler) {
+	if app.sealed {
+		panic("SetGasHandler() on sealed BaseApp")
+	}
+	app.gasHandler = handler
+}

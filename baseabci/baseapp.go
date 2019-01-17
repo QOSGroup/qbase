@@ -41,6 +41,8 @@ type BaseApp struct {
 	beginBlocker BeginBlockHandler // logic to run before any txs
 	endBlocker   EndBlockHandler   // logic to run after all txs, and to determine valset changes
 
+	gasHandler GasHandler // gas fee handler
+
 	//--------------------
 	// Volatile
 	// checkState is set on initialization and reset on Commit.
@@ -389,9 +391,9 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	ctx := app.checkState.ctx.WithTxBytes(txBytes)
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.checkTxStd(ctx, implTx)
+		result = app.runStdTx(ctx, implTx, "", true)
 	case *txs.TxQcp:
-		result = app.checkTxQcp(ctx, implTx)
+		result = app.runTxQcp(ctx, implTx, true)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
 	}
@@ -408,31 +410,6 @@ func toResponseCheckTx(result types.Result) abci.ResponseCheckTx {
 		GasUsed:   int64(result.GasUsed),
 		Tags:      result.Tags,
 	}
-}
-
-//checkTxStd: checkTx阶段对TxStd进行校验
-func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd) (result types.Result) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			log := fmt.Sprintf("checkTxStd recovered : %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
-		}
-	}()
-
-	//1. 校验txStd基础信息
-	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
-	if err != nil {
-		return err.Result()
-	}
-
-	//2. 校验签名
-	_, res := app.validateTxStdUserSignatureAndNonce(ctx, tx, "")
-	if !res.IsOK() {
-		return res
-	}
-
-	return
 }
 
 //校验txstd用户签名，签名通过后，增加用户none
@@ -523,42 +500,6 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 	return
 }
 
-//checkTxQcp: checkTx阶段对TxQcp进行校验
-func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			log := fmt.Sprintf("checkTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
-		}
-	}()
-
-	//1. 校验txQcp基础数据
-	err := tx.ValidateBasicData(true, ctx.ChainID())
-	if err != nil {
-		return err.Result()
-	}
-	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
-	// deliverTx时校验 sequence =  maxInSequence + 1
-	maxInSequence := GetQcpMapper(ctx).GetMaxChainInSequence(tx.From)
-	if tx.Sequence != maxInSequence+1 {
-		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
-		return
-	}
-
-	//3. 校验TxQcp签名
-	res := app.validateTxQcpSignature(ctx, tx)
-	if !res.IsOK() {
-		result = res
-		return
-	}
-
-	//4. 更新qcp in sequence
-	GetQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
-
-	return
-}
-
 //校验QcpTx签名是否正确
 func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (result types.Result) {
 	//1. 校验qcpTx签名者PubKey是否合法:
@@ -606,9 +547,9 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		result = app.deliverTxStd(ctx, implTx, "")
+		result = app.runStdTx(ctx, implTx, "", false)
 	case *txs.TxQcp:
-		result = app.deliverTxQcp(ctx, implTx)
+		result = app.runTxQcp(ctx, implTx, false)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
 	}
@@ -629,18 +570,43 @@ func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 	}
 }
 
+func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
+	if ctx.BlockHeight() == 0 {
+		return ctx.WithGasMeter(types.NewInfiniteGasMeter())
+	}
+
+	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Int64() + tx.ITx.CalcGas().Int64())))
+}
+
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
-func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID string) (result types.Result) {
+func (app *BaseApp) runStdTx(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID string, isCheck bool) (result types.Result) {
+
+	// whether run stdTx in TxQcp
+	isQCP := len(txStdFromChainID) > 0
+
+	// qcp已经设置gasMeter
+	if !isQCP {
+		ctx = setGasMeter(ctx, tx)
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("deliverTxStd recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
+			switch rType := r.(type) {
+			case types.ErrorOutOfGas:
+				log := fmt.Sprintf("out of gas in location: %v", rType.Descriptor)
+				result = types.ErrOutOfGas(log).Result()
+			default:
+				log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+				result = types.ErrInternal(log).Result()
+			}
 		}
+
+		result.GasUsed = ctx.GasMeter().GasConsumed()
+		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
 
 	//1. 校验基础数据
-	err := tx.ValidateBasicData(ctx, false, ctx.ChainID())
+	err := tx.ValidateBasicData(ctx, isCheck, ctx.ChainID())
 	if err != nil {
 		return err.Result()
 	}
@@ -655,7 +621,7 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 	}
 
 	//3. 执行exec: 需要开启临时缓存存储状态
-	msCache := getState(app, false).CacheMultiStore()
+	msCache := getState(app, isCheck).CacheMultiStore()
 	if msCache.TracingEnabled() {
 		msCache = msCache.WithTracingContext(store.TraceContext(
 			map[string]interface{}{"txHash": cmn.HexBytes(tmhash.Sum(ctx.TxBytes())).String()},
@@ -679,6 +645,17 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
 			AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+	}
+
+	if !isQCP && result.IsOK() && app.gasHandler != nil {
+		err = app.gasHandler(ctx, tx.ITx.GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
+	}
+
+	if isCheck {
+		return
 	}
 
 	if result.IsOK() {
@@ -706,26 +683,54 @@ func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp, isResult bool,
 }
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
-func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
+func (app *BaseApp) runTxQcp(ctx ctx.Context, tx *txs.TxQcp, isCheck bool) (result types.Result) {
+
+	ctx = setGasMeter(ctx, tx.TxStd)
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-			result = types.ErrInternal(log).Result()
+			switch rType := r.(type) {
+			case types.ErrorOutOfGas:
+				log := fmt.Sprintf("out of gas in location: %v", rType.Descriptor)
+				result = types.ErrOutOfGas(log).Result()
+			default:
+				log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+				result = types.ErrInternal(log).Result()
+			}
 		}
+
+		result.GasUsed = ctx.GasMeter().GasConsumed()
+		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 	}()
 
-	err := app.checkTxQcp(ctx, tx)
-	if !err.IsOK() {
-		result = err
+	//1. 校验txQcp基础数据
+	err := tx.ValidateBasicData(isCheck, ctx.ChainID())
+	if err != nil {
+		return err.Result()
+	}
+	//2. 校验TxQcp sequence: sequence = maxInSequence + 1
+	// deliverTx时校验 sequence =  maxInSequence + 1
+	maxInSequence := GetQcpMapper(ctx).GetMaxChainInSequence(tx.From)
+	if tx.Sequence != maxInSequence+1 {
+		result = types.ErrInvalidSequence(fmt.Sprintf("tx Sequence is not equals maxInSequence + 1 . maxInSequence is %d , tx.Sequence is %d", maxInSequence, tx.Sequence)).Result()
 		return
 	}
 
+	//3. 校验TxQcp签名
+	res := app.validateTxQcpSignature(ctx, tx)
+	if !res.IsOK() {
+		result = res
+		return
+	}
+
+	//4. 更新qcp in sequence
+	GetQcpMapper(ctx).SetMaxChainInSequence(tx.From, maxInSequence+1)
+
 	//5. 执行内部txStd
-	result = app.deliverTxStd(ctx, tx.TxStd, tx.From)
+	result = app.runStdTx(ctx, tx.TxStd, tx.From, isCheck)
 
 	//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
-	if !tx.IsResult {
+	if !isCheck && !tx.IsResult {
 		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
 			AppendTag(qcp.QcpTo, []byte(tx.From))
 
@@ -742,6 +747,13 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
 		result.Tags = result.Tags.AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
 			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+	}
+
+	if result.IsOK() && app.gasHandler != nil {
+		err = app.gasHandler(ctx, tx.TxStd.ITx.GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
 	}
 
 	return
