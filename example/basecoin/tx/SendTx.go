@@ -28,6 +28,27 @@ func (tx *SendTx) ValidateData(ctx context.Context) error {
 	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
 		return errors.New("SendTx ValidateData error")
 	}
+
+	// 查询发送方账户信息
+	mapper := baseabci.GetAccountMapper(ctx)
+	fromAcc := mapper.GetAccount(tx.From).(*types.AppAccount)
+	if fromAcc.AccountAddress == nil {
+		return errors.New("SendTx ValidateData error")
+	}
+	// 校验发送金额
+	exists := false
+	for _, c := range fromAcc.Coins {
+		if c.Name == tx.Coin.Name {
+			exists = true
+			if c.Amount.LT(tx.Coin.Amount) {
+				return fmt.Errorf("coin %s has not much amount %d", c.Name, c.Amount.Int64())
+			}
+		}
+	}
+	if !exists {
+		return errors.New("sender does not have all the coins")
+	}
+
 	return nil
 }
 

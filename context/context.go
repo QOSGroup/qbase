@@ -43,6 +43,7 @@ func NewContext(ms store.MultiStore, header abci.Header, isCheckTx bool, logger 
 		pst:     newThePast(),
 		gen:     0,
 	}
+	c = c.WithGasMeter(types.NewInfiniteGasMeter())
 	c = c.WithMultiStore(ms)
 	c = c.WithBlockHeader(header)
 	c = c.WithBlockHeight(header.Height)
@@ -273,7 +274,7 @@ func (c Context) copyKVStoreMapperFromSeed() Context {
 	if len(registeredMapper) > 0 {
 		for name, mapper := range registeredMapper {
 			cpyMapper := mapper.Copy()
-			store := c.KVStore(mapper.GetStoreKey())
+			store := store.NewGasKVStore(c.GasMeter(), types.KVGasConfig(), c.KVStore(mapper.GetStoreKey()))
 			cpyMapper.SetStore(store)
 			mapperWithStore[name] = cpyMapper
 		}
@@ -283,7 +284,8 @@ func (c Context) copyKVStoreMapperFromSeed() Context {
 }
 
 func (c Context) WithGasMeter(meter types.GasMeter) Context {
-	return c.withValue(contextKeyGasMeter, meter)
+	var ctx = c.withValue(contextKeyGasMeter, meter)
+	return ctx.copyKVStoreMapperFromSeed()
 }
 
 func (c Context) WithBlockGasMeter(meter types.GasMeter) Context {

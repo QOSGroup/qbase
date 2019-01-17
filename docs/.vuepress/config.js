@@ -37,6 +37,7 @@ module.exports = {
                 collapsable: false,
                 children: [
                     ["/spec/qcp", "QCP"],
+                    ["/spec/gas", "Gas"],
                     ["/spec/transaction", "Transaction"]
                 ]
             }
