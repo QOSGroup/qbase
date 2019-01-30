@@ -68,7 +68,7 @@ func (tx *QcpTxResult) GetSigner() []types.Address {
 
 // 功能：计算gas
 // 备注：暂返回0，后期可根据实际情况调整
-func (tx *QcpTxResult) CalcGas() types.BigInt {
+func (tx *QcpTxResult) CalcGas(ctx context.Context) types.BigInt {
 	return types.ZeroInt()
 }
 

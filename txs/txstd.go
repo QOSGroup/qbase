@@ -17,10 +17,10 @@ type ITx interface {
 	// crossTxQcp: 需要进行跨链处理的TxQcp。
 	// 业务端实现中crossTxQcp只需包含`to` 和 `txStd`
 	Exec(ctx context.Context) (result types.Result, crossTxQcp *TxQcp)
-	GetSigner() []types.Address //签名者
-	CalcGas() types.BigInt      //计算gas
-	GetGasPayer() types.Address //gas付费人
-	GetSignData() []byte        //获取签名字段
+	GetSigner() []types.Address               //签名者
+	CalcGas(ctx context.Context) types.BigInt //计算gas
+	GetGasPayer() types.Address               //gas付费人
+	GetSignData() []byte                      //获取签名字段
 }
 
 // 标准Tx结构体
@@ -163,11 +163,6 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 
 	if tx.MaxGas.LT(types.ZeroInt()) {
 		return types.ErrInternal("TxStd's MaxGas is less than zero")
-	}
-
-	execGas := tx.ITx.CalcGas()
-	if tx.MaxGas.LT(execGas) {
-		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
 	}
 
 	return

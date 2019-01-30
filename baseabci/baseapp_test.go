@@ -707,7 +707,7 @@ func (t *transferTx) GetSigner() []types.Address {
 	return t.FromUsers
 }
 
-func (t *transferTx) CalcGas() types.BigInt {
+func (t *transferTx) CalcGas(ctx context.Context) types.BigInt {
 	return types.ZeroInt()
 }
 

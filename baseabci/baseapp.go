@@ -660,7 +660,7 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 		return ctx.WithGasMeter(types.NewInfiniteGasMeter())
 	}
 
-	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Int64() + tx.ITx.CalcGas().Int64())))
+	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Int64() + tx.ITx.CalcGas(ctx).Int64())))
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理

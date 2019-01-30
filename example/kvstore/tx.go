@@ -62,7 +62,7 @@ func (kv KvstoreTx) GetSigner() []types.Address {
 	return nil
 }
 
-func (kv KvstoreTx) CalcGas() types.BigInt {
+func (kv KvstoreTx) CalcGas(ctx context.Context) types.BigInt {
 	return types.ZeroInt()
 }
 

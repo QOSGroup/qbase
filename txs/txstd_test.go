@@ -81,7 +81,7 @@ func (m *mockITX) GetSigner() []types.Address {
 	return nil
 }
 
-func (m *mockITX) CalcGas() types.BigInt {
+func (m *mockITX) CalcGas(ctx context.Context) types.BigInt {
 	return types.BigInt{}
 }
 

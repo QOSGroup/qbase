@@ -87,7 +87,7 @@ func TestNewQcpTxResult(t *testing.T) {
 	txResult.GetSigner()
 	txResult.GetGasPayer()
 
-	gas := txResult.CalcGas().Int64() < 0
+	gas := txResult.CalcGas(context.Context{}).Int64() < 0
 	require.Equal(t, gas, false)
 }
 

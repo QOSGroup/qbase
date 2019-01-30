@@ -111,7 +111,7 @@ func (tx *SendTx) GetSigner() []btypes.Address {
 	return []btypes.Address{tx.From}
 }
 
-func (tx *SendTx) CalcGas() btypes.BigInt {
+func (tx *SendTx) CalcGas(ctx context.Context) btypes.BigInt {
 	return btypes.ZeroInt()
 }
 
