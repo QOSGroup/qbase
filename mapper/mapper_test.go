@@ -1,11 +1,12 @@
 package mapper
 
 import (
+	"reflect"
+	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/QOSGroup/qbase/store"
+	"github.com/stretchr/testify/require"
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -28,14 +29,12 @@ func (mockStruct *mockStruct) NName() string {
 	return mockStruct.Name
 }
 
-func TestBaseMapper_EncodeObject(t *testing.T) {
-
+func getMapper() *BaseMapper {
 	var cdc = go_amino.NewCodec()
 	cryptoAmino.RegisterAmino(cdc)
 	cdc.RegisterConcrete(&mockStruct{}, "mock/struct", nil)
 	cdc.RegisterInterface((*mockInterface)(nil), nil)
 
-	var baseMapper *BaseMapper
 	storeKey := store.NewKVStoreKey("base")
 
 	db := dbm.NewMemDB()
@@ -45,7 +44,12 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 
 	cms.GetStore(storeKey)
 
-	baseMapper = &BaseMapper{cdc: cdc, store: cms.GetStore(storeKey).(store.KVStore)}
+	return &BaseMapper{cdc: cdc, store: cms.GetStore(storeKey).(store.KVStore)}
+}
+
+func TestBaseMapper_EncodeObject(t *testing.T) {
+
+	baseMapper := getMapper()
 
 	strKey := []byte("stringkey")
 	_, exsits := baseMapper.GetString(strKey)
@@ -146,5 +150,83 @@ func TestBaseMapper_EncodeObject(t *testing.T) {
 	baseMapper.DecodeObject(nonceEncodeBytes, &nonceInt)
 
 	require.Equal(t, nonce, nonceInt)
+
+}
+
+func TestBaseMapper_IteratorWithType(t *testing.T) {
+
+	//bool
+
+	baseMapper := getMapper()
+
+	bPrefix := "bool_"
+	for i := 0; i <= 10; i++ {
+		s := strconv.Itoa(i)
+		key := append([]byte(bPrefix), []byte(s)...)
+		if i < 5 {
+			baseMapper.Set(key, true)
+		} else {
+			baseMapper.Set(key, false)
+		}
+	}
+
+	baseMapper.IteratorWithType([]byte(bPrefix), reflect.TypeOf(true), func(key []byte, dataPtr interface{}) bool {
+		bPtr := dataPtr.(*bool)
+		b := *bPtr
+		if b {
+			require.Equal(t, true, b)
+		}
+		return false
+	})
+
+	//mockStruct
+	sPrefix := "mocks_"
+	for i := 0; i <= 10; i++ {
+		s := strconv.Itoa(i)
+		key := append([]byte(sPrefix), []byte(s)...)
+
+		bz, _ := ed25519.GenPrivKey().Sign(key)
+		baseMapper.Set(key, mockStruct{
+			Nonce:  int64(i),
+			Pubkey: ed25519.GenPrivKey().PubKey(),
+			Name:   s,
+			Sign:   bz,
+		})
+	}
+
+	baseMapper.IteratorWithType([]byte(sPrefix), reflect.TypeOf(mockStruct{}), func(key []byte, dataPtr interface{}) bool {
+		sPtr := dataPtr.(*mockStruct)
+		mockStruct := *sPtr
+		require.Equal(t, 64, len(mockStruct.Sign))
+		return false
+	})
+
+}
+
+func TestDiggggggggggggggggggggHole(t *testing.T) {
+	baseMapper := getMapper()
+
+	prefix := []byte("a")
+
+	for i := 0; i < 10; i++ {
+		s := strconv.Itoa(i)
+		key := append(prefix, []byte(s)...)
+		baseMapper.Set(key, i)
+	}
+
+	key := append(prefix, []byte("1")...)
+	i, _ := baseMapper.GetInt64(key)
+
+	//not 1
+	require.Equal(t, int64(9), i)
+
+	count := 0
+	baseMapper.Iterator(prefix, func(_ []byte) bool {
+		count++
+		return false
+	})
+
+	//not 10
+	require.Equal(t, 1, count)
 
 }
