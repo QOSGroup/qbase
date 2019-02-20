@@ -91,6 +91,21 @@ func (baseMapper *BaseMapper) Iterator(prefix []byte, process func(needDecodeByt
 	baseMapper.IteratorWithEnd(prefix, store.PrefixEndBytes(prefix), process)
 }
 
+func (baseMapper *BaseMapper) IteratorWithKV(prefix []byte, process func(key []byte, value []byte) (stop bool)) {
+	iter := baseMapper.GetStore().Iterator(prefix, store.PrefixEndBytes(prefix))
+	defer iter.Close()
+
+	for {
+		if !iter.Valid() {
+			return
+		}
+		if process(iter.Key(), iter.Value()) {
+			return
+		}
+		iter.Next()
+	}
+}
+
 func (baseMapper *BaseMapper) IteratorWithType(prefix []byte, reflectType reflect.Type, process func(key []byte, dataPtr interface{}) (stop bool)) {
 
 	endPrefix := store.PrefixEndBytes(prefix)
