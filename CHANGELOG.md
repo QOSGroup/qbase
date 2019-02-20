@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.0
+2019.02.20
+
+**FEATURES**
+* [baseapp] baseapp增加Gas处理逻辑
+
+**IMPROVEMENTS**
+* [mapper] basemapper增加iterator辅助方法
+
 ## v0.0.10
 2019.01.08
 
