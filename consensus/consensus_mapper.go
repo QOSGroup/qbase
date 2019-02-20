@@ -12,6 +12,7 @@ const (
 	consensusKey        = "cons_params"
 )
 
+//存储共识参数mapper
 type ConsensusMapper struct {
 	*mapper.BaseMapper
 }
