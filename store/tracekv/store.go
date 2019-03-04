@@ -1,4 +1,4 @@
-package store
+package tracekv
 
 import (
 	"encoding/base64"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/QOSGroup/qbase/store/types"
 )
 
 const (
@@ -18,16 +18,16 @@ const (
 )
 
 type (
-	// TraceKVStore implements the KVStore interface with tracing enabled.
+	// Store implements the KVStore interface with tracing enabled.
 	// Operations are traced on each core KVStore call and written to the
 	// underlying io.writer.
 	//
 	// TODO: Should we use a buffered writer and implement Commit on
-	// TraceKVStore?
-	TraceKVStore struct {
-		parent  KVStore
+	// Store?
+	Store struct {
+		parent  types.KVStore
 		writer  io.Writer
-		context TraceContext
+		context types.TraceContext
 	}
 
 	// operation represents an IO operation
@@ -42,15 +42,15 @@ type (
 	}
 )
 
-// NewTraceKVStore returns a reference to a new traceKVStore given a parent
+// NewStore returns a reference to a new traceKVStore given a parent
 // KVStore implementation and a buffered writer.
-func NewTraceKVStore(parent KVStore, writer io.Writer, tc TraceContext) *TraceKVStore {
-	return &TraceKVStore{parent: parent, writer: writer, context: tc}
+func NewStore(parent types.KVStore, writer io.Writer, tc types.TraceContext) *Store {
+	return &Store{parent: parent, writer: writer, context: tc}
 }
 
 // Get implements the KVStore interface. It traces a read operation and
 // delegates a Get call to the parent KVStore.
-func (tkv *TraceKVStore) Get(key []byte) []byte {
+func (tkv *Store) Get(key []byte) []byte {
 	value := tkv.parent.Get(key)
 
 	writeOperation(tkv.writer, readOp, tkv.context, key, value)
@@ -59,50 +59,40 @@ func (tkv *TraceKVStore) Get(key []byte) []byte {
 
 // Set implements the KVStore interface. It traces a write operation and
 // delegates the Set call to the parent KVStore.
-func (tkv *TraceKVStore) Set(key []byte, value []byte) {
+func (tkv *Store) Set(key []byte, value []byte) {
 	writeOperation(tkv.writer, writeOp, tkv.context, key, value)
 	tkv.parent.Set(key, value)
 }
 
 // Delete implements the KVStore interface. It traces a write operation and
 // delegates the Delete call to the parent KVStore.
-func (tkv *TraceKVStore) Delete(key []byte) {
+func (tkv *Store) Delete(key []byte) {
 	writeOperation(tkv.writer, deleteOp, tkv.context, key, nil)
 	tkv.parent.Delete(key)
 }
 
 // Has implements the KVStore interface. It delegates the Has call to the
 // parent KVStore.
-func (tkv *TraceKVStore) Has(key []byte) bool {
+func (tkv *Store) Has(key []byte) bool {
 	return tkv.parent.Has(key)
 }
 
-// Prefix implements the KVStore interface.
-func (tkv *TraceKVStore) Prefix(prefix []byte) KVStore {
-	return prefixStore{tkv, prefix}
-}
-
-// Gas implements the KVStore interface.
-//func (tkv *TraceKVStore) Gas(meter types.GasMeter, config types.GasConfig) KVStore {
-//	return NewGasKVStore(meter, config, tkv.parent)
-//}
-
 // Iterator implements the KVStore interface. It delegates the Iterator call
 // the to the parent KVStore.
-func (tkv *TraceKVStore) Iterator(start, end []byte) dbm.Iterator {
+func (tkv *Store) Iterator(start, end []byte) types.Iterator {
 	return tkv.iterator(start, end, true)
 }
 
 // ReverseIterator implements the KVStore interface. It delegates the
 // ReverseIterator call the to the parent KVStore.
-func (tkv *TraceKVStore) ReverseIterator(start, end []byte) dbm.Iterator {
+func (tkv *Store) ReverseIterator(start, end []byte) types.Iterator {
 	return tkv.iterator(start, end, false)
 }
 
 // iterator facilitates iteration over a KVStore. It delegates the necessary
 // calls to it's parent KVStore.
-func (tkv *TraceKVStore) iterator(start, end []byte, ascending bool) dbm.Iterator {
-	var parent dbm.Iterator
+func (tkv *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	var parent types.Iterator
 
 	if ascending {
 		parent = tkv.parent.Iterator(start, end)
@@ -114,12 +104,12 @@ func (tkv *TraceKVStore) iterator(start, end []byte, ascending bool) dbm.Iterato
 }
 
 type traceIterator struct {
-	parent  dbm.Iterator
+	parent  types.Iterator
 	writer  io.Writer
-	context TraceContext
+	context types.TraceContext
 }
 
-func newTraceIterator(w io.Writer, parent dbm.Iterator, tc TraceContext) dbm.Iterator {
+func newTraceIterator(w io.Writer, parent types.Iterator, tc types.TraceContext) types.Iterator {
 	return &traceIterator{writer: w, parent: parent, context: tc}
 }
 
@@ -161,26 +151,26 @@ func (ti *traceIterator) Close() {
 
 // GetStoreType implements the KVStore interface. It returns the underlying
 // KVStore type.
-func (tkv *TraceKVStore) GetStoreType() StoreType {
+func (tkv *Store) GetStoreType() types.StoreType {
 	return tkv.parent.GetStoreType()
 }
 
-// CacheWrap implements the KVStore interface. It panics as a TraceKVStore
+// CacheWrap implements the KVStore interface. It panics as a Store
 // cannot be cache wrapped.
-func (tkv *TraceKVStore) CacheWrap() CacheWrap {
-	panic("cannot CacheWrap a TraceKVStore")
+func (tkv *Store) CacheWrap() types.CacheWrap {
+	panic("cannot CacheWrap a Store")
 }
 
 // CacheWrapWithTrace implements the KVStore interface. It panics as a
-// TraceKVStore cannot be cache wrapped.
-func (tkv *TraceKVStore) CacheWrapWithTrace(_ io.Writer, _ TraceContext) CacheWrap {
-	panic("cannot CacheWrapWithTrace a TraceKVStore")
+// Store cannot be cache wrapped.
+func (tkv *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
+	panic("cannot CacheWrapWithTrace a Store")
 }
 
 // writeOperation writes a KVStore operation to the underlying io.Writer as
 // JSON-encoded data where the key/value pair is base64 encoded.
 // nolint: errcheck
-func writeOperation(w io.Writer, op operation, tc TraceContext, key, value []byte) {
+func writeOperation(w io.Writer, op operation, tc types.TraceContext, key, value []byte) {
 	traceOp := traceOperation{
 		Operation: op,
 		Key:       base64.StdEncoding.EncodeToString(key),

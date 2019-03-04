@@ -22,7 +22,7 @@ import (
 func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(key, types.StoreTypeIAVL, db)
 	// latestVersion也是int64经过amino编码后存储在相应键值下的
 	cms.LoadLatestVersion()
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), mapperMap)
