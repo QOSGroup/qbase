@@ -109,13 +109,13 @@ func (app *BaseApp) GetCdc() *go_amino.Codec {
 // SetCommitMultiStoreTracer sets the store tracer on the BaseApp's underlying
 // CommitMultiStore.
 func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
-	app.cms.WithTracer(w)
+	app.cms.SetTracer(w)
 }
 
 // Mount a store to the provided key in the BaseApp multistore
-func (app *BaseApp) mountStoresIAVL(keys ...*store.KVStoreKey) {
+func (app *BaseApp) mountStoresIAVL(keys ...store.StoreKey) {
 	for _, key := range keys {
-		app.mountStore(key, store.StoreTypeIAVL)
+		app.mountStore(key, types.StoreTypeIAVL)
 	}
 }
 
@@ -345,8 +345,7 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) (res a
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	if app.cms.TracingEnabled() {
-		app.cms.ResetTraceContext()
-		app.cms.WithTracingContext(store.TraceContext(
+		app.cms.SetTracingContext(store.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
 		))
 	}
@@ -709,7 +708,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	//3. 执行exec
 	msCache := getState(app, false).CacheMultiStore()
 	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(store.TraceContext(
+		msCache = msCache.SetTracingContext(store.TraceContext(
 			map[string]interface{}{"txHash": cmn.HexBytes(tmhash.Sum(ctx.TxBytes())).String()},
 		)).(store.CacheMultiStore)
 	}
@@ -839,7 +838,7 @@ func getState(app *BaseApp, isCheckTx bool) *state {
 // EndBlock implements the ABCI application interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	if app.deliverState.ms.TracingEnabled() {
-		app.deliverState.ms = app.deliverState.ms.ResetTraceContext().(store.CacheMultiStore)
+		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(store.CacheMultiStore)
 	}
 
 	if app.endBlocker != nil {

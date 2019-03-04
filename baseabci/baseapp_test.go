@@ -67,7 +67,7 @@ func TestLoadVersion(t *testing.T) {
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil)
 
-	capKey := store.NewKVStoreKey("main")
+	capKey := types.NewKVStoreKey("main")
 	app.mountStoresIAVL(capKey)
 	err := app.LoadLatestVersion()
 	require.Nil(t, err)
@@ -119,8 +119,8 @@ func TestInitChainer(t *testing.T) {
 	db := dbm.NewMemDB()
 	logger := defaultLogger()
 	app := NewBaseApp(name, logger, db, nil)
-	capKey := store.NewKVStoreKey("main")
-	capKey2 := store.NewKVStoreKey("key2")
+	capKey := types.NewKVStoreKey("main")
+	capKey2 := types.NewKVStoreKey("key2")
 	app.mountStoresIAVL(capKey, capKey2)
 
 	// set a value in the store on init chain

@@ -60,7 +60,7 @@ func (app *BaseApp) RegisterMapper(mapper mapper.IMapper) {
 	}
 
 	key := mapper.GetStoreKey()
-	kvKey := key.(*store.KVStoreKey)
+	kvKey := key.(store.StoreKey)
 	app.mountStoresIAVL(kvKey)
 
 	if _, ok := app.registerMappers[mapper.MapperName()]; ok {
