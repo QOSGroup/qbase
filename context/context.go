@@ -3,6 +3,8 @@ package context
 
 import (
 	"context"
+	"github.com/QOSGroup/qbase/store/gaskv"
+	storetypes "github.com/QOSGroup/qbase/store/types"
 	"sync"
 	"time"
 
@@ -159,9 +161,9 @@ const (
 	contextKeyBlockGasMeter
 	contextKeyMinimumFees
 	//增加特定的context key
-	contextKeyBlockTxIndex       // tx在block中的索引
-	contextKeyTxQcpResultHandler //处理TxQcpResult回调函数
-	contextKeyRegisteredMapper   //注册的mapper
+	contextKeyBlockTxIndex        // tx在block中的索引
+	contextKeyTxQcpResultHandler  //处理TxQcpResult回调函数
+	contextKeyRegisteredMapper    //注册的mapper
 	contextKeyCurrentRegisteredMapper
 )
 
@@ -274,7 +276,7 @@ func (c Context) copyKVStoreMapperFromSeed() Context {
 	if len(registeredMapper) > 0 {
 		for name, mapper := range registeredMapper {
 			cpyMapper := mapper.Copy()
-			store := store.NewGasKVStore(c.GasMeter(), types.KVGasConfig(), c.KVStore(mapper.GetStoreKey()))
+			store := gaskv.NewStore(c.KVStore(mapper.GetStoreKey()), c.GasMeter(), storetypes.KVGasConfig())
 			cpyMapper.SetStore(store)
 			mapperWithStore[name] = cpyMapper
 		}

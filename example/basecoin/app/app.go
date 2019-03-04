@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/QOSGroup/qbase/account"
+	"github.com/QOSGroup/qbase/store"
 	btypes "github.com/QOSGroup/qbase/types"
 	"io"
 
@@ -28,7 +29,7 @@ type BaseCoinApp struct {
 
 func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 
-	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec)
+	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec, baseabci.SetPruning(store.PruneSyncable))
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
 	//baseApp.

@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"github.com/QOSGroup/qbase/types"
 	"reflect"
 	"strconv"
 	"testing"
@@ -35,11 +36,11 @@ func getMapper() *BaseMapper {
 	cdc.RegisterConcrete(&mockStruct{}, "mock/struct", nil)
 	cdc.RegisterInterface((*mockInterface)(nil), nil)
 
-	storeKey := store.NewKVStoreKey("base")
+	storeKey := types.NewKVStoreKey("base")
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(storeKey, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(storeKey, types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 
 	cms.GetStore(storeKey)

@@ -60,14 +60,14 @@ func TestContextGetOpShouldNeverPanic(t *testing.T) {
 func defaultContext(key store.StoreKey) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(key, types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
 	return ctx
 }
 
 func TestCacheContext(t *testing.T) {
-	key := store.NewKVStoreKey(t.Name())
+	key := types.NewKVStoreKey(t.Name())
 	k1 := []byte("hello")
 	v1 := []byte("world")
 	k2 := []byte("key")
@@ -94,7 +94,7 @@ func TestCacheContext(t *testing.T) {
 }
 
 func TestLogContext(t *testing.T) {
-	key := store.NewKVStoreKey(t.Name())
+	key := types.NewKVStoreKey(t.Name())
 	ctx := defaultContext(key)
 	logger := NewMockLogger()
 	ctx = ctx.WithLogger(logger)
@@ -270,8 +270,8 @@ func TestCopyKVStoreMapperFromSeed(t *testing.T) {
 	ma := newMapperA(nil)
 	mb := newMapperB(nil)
 
-	cms.MountStoreWithDB(ma.GetStoreKey(), store.StoreTypeIAVL, nil)
-	cms.MountStoreWithDB(mb.GetStoreKey(), store.StoreTypeIAVL, nil)
+	cms.MountStoreWithDB(ma.GetStoreKey(), types.StoreTypeIAVL, nil)
+	cms.MountStoreWithDB(mb.GetStoreKey(), types.StoreTypeIAVL, nil)
 	cms.LoadLatestVersion()
 
 	registerMapper := make(map[string]mapper.IMapper)

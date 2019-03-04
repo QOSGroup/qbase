@@ -2,6 +2,7 @@ package qcp
 
 import (
 	"fmt"
+	"github.com/QOSGroup/qbase/types"
 	"testing"
 
 	"github.com/QOSGroup/qbase/mapper"
@@ -114,7 +115,7 @@ func defaultCdc() *go_amino.Codec {
 func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(key, types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), mapperMap)
 	return ctx
