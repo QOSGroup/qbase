@@ -18,6 +18,7 @@ import (
 	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
+	"github.com/QOSGroup/qbase/validator"
 
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -92,6 +93,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 
 	app.registerQcpMapper()
 	app.RegisterMapper(consensus.NewConsensusMapper(cdc))
+	app.RegisterMapper(validator.NewValidatorMapper())
 	return app
 }
 
@@ -367,6 +369,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
 
+	valMapper := validator.GetValidatorMapper(app.deliverState.ctx)
+	valMapper.SetLastBlockProposer(req.Header.GetProposerAddress())
+	valMapper.ClearValidatorUpdateSet()
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
 
@@ -839,6 +844,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
+	}
+
+	valMapper := validator.GetValidatorMapper(app.deliverState.ctx)
+	if b := valMapper.IsEnableValidatorUpdated(); b {
+		res.ValidatorUpdates = valMapper.GetValidatorUpdateSet()
 	}
 
 	return
