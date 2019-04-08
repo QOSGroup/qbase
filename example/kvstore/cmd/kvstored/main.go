@@ -55,7 +55,7 @@ func main() {
 	}
 
 	// Wait forever
-	cmn.TrapSignal(func() {
+	cmn.TrapSignal(logger, func() {
 		// Cleanup
 		err = srv.Stop()
 		if err != nil {
