@@ -84,7 +84,7 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 	}
 
 	// wait forever
-	cmn.TrapSignal(func() {
+	cmn.TrapSignal(ctx.Logger, func() {
 		// cleanup
 		err = svr.Stop()
 		if err != nil {
@@ -119,7 +119,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
-		pvm.LoadOrGenFilePV(cfg.PrivValidatorFile()),
+		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
 		nodeKey,
 		proxy.NewLocalClientCreator(app),
 		node.DefaultGenesisDocProviderFunc(cfg),
