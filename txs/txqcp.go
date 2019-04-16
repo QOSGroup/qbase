@@ -10,7 +10,7 @@ import (
 
 // 功能：
 type TxQcp struct {
-	TxStd       *TxStd    `json:"txstd"`       //TxStd结构
+	TxStd       *TxStd    `json:"txstd"`       //TxStd结构，暂时仅支持包含一个ITx
 	From        string    `json:"from"`        //qscName
 	To          string    `json:"to"`          //qosName
 	Sequence    int64     `json:"sequence"`    //发送Sequence

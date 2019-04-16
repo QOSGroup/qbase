@@ -664,7 +664,12 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 		return ctx.WithGasMeter(types.NewInfiniteGasMeter())
 	}
 
-	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Int64() + tx.ITx.CalcGas().Int64())))
+	txsGas := types.ZeroInt()
+	for _, itx := range tx.ITxs {
+		txsGas = txsGas.Add(itx.CalcGas())
+	}
+
+	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Add(txsGas).Int64())))
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
@@ -716,24 +721,32 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	runCtx := ctx.WithMultiStore(msCache)
 
 	var crossTxQcp *txs.TxQcp
-	result, crossTxQcp = tx.ITx.Exec(runCtx)
 
-	//4. 根据crossTxQcp结果判断是否保存跨链结果
-	// crossTxQcp 不为空时，需要将跨链结果保存
-	if crossTxQcp != nil && app.txQcpSigner == nil {
-		app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
-	}
+	for _, itx := range tx.ITxs {
+		result, crossTxQcp = itx.Exec(runCtx)
 
-	if crossTxQcp != nil {
-		txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
-		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
-			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
-			AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+		if !result.IsOK() {
+			break
+		}
+
+		//4. 根据crossTxQcp结果判断是否保存跨链结果
+		// crossTxQcp 不为空时，需要将跨链结果保存
+		if crossTxQcp != nil && app.txQcpSigner == nil {
+			app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
+		}
+
+		if crossTxQcp != nil {
+			txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
+				AppendTag(qcp.QcpTo, []byte(txQcp.To)).
+				AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
+				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+		}
 	}
 
 	if app.gasHandler != nil {
-		err := app.gasHandler(runCtx, tx.ITx.GetGasPayer())
+		// 第一个Tx的签名者支付gas费
+		err := app.gasHandler(runCtx, tx.ITxs[0].GetGasPayer())
 		if err != nil {
 			result = err.Result()
 		}
@@ -797,7 +810,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
 			txQcpResult.Result.Tags = result.Tags
-			txStd := txs.NewTxStd(txQcpResult, tx.From, types.ZeroInt())
+			txStd := txs.NewTxStd([]txs.ITx{txQcpResult}, tx.From, types.ZeroInt())
 
 			crossTxQcp := &txs.TxQcp{
 				TxStd: txStd,

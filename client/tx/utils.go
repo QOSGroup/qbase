@@ -61,8 +61,45 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 		fromChainID := viper.GetString(cflags.FlagQcpFrom)
 		return BuildAndSignQcpTx(ctx, itx, fromChainID, toChainID)
 	} else {
-		return BuildAndSignStdTx(ctx, itx, "", toChainID)
+		return BuildAndSignStdTx(ctx, []txs.ITx{itx}, "", toChainID)
 	}
+}
+
+type ITxsBuilder func(ctx context.CLIContext) ([]txs.ITx, error)
+
+func BroadcastTxsAndPrintResult(cdc *amino.Codec, txsBuilder ITxsBuilder) error {
+	result, err := BroadcastTxs(cdc, txsBuilder)
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	cliCtx.PrintResult(result)
+	return err
+}
+
+func BroadcastTxs(cdc *amino.Codec, txsBuilder ITxsBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	signedTx, err := buildAndSignTxs(cliCtx, txsBuilder)
+	if err != nil {
+		return nil, err
+	}
+
+	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+}
+
+func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx types.Tx, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			signedTx = nil
+			err = errors.New(log)
+		}
+	}()
+
+	itxs, err := txsBuilder(ctx)
+	if err != nil {
+		return nil, err
+	}
+	toChainID := getChainID(ctx)
+	return BuildAndSignStdTx(ctx, itxs, "", toChainID)
 }
 
 func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxQcp, error) {
@@ -81,7 +118,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 
 	fmt.Println("> step 1. build and sign TxStd")
 
-	txStd, err := BuildAndSignStdTx(ctx, tx, fromChainID, toChainID)
+	txStd, err := BuildAndSignStdTx(ctx, []txs.ITx{tx}, fromChainID, toChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +144,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 	return txQcp, nil
 }
 
-func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxStd, error) {
+func BuildAndSignStdTx(ctx context.CLIContext, tXs []txs.ITx, fromChainID, toChainID string) (*txs.TxStd, error) {
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
 	maxGas := viper.GetInt64(cflags.FlagMaxGas)
@@ -115,7 +152,7 @@ func BuildAndSignStdTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 		return nil, errors.New("max-gas flag not correct")
 	}
 
-	txStd := txs.NewTxStd(tx, toChainID, types.NewInt(maxGas))
+	txStd := txs.NewTxStd(tXs, toChainID, types.NewInt(maxGas))
 
 	signers := getSigners(ctx, txStd.GetSigners())
 
