@@ -50,7 +50,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
 		c.Flags().Int64(FlagNonce, 0, "account nonce to sign the tx")
-		c.Flags().Int64(FlagMaxGas, 20000, "gas limit to set per tx")
+		c.Flags().Int64(FlagMaxGas, 50000, "gas limit to set per tx")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
