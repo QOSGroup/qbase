@@ -1,6 +1,7 @@
 package validator
 
 import (
+	stypes "github.com/QOSGroup/qbase/store/types"
 	"testing"
 
 	"github.com/QOSGroup/qbase/context"
@@ -26,7 +27,7 @@ func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.Address) {
 func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(key, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(key, stypes.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), mapperMap)
 	return ctx

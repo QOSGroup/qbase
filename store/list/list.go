@@ -2,9 +2,8 @@ package list
 
 import (
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"strconv"
-
-	"github.com/QOSGroup/qbase/codec"
 
 	"github.com/QOSGroup/qbase/store/types"
 )
@@ -22,12 +21,12 @@ func ElemKey(index uint64) []byte {
 // List defines an integer indexable mapper
 // It panics when the element type cannot be (un/)marshalled by the codec
 type List struct {
-	cdc   *codec.Codec
+	cdc   *amino.Codec
 	store types.KVStore
 }
 
 // NewList constructs new List
-func NewList(cdc *codec.Codec, store types.KVStore) List {
+func NewList(cdc *amino.Codec, store types.KVStore) List {
 	return List{
 		cdc:   cdc,
 		store: store,

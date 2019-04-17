@@ -1,6 +1,8 @@
 package list
 
 import (
+	"github.com/QOSGroup/qbase/context"
+	"github.com/tendermint/go-amino"
 	"math/rand"
 	"testing"
 
@@ -11,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/QOSGroup/qbase/codec"
 	"github.com/QOSGroup/qbase/store/rootmulti"
 	sdk "github.com/QOSGroup/qbase/types"
 )
@@ -21,13 +22,13 @@ type TestStruct struct {
 	B bool
 }
 
-func defaultComponents(key sdk.StoreKey) (sdk.Context, *codec.Codec) {
+func defaultComponents(key sdk.StoreKey) (context.Context, *amino.Codec) {
 	db := dbm.NewMemDB()
 	cms := rootmulti.NewStore(db)
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
-	cdc := codec.New()
+	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
+	cdc := amino.NewCodec()
 	return ctx, cdc
 }
 func TestList(t *testing.T) {
