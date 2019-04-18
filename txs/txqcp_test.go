@@ -36,7 +36,7 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 
 func newTxStd(tx ITx) (txstd *TxStd) {
 	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
-	signer := txstd.ITx.GetSigner()
+	signer := txstd.ITxs[0].GetSigner()
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)

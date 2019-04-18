@@ -17,22 +17,22 @@ func TestTxStd_GetSigners(t *testing.T) {
 		txStd.GetSigners()
 	})
 
-	txStd.ITx = &mockITX{0, false}
+	txStd.ITxs = []ITx{&mockITX{0, false}}
 	require.Equal(t, 0, len(txStd.GetSigners()))
 
-	txStd.ITx = &mockITX{1, false}
+	txStd.ITxs = []ITx{&mockITX{1, false}}
 	require.Equal(t, 1, len(txStd.GetSigners()))
 
-	txStd.ITx = &mockITX{2, false}
+	txStd.ITxs = []ITx{&mockITX{2, false}}
 	require.Equal(t, 2, len(txStd.GetSigners()))
 
-	txStd.ITx = &mockITX{2, true}
+	txStd.ITxs = []ITx{&mockITX{2, true}}
 	require.Equal(t, 1, len(txStd.GetSigners()))
 
-	txStd.ITx = &mockITX{3, true}
+	txStd.ITxs = []ITx{&mockITX{3, true}}
 	require.Equal(t, 2, len(txStd.GetSigners()))
 
-	txStd.ITx = &mockITX{3, false}
+	txStd.ITxs = []ITx{&mockITX{3, false}}
 	require.Equal(t, 3, len(txStd.GetSigners()))
 
 }

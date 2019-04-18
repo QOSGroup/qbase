@@ -25,7 +25,7 @@ type ITx interface {
 
 // 标准Tx结构体
 type TxStd struct {
-	ITx       ITx          `json:"itx"`      //ITx接口，将被具体Tx结构实例化
+	ITxs      []ITx        `json:"itx"`      //ITx接口，将被具体Tx结构实例化
 	Signature []Signature  `json:"sigature"` //签名数组
 	ChainID   string       `json:"chainid"`  //ChainID: 执行ITx.exec方法的链ID
 	MaxGas    types.BigInt `json:"maxgas"`   //Gas消耗的最大值
@@ -47,11 +47,15 @@ func (tx *TxStd) Type() string {
 
 func (tx *TxStd) GetSigners() []types.Address {
 
-	if tx.ITx == nil {
+	if len(tx.ITxs) == 0 {
 		panic("ITx shouldn't be nil in TxStd.GetSigners()")
 	}
 
-	originSigners := tx.ITx.GetSigner()
+	var originSigners []types.Address
+	for _, itx := range tx.ITxs {
+		originSigners = append(originSigners, itx.GetSigner()...)
+	}
+
 	if len(originSigners) <= 1 {
 		return originSigners
 	}
@@ -84,11 +88,14 @@ func (tx *TxStd) BuildSignatureBytes(nonce int64, fromChainID string) []byte {
 
 // 获取TxStd中需要参与签名的内容
 func (tx *TxStd) getSignData() []byte {
-	if tx.ITx == nil {
+	if len(tx.ITxs) == 0 {
 		panic("ITx shouldn't be nil in TxStd.GetSignData()")
 	}
 
-	ret := tx.ITx.GetSignData()
+	var ret []byte
+	for _, itx := range tx.ITxs {
+		ret = append(ret, itx.GetSignData()...)
+	}
 	ret = append(ret, []byte(tx.ChainID)...)
 	ret = append(ret, types.Int2Byte(tx.MaxGas.Int64())...)
 
@@ -98,7 +105,7 @@ func (tx *TxStd) getSignData() []byte {
 // 签名：每个签名者外部调用此方法
 // 当tx不包含在跨链交易中时,fromChainID为 ""
 func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID, toChainID string) (signedbyte []byte, err error) {
-	if tx.ITx == nil {
+	if len(tx.ITxs) == 0 {
 		return nil, errors.New("Signature txstd err(itx is nil)")
 	}
 
@@ -118,6 +125,12 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID, toChai
 // 构建结构体
 // 调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
 func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
+	rTx = NewTxsStd(cid, mgas, itx)
+
+	return
+}
+
+func NewTxsStd(cid string, mgas types.BigInt, itx... ITx) (rTx *TxStd) {
 	rTx = &TxStd{
 		itx,
 		[]Signature{},
@@ -142,15 +155,19 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 
 //ValidateBasicData  对txStd进行基础的数据校验
 func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
-	if tx.ITx == nil {
+	if len(tx.ITxs) == 0 {
 		return types.ErrInternal("TxStd's ITx is nil")
 	}
 
 	//开启cache执行ITx.ValidateData，在ITx.ValidateData中做数据保存操作将被忽略
 	newCtx, _ := ctx.CacheContext()
-	itxErr := tx.ITx.ValidateData(newCtx)
-	if itxErr != nil {
-		return types.ErrInternal(fmt.Sprintf("TxStd's ITx ValidateData error:  %s", itxErr.Error()))
+	execGas := types.ZeroInt()
+	for _, itx := range tx.ITxs {
+		itxErr := itx.ValidateData(newCtx)
+		if itxErr != nil {
+			return types.ErrInternal(fmt.Sprintf("TxStd's ITx ValidateData error:  %s", itxErr.Error()))
+		}
+		execGas = execGas.Add(itx.CalcGas())
 	}
 
 	if tx.ChainID == "" {
@@ -165,7 +182,6 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 		return types.ErrInternal("TxStd's MaxGas is less than zero")
 	}
 
-	execGas := tx.ITx.CalcGas()
 	if tx.MaxGas.LT(execGas) {
 		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
 	}

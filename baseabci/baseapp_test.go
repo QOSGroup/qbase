@@ -359,7 +359,7 @@ func TestTxQcp(t *testing.T) {
 
 		require.Equal(t, true, outQcpTx.IsResult)
 
-		qcpResult, _ := outQcpTx.TxStd.ITx.(*txs.QcpTxResult)
+		qcpResult, _ := outQcpTx.TxStd.ITxs[0].(*txs.QcpTxResult)
 
 		if i > 5 {
 			require.NotEqual(t, int64(0), int64(qcpResult.Result.Code))
