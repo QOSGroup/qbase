@@ -217,7 +217,7 @@ func TestTxQcpResult(t *testing.T) {
 				Code:    code,
 				GasUsed: types.OneUint().Uint64(),
 				Tags: types.Tags{
-					types.MakeTag("key", []byte("value")),
+					types.MakeTag("key", "value"),
 				},
 			},
 			QcpOriginalSequence: int64(i),

@@ -17,8 +17,8 @@ import (
 
 func validatorsCommand(cdc *go_amino.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "validators [height]",
-		Short: "Get validator set at given height",
+		Use:   "tendermint-validators [height]",
+		Short: "Get tendermint validator set at given height",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			viper.Set(types.FlagTrustNode, true)
