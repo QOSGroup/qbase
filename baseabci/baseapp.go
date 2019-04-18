@@ -737,10 +737,10 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 
 		if crossTxQcp != nil {
 			txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
-				AppendTag(qcp.QcpTo, []byte(txQcp.To)).
-				AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, txQcp.From).
+				AppendTag(qcp.QcpTo, txQcp.To).
+				AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
+				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
 		}
 	}
 
@@ -804,8 +804,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 		//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
 		if !tx.IsResult {
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
-				AppendTag(qcp.QcpTo, []byte(tx.From))
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, ctx.ChainID()).
+				AppendTag(qcp.QcpTo, tx.From)
 
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
@@ -818,8 +818,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			}
 
 			txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
-			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
+				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
 		}
 
 	}()

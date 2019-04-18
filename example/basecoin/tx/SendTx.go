@@ -104,6 +104,10 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 		toAccount.Coins = append(toAccount.Coins, &(tx.Coin))
 	}
 	mapper.SetAccount(toAccount)
+
+	result.Tags = btypes.NewTags(btypes.TagAction, types.TagActionSend,
+		types.TagSender, fromAcc.GetAddress().String(),
+		types.TagReceiver, toAcc.GetAddress().String())
 	return
 }
 
