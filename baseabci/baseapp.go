@@ -686,7 +686,9 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 			}
 		}
 
-		result.GasUsed = ctx.GasMeter().GasConsumed()
+		if result.GasUsed == 0 {
+			result.GasUsed = ctx.GasMeter().GasConsumed()
+		}
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
 
@@ -746,17 +748,16 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 
 	if app.gasHandler != nil {
 		// 第一个Tx的签名者支付gas费
-		err := app.gasHandler(runCtx, tx.ITxs[0].GetGasPayer())
+		gasUsed, err := app.gasHandler(runCtx, tx.ITxs[0].GetGasPayer())
 		if err != nil {
 			result = err.Result()
 		}
+		result.GasUsed = gasUsed
 	}
 
 	if result.IsOK() {
 		msCache.Write()
 	}
-
-	newctx.WithGasMeter(runCtx.GasMeter())
 
 	return
 }
@@ -797,7 +798,9 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			}
 		}
 
-		result.GasUsed = ctx.GasMeter().GasConsumed()
+		if result.GasUsed == 0 {
+			result.GasUsed = ctx.GasMeter().GasConsumed()
+		}
 		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 
 		ctx = ctx.WithGasMeter(types.NewInfiniteGasMeter())
