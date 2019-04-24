@@ -81,7 +81,7 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	return abci.ResponseInitChain{}
 }
 
-func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) btypes.Error {
+func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) (gasUsed uint64, err btypes.Error) {
 	gasFeeUsed := int64(ctx.GasMeter().GasConsumed()) / gasPerUnitCost
 
 	if gasFeeUsed > 0 {
@@ -90,7 +90,7 @@ func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) bt
 
 		if account.Coins.AmountOf("qstar").Int64() < gasFeeUsed {
 			log := fmt.Sprintf("%s no enough coins to pay the gas after this tx done", payer)
-			return btypes.ErrInternal(log)
+			return uint64(gasFeeUsed * gasPerUnitCost), btypes.ErrInternal(log)
 		}
 
 		account.Coins = account.Coins.Minus(btypes.BaseCoins{btypes.NewInt64BaseCoin("qstar", gasFeeUsed)})
@@ -98,5 +98,5 @@ func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) bt
 
 	}
 
-	return nil
+	return uint64(gasFeeUsed * gasPerUnitCost), nil
 }
