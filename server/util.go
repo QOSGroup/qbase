@@ -238,6 +238,20 @@ func SaveGenDoc(genFile string, genDoc types.GenesisDoc) error {
 	return genDoc.SaveAs(genFile)
 }
 
+// read of create the private key file for this config
+func ReadOrCreatePrivValidator(privValFile, stateFile string) crypto.PubKey {
+	var privValidator *privval.FilePV
+
+	if common.FileExists(privValFile) {
+		privValidator = privval.LoadFilePV(privValFile, stateFile)
+	} else {
+		privValidator = privval.GenFilePV(privValFile, stateFile)
+		privValidator.Save()
+	}
+
+	return privValidator.GetPubKey()
+}
+
 // InitializeNodeValidatorFiles creates private validator and p2p configuration files.
 func InitializeNodeValidatorFiles(
 	config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error,
@@ -249,18 +263,7 @@ func InitializeNodeValidatorFiles(
 	}
 
 	nodeID = string(nodeKey.ID())
-
-	pvKeyFile := config.PrivValidatorKeyFile()
-	if err := common.EnsureDir(filepath.Dir(pvKeyFile), 0777); err != nil {
-		return nodeID, valPubKey, nil
-	}
-
-	pvStateFile := config.PrivValidatorStateFile()
-	if err := common.EnsureDir(filepath.Dir(pvStateFile), 0777); err != nil {
-		return nodeID, valPubKey, nil
-	}
-
-	valPubKey = privval.LoadOrGenFilePV(pvKeyFile, pvStateFile).GetPubKey()
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile())
 
 	return nodeID, valPubKey, nil
 }
