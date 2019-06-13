@@ -130,7 +130,7 @@ func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
 	return
 }
 
-func NewTxsStd(cid string, mgas types.BigInt, itx... ITx) (rTx *TxStd) {
+func NewTxsStd(cid string, mgas types.BigInt, itx ...ITx) (rTx *TxStd) {
 	rTx = &TxStd{
 		itx,
 		[]Signature{},
