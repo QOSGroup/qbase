@@ -36,11 +36,11 @@ func newQcpTxResult() (txqcpresult *QcpTxResult) {
 
 func newTxStd(tx ITx) (txstd *TxStd) {
 	txstd = NewTxStd(tx, "qsc1", types.NewInt(100))
-	signer := txstd.ITx.GetSigner()
+	signer := txstd.ITxs[0].GetSigner()
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(store.NewKVStoreKey("test"), store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(types.NewKVStoreKey("test"), types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 	ctx := context.NewContext(cms, abci.Header{}, false, log.NewNopLogger(), nil)
 	err := txstd.ValidateBasicData(ctx, true, "qsc1")

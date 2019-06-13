@@ -60,7 +60,7 @@ func (app *BaseApp) RegisterMapper(mapper mapper.IMapper) {
 	}
 
 	key := mapper.GetStoreKey()
-	kvKey := key.(*store.KVStoreKey)
+	kvKey := key.(store.StoreKey)
 	app.mountStoresIAVL(kvKey)
 
 	if _, ok := app.registerMappers[mapper.MapperName()]; ok {
@@ -107,4 +107,9 @@ func (app *BaseApp) SetGasHandler(handler GasHandler) {
 		panic("SetGasHandler() on sealed BaseApp")
 	}
 	app.gasHandler = handler
+}
+
+// SetPruning sets a pruning option on the multistore associated with the app
+func SetPruning(opts store.PruningOptions) func(*BaseApp) {
+	return func(bap *BaseApp) { bap.cms.SetPruning(opts) }
 }

@@ -3,6 +3,8 @@ package mapper
 import (
 	"reflect"
 
+	"github.com/QOSGroup/qbase/types"
+
 	"github.com/QOSGroup/qbase/store"
 	go_amino "github.com/tendermint/go-amino"
 )
@@ -25,7 +27,7 @@ type BaseMapper struct {
 }
 
 func NewBaseMapper(cdc *go_amino.Codec, mapperName string) *BaseMapper {
-	return &BaseMapper{cdc: cdc, key: store.NewKVStoreKey(mapperName)}
+	return &BaseMapper{cdc: cdc, key: types.NewKVStoreKey(mapperName)}
 }
 
 func (baseMapper *BaseMapper) Copy() *BaseMapper {
@@ -88,7 +90,45 @@ func (baseMapper *BaseMapper) GetBool(key []byte) (v bool, exsits bool) {
 }
 
 func (baseMapper *BaseMapper) Iterator(prefix []byte, process func(needDecodeBytes []byte) (stop bool)) {
-	baseMapper.IteratorWithEnd(prefix, store.PrefixEndBytes(prefix), process)
+	baseMapper.IteratorWithEnd(prefix, types.PrefixEndBytes(prefix), process)
+}
+
+func (baseMapper *BaseMapper) IteratorWithKV(prefix []byte, process func(key []byte, value []byte) (stop bool)) {
+	iter := baseMapper.GetStore().Iterator(prefix, types.PrefixEndBytes(prefix))
+	defer iter.Close()
+
+	for {
+		if !iter.Valid() {
+			return
+		}
+		if process(iter.Key(), iter.Value()) {
+			return
+		}
+		iter.Next()
+	}
+}
+
+func (baseMapper *BaseMapper) IteratorWithType(prefix []byte, reflectType reflect.Type, process func(key []byte, dataPtr interface{}) (stop bool)) {
+
+	endPrefix := types.PrefixEndBytes(prefix)
+	iter := baseMapper.GetStore().Iterator(prefix, endPrefix)
+	defer iter.Close()
+
+	for {
+		if !iter.Valid() {
+			return
+		}
+
+		vv := reflect.New(reflectType)
+		baseMapper.DecodeObject(iter.Value(), vv.Interface())
+
+		if process(iter.Key(), vv.Interface()) {
+			return
+		}
+
+		iter.Next()
+	}
+
 }
 
 func (baseMapper *BaseMapper) IteratorWithKV(prefix []byte, process func(key []byte, value []byte) (stop bool)) {

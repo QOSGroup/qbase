@@ -109,13 +109,13 @@ func (app *BaseApp) GetCdc() *go_amino.Codec {
 // SetCommitMultiStoreTracer sets the store tracer on the BaseApp's underlying
 // CommitMultiStore.
 func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
-	app.cms.WithTracer(w)
+	app.cms.SetTracer(w)
 }
 
 // Mount a store to the provided key in the BaseApp multistore
-func (app *BaseApp) mountStoresIAVL(keys ...*store.KVStoreKey) {
+func (app *BaseApp) mountStoresIAVL(keys ...store.StoreKey) {
 	for _, key := range keys {
-		app.mountStore(key, store.StoreTypeIAVL)
+		app.mountStore(key, types.StoreTypeIAVL)
 	}
 }
 
@@ -345,8 +345,7 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) (res a
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	if app.cms.TracingEnabled() {
-		app.cms.ResetTraceContext()
-		app.cms.WithTracingContext(store.TraceContext(
+		app.cms.SetTracingContext(store.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
 		))
 	}
@@ -665,7 +664,12 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 		return ctx.WithGasMeter(types.NewInfiniteGasMeter())
 	}
 
-	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Int64() + tx.ITx.CalcGas().Int64())))
+	txsGas := types.ZeroInt()
+	for _, itx := range tx.ITxs {
+		txsGas = txsGas.Add(itx.CalcGas())
+	}
+
+	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Add(txsGas).Int64())))
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
@@ -682,7 +686,9 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 			}
 		}
 
-		result.GasUsed = ctx.GasMeter().GasConsumed()
+		if result.GasUsed == 0 {
+			result.GasUsed = ctx.GasMeter().GasConsumed()
+		}
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
 
@@ -709,7 +715,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	//3. 执行exec
 	msCache := getState(app, false).CacheMultiStore()
 	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(store.TraceContext(
+		msCache = msCache.SetTracingContext(store.TraceContext(
 			map[string]interface{}{"txHash": cmn.HexBytes(tmhash.Sum(ctx.TxBytes())).String()},
 		)).(store.CacheMultiStore)
 	}
@@ -717,20 +723,36 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	runCtx := ctx.WithMultiStore(msCache)
 
 	var crossTxQcp *txs.TxQcp
-	result, crossTxQcp = tx.ITx.Exec(runCtx)
 
-	//4. 根据crossTxQcp结果判断是否保存跨链结果
-	// crossTxQcp 不为空时，需要将跨链结果保存
-	if crossTxQcp != nil && app.txQcpSigner == nil {
-		app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
+	for _, itx := range tx.ITxs {
+		result, crossTxQcp = itx.Exec(runCtx)
+
+		if !result.IsOK() {
+			break
+		}
+
+		//4. 根据crossTxQcp结果判断是否保存跨链结果
+		// crossTxQcp 不为空时，需要将跨链结果保存
+		if crossTxQcp != nil && app.txQcpSigner == nil {
+			app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
+		}
+
+		if crossTxQcp != nil {
+			txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, txQcp.From).
+				AppendTag(qcp.QcpTo, txQcp.To).
+				AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
+				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
+		}
 	}
 
-	if crossTxQcp != nil {
-		txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
-		result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(txQcp.From)).
-			AppendTag(qcp.QcpTo, []byte(txQcp.To)).
-			AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-			AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+	if app.gasHandler != nil {
+		// 第一个Tx的签名者支付gas费
+		gasUsed, err := app.gasHandler(runCtx, tx.ITxs[0].GetGasPayer())
+		if err != nil {
+			result = err.Result()
+		}
+		result.GasUsed = gasUsed
 	}
 
 	if app.gasHandler != nil {
@@ -785,15 +807,17 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			}
 		}
 
-		result.GasUsed = ctx.GasMeter().GasConsumed()
+		if result.GasUsed == 0 {
+			result.GasUsed = ctx.GasMeter().GasConsumed()
+		}
 		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 
 		ctx = ctx.WithGasMeter(types.NewInfiniteGasMeter())
 
 		//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
 		if !tx.IsResult {
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, []byte(ctx.ChainID())).
-				AppendTag(qcp.QcpTo, []byte(tx.From))
+			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, ctx.ChainID()).
+				AppendTag(qcp.QcpTo, tx.From)
 
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
@@ -806,8 +830,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			}
 
 			txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
-			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, []byte(strconv.FormatInt(txQcp.Sequence, 10))).
-				AppendTag(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes()))
+			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
+				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
 		}
 
 	}()
@@ -839,7 +863,7 @@ func getState(app *BaseApp, isCheckTx bool) *state {
 // EndBlock implements the ABCI application interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	if app.deliverState.ms.TracingEnabled() {
-		app.deliverState.ms = app.deliverState.ms.ResetTraceContext().(store.CacheMultiStore)
+		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(store.CacheMultiStore)
 	}
 
 	if app.endBlocker != nil {

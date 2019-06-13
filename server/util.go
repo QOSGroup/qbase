@@ -239,13 +239,13 @@ func SaveGenDoc(genFile string, genDoc types.GenesisDoc) error {
 }
 
 // read of create the private key file for this config
-func ReadOrCreatePrivValidator(privValFile string) crypto.PubKey {
+func ReadOrCreatePrivValidator(privValFile, stateFile string) crypto.PubKey {
 	var privValidator *privval.FilePV
 
 	if common.FileExists(privValFile) {
-		privValidator = privval.LoadFilePV(privValFile)
+		privValidator = privval.LoadFilePV(privValFile, stateFile)
 	} else {
-		privValidator = privval.GenFilePV(privValFile)
+		privValidator = privval.GenFilePV(privValFile, stateFile)
 		privValidator.Save()
 	}
 
@@ -263,7 +263,7 @@ func InitializeNodeValidatorFiles(
 	}
 
 	nodeID = string(nodeKey.ID())
-	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorFile())
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile())
 
 	return nodeID, valPubKey, nil
 }

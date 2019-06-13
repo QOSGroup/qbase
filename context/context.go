@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/QOSGroup/qbase/store/gaskv"
+	storetypes "github.com/QOSGroup/qbase/store/types"
+
 	"github.com/QOSGroup/qbase/mapper"
 
 	"github.com/QOSGroup/qbase/store"
@@ -274,7 +277,7 @@ func (c Context) copyKVStoreMapperFromSeed() Context {
 	if len(registeredMapper) > 0 {
 		for name, mapper := range registeredMapper {
 			cpyMapper := mapper.Copy()
-			store := store.NewGasKVStore(c.GasMeter(), types.KVGasConfig(), c.KVStore(mapper.GetStoreKey()))
+			store := gaskv.NewStore(c.KVStore(mapper.GetStoreKey()), c.GasMeter(), storetypes.KVGasConfig())
 			cpyMapper.SetStore(store)
 			mapperWithStore[name] = cpyMapper
 		}

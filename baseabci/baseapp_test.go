@@ -35,7 +35,7 @@ func mockApp() *BaseApp {
 	app := NewBaseApp("test", logger, db, func(cdc *go_amino.Codec) {
 		cdc.RegisterConcrete(&transferTx{}, "baseapp/test/transferTx", nil)
 		cdc.RegisterConcrete(&testAccount{}, "baseapp/test/testAccount", nil)
-	})
+	}, SetPruning(store.PruneSyncable))
 
 	app.RegisterAccountProto(func() account.Account {
 		baseAccount := &account.BaseAccount{}
@@ -66,8 +66,9 @@ func TestLoadVersion(t *testing.T) {
 	db := dbm.NewMemDB()
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil)
+	app.cms.SetPruning(store.PruneSyncable)
 
-	capKey := store.NewKVStoreKey("main")
+	capKey := types.NewKVStoreKey("main")
 	app.mountStoresIAVL(capKey)
 	err := app.LoadLatestVersion()
 	require.Nil(t, err)
@@ -119,8 +120,8 @@ func TestInitChainer(t *testing.T) {
 	db := dbm.NewMemDB()
 	logger := defaultLogger()
 	app := NewBaseApp(name, logger, db, nil)
-	capKey := store.NewKVStoreKey("main")
-	capKey2 := store.NewKVStoreKey("key2")
+	capKey := types.NewKVStoreKey("main")
+	capKey2 := types.NewKVStoreKey("key2")
 	app.mountStoresIAVL(capKey, capKey2)
 
 	// set a value in the store on init chain
@@ -216,7 +217,7 @@ func TestTxQcpResult(t *testing.T) {
 				Code:    code,
 				GasUsed: types.OneUint().Uint64(),
 				Tags: types.Tags{
-					types.MakeTag("key", []byte("value")),
+					types.MakeTag("key", "value"),
 				},
 			},
 			QcpOriginalSequence: int64(i),
@@ -358,7 +359,7 @@ func TestTxQcp(t *testing.T) {
 
 		require.Equal(t, true, outQcpTx.IsResult)
 
-		qcpResult, _ := outQcpTx.TxStd.ITx.(*txs.QcpTxResult)
+		qcpResult, _ := outQcpTx.TxStd.ITxs[0].(*txs.QcpTxResult)
 
 		if i > 5 {
 			require.NotEqual(t, int64(0), int64(qcpResult.Result.Code))
@@ -545,7 +546,7 @@ func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.T
 		Amount:    amount,
 	}
 
-	stdTx := txs.NewTxStd(tx, cid, types.NewInt(10000))
+	stdTx := txs.NewTxStd(tx, cid, types.NewInt(50000))
 
 	signerAccount, _ := from.(*testAccount)
 
