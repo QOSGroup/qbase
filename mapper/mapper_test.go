@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"github.com/QOSGroup/qbase/types"
 	"reflect"
 	"strconv"
 	"testing"
@@ -10,7 +11,7 @@ import (
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	dbm "github.com/tendermint/tendermint/libs/db"
 )
 
@@ -35,11 +36,11 @@ func getMapper() *BaseMapper {
 	cdc.RegisterConcrete(&mockStruct{}, "mock/struct", nil)
 	cdc.RegisterInterface((*mockInterface)(nil), nil)
 
-	storeKey := store.NewKVStoreKey("base")
+	storeKey := types.NewKVStoreKey("base")
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(storeKey, store.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(storeKey, types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
 
 	cms.GetStore(storeKey)
@@ -206,7 +207,12 @@ func TestBaseMapper_IteratorWithType(t *testing.T) {
 func TestDiggggggggggggggggggggHole(t *testing.T) {
 	baseMapper := getMapper()
 
-	prefix := []byte("a")
+	//golang: v1.11
+	// prefix := []byte("a")
+
+	//golang: v.1.12
+	prefix := make([]byte, 0, 8)
+	prefix = append(prefix, byte(97))
 
 	for i := 0; i < 10; i++ {
 		s := strconv.Itoa(i)

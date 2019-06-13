@@ -1,38 +1,40 @@
-package store
+package rootmulti
 
 import (
 	"testing"
 
-	sdk "github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	dbm "github.com/tendermint/tendermint/libs/db"
+
+	"github.com/QOSGroup/qbase/store/errors"
+	"github.com/QOSGroup/qbase/store/types"
 )
 
 const useDebugDB = false
 
 func TestStoreType(t *testing.T) {
 	db := dbm.NewMemDB()
-	store := NewCommitMultiStore(db)
+	store := NewStore(db)
 	store.MountStoreWithDB(
-		NewKVStoreKey("store1"), StoreTypeIAVL, db)
+		types.NewKVStoreKey("store1"), types.StoreTypeIAVL, db)
 
 }
 
 func TestStoreMount(t *testing.T) {
 	db := dbm.NewMemDB()
-	store := NewCommitMultiStore(db)
+	store := NewStore(db)
 
-	key1 := NewKVStoreKey("store1")
-	key2 := NewKVStoreKey("store2")
-	dup1 := NewKVStoreKey("store1")
+	key1 := types.NewKVStoreKey("store1")
+	key2 := types.NewKVStoreKey("store2")
+	dup1 := types.NewKVStoreKey("store1")
 
-	require.NotPanics(t, func() { store.MountStoreWithDB(key1, StoreTypeIAVL, db) })
-	require.NotPanics(t, func() { store.MountStoreWithDB(key2, StoreTypeIAVL, db) })
+	require.NotPanics(t, func() { store.MountStoreWithDB(key1, types.StoreTypeIAVL, db) })
+	require.NotPanics(t, func() { store.MountStoreWithDB(key2, types.StoreTypeIAVL, db) })
 
-	require.Panics(t, func() { store.MountStoreWithDB(key1, StoreTypeIAVL, db) })
-	require.Panics(t, func() { store.MountStoreWithDB(dup1, StoreTypeIAVL, db) })
+	require.Panics(t, func() { store.MountStoreWithDB(key1, types.StoreTypeIAVL, db) })
+	require.Panics(t, func() { store.MountStoreWithDB(dup1, types.StoreTypeIAVL, db) })
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
@@ -45,7 +47,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	require.Nil(t, err)
 
 	// New store has empty last commit.
-	commitID := CommitID{}
+	commitID := types.CommitID{}
 	checkStore(t, store, commitID, commitID)
 
 	// Make sure we can get stores by name.
@@ -136,11 +138,11 @@ func TestMultiStoreQuery(t *testing.T) {
 	require.Nil(t, garbage)
 
 	// Set and commit data in one store.
-	store1 := multi.getStoreByName("store1").(KVStore)
+	store1 := multi.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
 
 	// ... and another.
-	store2 := multi.getStoreByName("store2").(KVStore)
+	store2 := multi.getStoreByName("store2").(types.KVStore)
 	store2.Set(k2, v2)
 
 	// Commit the multistore.
@@ -155,68 +157,69 @@ func TestMultiStoreQuery(t *testing.T) {
 	// Test bad path.
 	query := abci.RequestQuery{Path: "/key", Data: k, Height: ver}
 	qres := multi.Query(query)
-	require.EqualValues(t, sdk.CodeUnknownRequest, qres.Code)
-	require.EqualValues(t, sdk.CodespaceRoot, qres.Codespace)
+	require.EqualValues(t, errors.CodeUnknownRequest, qres.Code)
+	require.EqualValues(t, errors.CodespaceRoot, qres.Codespace)
 
 	query.Path = "h897fy32890rf63296r92"
 	qres = multi.Query(query)
-	require.EqualValues(t, sdk.CodeUnknownRequest, qres.Code)
-	require.EqualValues(t, sdk.CodespaceRoot, qres.Codespace)
+	require.EqualValues(t, errors.CodeUnknownRequest, qres.Code)
+	require.EqualValues(t, errors.CodespaceRoot, qres.Codespace)
 
 	// Test invalid store name.
 	query.Path = "/garbage/key"
 	qres = multi.Query(query)
-	require.EqualValues(t, sdk.CodeUnknownRequest, qres.Code)
-	require.EqualValues(t, sdk.CodespaceRoot, qres.Codespace)
+	require.EqualValues(t, errors.CodeUnknownRequest, qres.Code)
+	require.EqualValues(t, errors.CodespaceRoot, qres.Codespace)
 
 	// Test valid query with data.
 	query.Path = "/store1/key"
 	qres = multi.Query(query)
-	require.EqualValues(t, sdk.CodeOK, qres.Code)
+	require.EqualValues(t, errors.CodeOK, qres.Code)
 	require.Equal(t, v, qres.Value)
 
 	// Test valid but empty query.
 	query.Path = "/store2/key"
 	query.Prove = true
 	qres = multi.Query(query)
-	require.EqualValues(t, sdk.CodeOK, qres.Code)
+	require.EqualValues(t, errors.CodeOK, qres.Code)
 	require.Nil(t, qres.Value)
 
 	// Test store2 data.
 	query.Data = k2
 	qres = multi.Query(query)
-	require.EqualValues(t, sdk.CodeOK, qres.Code)
+	require.EqualValues(t, errors.CodeOK, qres.Code)
 	require.Equal(t, v2, qres.Value)
 }
 
 //-----------------------------------------------------------------------
 // utils
 
-func newMultiStoreWithMounts(db dbm.DB) *baseMultiStore {
-	store := NewCommitMultiStore(db)
+func newMultiStoreWithMounts(db dbm.DB) *Store {
+	store := NewStore(db)
+	store.pruningOpts = types.PruneSyncable
 	store.MountStoreWithDB(
-		NewKVStoreKey("store1"), StoreTypeIAVL, nil)
+		types.NewKVStoreKey("store1"), types.StoreTypeIAVL, nil)
 	store.MountStoreWithDB(
-		NewKVStoreKey("store2"), StoreTypeIAVL, nil)
+		types.NewKVStoreKey("store2"), types.StoreTypeIAVL, nil)
 	store.MountStoreWithDB(
-		NewKVStoreKey("store3"), StoreTypeIAVL, nil)
+		types.NewKVStoreKey("store3"), types.StoreTypeIAVL, nil)
 	return store
 }
 
-func checkStore(t *testing.T, store *baseMultiStore, expect, got CommitID) {
+func checkStore(t *testing.T, store *Store, expect, got types.CommitID) {
 	require.Equal(t, expect, got)
 	require.Equal(t, expect, store.LastCommitID())
 
 }
 
-func getExpectedCommitID(store *baseMultiStore, ver int64) CommitID {
-	return CommitID{
+func getExpectedCommitID(store *Store, ver int64) types.CommitID {
+	return types.CommitID{
 		Version: ver,
 		Hash:    hashStores(store.stores),
 	}
 }
 
-func hashStores(stores map[StoreKey]CommitStore) []byte {
+func hashStores(stores map[types.StoreKey]types.CommitStore) []byte {
 	m := make(map[string][]byte, len(stores))
 	for key, store := range stores {
 		name := key.Name()

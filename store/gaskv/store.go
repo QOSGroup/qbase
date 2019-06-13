@@ -1,25 +1,25 @@
-package store
+package gaskv
 
 import (
 	"io"
 
-	"github.com/QOSGroup/qbase/types"
+	"github.com/QOSGroup/qbase/store/types"
 )
 
-var _ KVStore = &gasKVStore{}
+var _ types.KVStore = &Store{}
 
-// gasKVStore applies gas tracking to an underlying KVStore. It implements the
+// Store applies gas tracking to an underlying KVStore. It implements the
 // KVStore interface.
-type gasKVStore struct {
+type Store struct {
 	gasMeter  types.GasMeter
 	gasConfig types.GasConfig
-	parent    KVStore
+	parent    types.KVStore
 }
 
-// NewGasKVStore returns a reference to a new GasKVStore.
+// NewStore returns a reference to a new GasKVStore.
 // nolint
-func NewGasKVStore(gasMeter types.GasMeter, gasConfig types.GasConfig, parent KVStore) *gasKVStore {
-	kvs := &gasKVStore{
+func NewStore(parent types.KVStore, gasMeter types.GasMeter, gasConfig types.GasConfig) *Store {
+	kvs := &Store{
 		gasMeter:  gasMeter,
 		gasConfig: gasConfig,
 		parent:    parent,
@@ -28,12 +28,12 @@ func NewGasKVStore(gasMeter types.GasMeter, gasConfig types.GasConfig, parent KV
 }
 
 // Implements Store.
-func (gs *gasKVStore) GetStoreType() StoreType {
+func (gs *Store) GetStoreType() types.StoreType {
 	return gs.parent.GetStoreType()
 }
 
 // Implements KVStore.
-func (gs *gasKVStore) Get(key []byte) (value []byte) {
+func (gs *Store) Get(key []byte) (value []byte) {
 	gs.gasMeter.ConsumeGas(gs.gasConfig.ReadCostFlat, types.GasReadCostFlatDesc)
 	value = gs.parent.Get(key)
 
@@ -44,7 +44,8 @@ func (gs *gasKVStore) Get(key []byte) (value []byte) {
 }
 
 // Implements KVStore.
-func (gs *gasKVStore) Set(key []byte, value []byte) {
+func (gs *Store) Set(key []byte, value []byte) {
+	types.AssertValidValue(value)
 	gs.gasMeter.ConsumeGas(gs.gasConfig.WriteCostFlat, types.GasWriteCostFlatDesc)
 	// TODO overflow-safe math?
 	gs.gasMeter.ConsumeGas(gs.gasConfig.WriteCostPerByte*types.Gas(len(value)), types.GasWritePerByteDesc)
@@ -52,37 +53,22 @@ func (gs *gasKVStore) Set(key []byte, value []byte) {
 }
 
 // Implements KVStore.
-func (gs *gasKVStore) Has(key []byte) bool {
+func (gs *Store) Has(key []byte) bool {
 	gs.gasMeter.ConsumeGas(gs.gasConfig.HasCost, types.GasHasDesc)
 	return gs.parent.Has(key)
 }
 
 // Implements KVStore.
-func (gs *gasKVStore) Delete(key []byte) {
+func (gs *Store) Delete(key []byte) {
 	// charge gas to prevent certain attack vectors even though space is being freed
 	gs.gasMeter.ConsumeGas(gs.gasConfig.DeleteCost, types.GasDeleteDesc)
 	gs.parent.Delete(key)
 }
 
-// Implements KVStore
-func (gs *gasKVStore) Prefix(prefix []byte) KVStore {
-	// Keep gasstore layer at the top
-	return &gasKVStore{
-		gasMeter:  gs.gasMeter,
-		gasConfig: gs.gasConfig,
-		parent:    prefixStore{gs.parent, prefix},
-	}
-}
-
-// Implements KVStore
-func (gs *gasKVStore) Gas(meter types.GasMeter, config types.GasConfig) KVStore {
-	return NewGasKVStore(meter, config, gs)
-}
-
 // Iterator implements the KVStore interface. It returns an iterator which
 // incurs a flat gas cost for seeking to the first key/value pair and a variable
 // gas cost based on the current value's length if the iterator is valid.
-func (gs *gasKVStore) Iterator(start, end []byte) Iterator {
+func (gs *Store) Iterator(start, end []byte) types.Iterator {
 	return gs.iterator(start, end, true)
 }
 
@@ -90,22 +76,22 @@ func (gs *gasKVStore) Iterator(start, end []byte) Iterator {
 // iterator which incurs a flat gas cost for seeking to the first key/value pair
 // and a variable gas cost based on the current value's length if the iterator
 // is valid.
-func (gs *gasKVStore) ReverseIterator(start, end []byte) Iterator {
+func (gs *Store) ReverseIterator(start, end []byte) types.Iterator {
 	return gs.iterator(start, end, false)
 }
 
 // Implements KVStore.
-func (gs *gasKVStore) CacheWrap() CacheWrap {
+func (gs *Store) CacheWrap() types.CacheWrap {
 	panic("cannot CacheWrap a GasKVStore")
 }
 
 // CacheWrapWithTrace implements the KVStore interface.
-func (gs *gasKVStore) CacheWrapWithTrace(_ io.Writer, _ TraceContext) CacheWrap {
+func (gs *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
 	panic("cannot CacheWrapWithTrace a GasKVStore")
 }
 
-func (gs *gasKVStore) iterator(start, end []byte, ascending bool) Iterator {
-	var parent Iterator
+func (gs *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	var parent types.Iterator
 	if ascending {
 		parent = gs.parent.Iterator(start, end)
 	} else {
@@ -123,10 +109,10 @@ func (gs *gasKVStore) iterator(start, end []byte, ascending bool) Iterator {
 type gasIterator struct {
 	gasMeter  types.GasMeter
 	gasConfig types.GasConfig
-	parent    Iterator
+	parent    types.Iterator
 }
 
-func newGasIterator(gasMeter types.GasMeter, gasConfig types.GasConfig, parent Iterator) Iterator {
+func newGasIterator(gasMeter types.GasMeter, gasConfig types.GasConfig, parent types.Iterator) types.Iterator {
 	return &gasIterator{
 		gasMeter:  gasMeter,
 		gasConfig: gasConfig,
@@ -179,6 +165,7 @@ func (gi *gasIterator) Close() {
 func (gi *gasIterator) consumeSeekGas() {
 	value := gi.Value()
 
-	gi.gasMeter.ConsumeGas(gi.gasConfig.ValueCostPerByte*types.Gas(len(value)), types.GasValuePerByteDesc)
+	gi.gasMeter.ConsumeGas(gi.gasConfig.ReadCostPerByte*types.Gas(len(value)), types.GasValuePerByteDesc)
 	gi.gasMeter.ConsumeGas(gi.gasConfig.IterNextCostFlat, types.GasIterNextCostFlatDesc)
+
 }

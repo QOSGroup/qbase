@@ -29,7 +29,7 @@ func searchTxCmd(cdc *go_amino.Codec) *cobra.Command {
 Search for all transactions that match the given tags.
 
 		example:
-$ basecli txs --tag test1,test2
+$ basecli txs --tag "key1='value1',key2='value2'"
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tags := viper.GetStringSlice(flagTags)

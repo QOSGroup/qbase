@@ -1,5 +1,7 @@
 package types
 
+import "math"
+
 // Gas consumption descriptors.
 const (
 	GasIterNextCostFlatDesc = "IterNextFlat"
@@ -69,11 +71,20 @@ func (g *basicGasMeter) GasConsumedToLimit() Gas {
 	return g.consumed
 }
 
+// addUint64Overflow performs the addition operation on two uint64 integers and
+// returns a boolean on whether or not the result overflows.
+func addUint64Overflow(a, b uint64) (uint64, bool) {
+	if math.MaxUint64-a < b {
+		return 0, true
+	}
+
+	return a + b, false
+}
+
 func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
-
 	// TODO: Should we set the consumed field after overflow checking?
-	g.consumed, overflow = AddUint64Overflow(g.consumed, amount)
+	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
 	}
@@ -81,6 +92,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
 	}
+
 }
 
 func (g *basicGasMeter) IsPastLimit() bool {
@@ -116,9 +128,8 @@ func (g *infiniteGasMeter) Limit() Gas {
 
 func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
-
 	// TODO: Should we set the consumed field after overflow checking?
-	g.consumed, overflow = AddUint64Overflow(g.consumed, amount)
+	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
 	}
@@ -140,21 +151,19 @@ type GasConfig struct {
 	ReadCostPerByte  Gas
 	WriteCostFlat    Gas
 	WriteCostPerByte Gas
-	ValueCostPerByte Gas
 	IterNextCostFlat Gas
 }
 
 // KVGasConfig returns a default gas config for KVStores.
 func KVGasConfig() GasConfig {
 	return GasConfig{
-		HasCost:          10,
-		DeleteCost:       10,
-		ReadCostFlat:     10,
-		ReadCostPerByte:  1,
-		WriteCostFlat:    10,
-		WriteCostPerByte: 10,
-		ValueCostPerByte: 1,
-		IterNextCostFlat: 15,
+		HasCost:          1000,
+		DeleteCost:       1000,
+		ReadCostFlat:     1000,
+		ReadCostPerByte:  3,
+		WriteCostFlat:    2000,
+		WriteCostPerByte: 30,
+		IterNextCostFlat: 30,
 	}
 }
 

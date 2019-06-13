@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/QOSGroup/qbase/mapper"
-	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/types"
 	go_amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
@@ -70,7 +69,7 @@ func (mapper *AccountMapper) SetAccount(acc Account) {
 
 // 遍历并用闭包批量处理所存储的全部账户
 func (mapper *AccountMapper) IterateAccounts(process func(Account) (stop bool)) {
-	iter := store.KVStorePrefixIterator(mapper.GetStore(), []byte(accountStoreKey))
+	iter := types.KVStorePrefixIterator(mapper.GetStore(), []byte(accountStoreKey))
 	for {
 		if !iter.Valid() {
 			return
