@@ -161,9 +161,9 @@ const (
 	contextKeyBlockGasMeter
 	contextKeyMinimumFees
 	//增加特定的context key
-	contextKeyBlockTxIndex        // tx在block中的索引
-	contextKeyTxQcpResultHandler  //处理TxQcpResult回调函数
-	contextKeyRegisteredMapper    //注册的mapper
+	contextKeyBlockTxIndex       // tx在block中的索引
+	contextKeyTxQcpResultHandler //处理TxQcpResult回调函数
+	contextKeyRegisteredMapper   //注册的mapper
 	contextKeyCurrentRegisteredMapper
 )
 
