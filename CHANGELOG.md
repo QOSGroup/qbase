@@ -12,6 +12,9 @@
 * [gas] gas handler return exact gasused
 * [tendermint]tendermint 版本升级至0.31.5
 
+**BREAKING CHANGES**
+* [store] store代码重构
+
 ## v0.1.0
 2019.02.20
 
