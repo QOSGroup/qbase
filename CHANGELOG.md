@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.0
+2019.06.13
+
+**FEATURES**
+* [baseapp] qbase增加支持validator变更功能
+* [tx] TxStd支持多个ITx
+
+**IMPROVEMENTS**
+* [mapper] basemapper增加iterator辅助方法
+* [gas] gas handler return exact gasused
+* [tendermint]tendermint 版本升级至0.31.5
+
 ## v0.1.0
 2019.02.20
 
