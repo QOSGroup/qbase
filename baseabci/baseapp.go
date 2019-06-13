@@ -755,13 +755,6 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 		result.GasUsed = gasUsed
 	}
 
-	if app.gasHandler != nil {
-		err := app.gasHandler(runCtx, tx.ITx.GetGasPayer())
-		if err != nil {
-			result = err.Result()
-		}
-	}
-
 	if result.IsOK() {
 		msCache.Write()
 	}

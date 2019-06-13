@@ -131,44 +131,6 @@ func (baseMapper *BaseMapper) IteratorWithType(prefix []byte, reflectType reflec
 
 }
 
-func (baseMapper *BaseMapper) IteratorWithKV(prefix []byte, process func(key []byte, value []byte) (stop bool)) {
-	iter := baseMapper.GetStore().Iterator(prefix, store.PrefixEndBytes(prefix))
-	defer iter.Close()
-
-	for {
-		if !iter.Valid() {
-			return
-		}
-		if process(iter.Key(), iter.Value()) {
-			return
-		}
-		iter.Next()
-	}
-}
-
-func (baseMapper *BaseMapper) IteratorWithType(prefix []byte, reflectType reflect.Type, process func(key []byte, dataPtr interface{}) (stop bool)) {
-
-	endPrefix := store.PrefixEndBytes(prefix)
-	iter := baseMapper.GetStore().Iterator(prefix, endPrefix)
-	defer iter.Close()
-
-	for {
-		if !iter.Valid() {
-			return
-		}
-
-		vv := reflect.New(reflectType)
-		baseMapper.DecodeObject(iter.Value(), vv.Interface())
-
-		if process(iter.Key(), vv.Interface()) {
-			return
-		}
-
-		iter.Next()
-	}
-
-}
-
 func (baseMapper *BaseMapper) IteratorWithEnd(start []byte, end []byte, process func(needDecodeBytes []byte) (stop bool)) {
 	iter := baseMapper.GetStore().Iterator(start, end)
 	defer iter.Close()
