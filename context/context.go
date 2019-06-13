@@ -3,10 +3,11 @@ package context
 
 import (
 	"context"
-	"github.com/QOSGroup/qbase/store/gaskv"
-	storetypes "github.com/QOSGroup/qbase/store/types"
 	"sync"
 	"time"
+
+	"github.com/QOSGroup/qbase/store/gaskv"
+	storetypes "github.com/QOSGroup/qbase/store/types"
 
 	"github.com/QOSGroup/qbase/mapper"
 

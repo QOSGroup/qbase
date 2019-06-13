@@ -759,6 +759,8 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 		msCache.Write()
 	}
 
+	newctx.WithGasMeter(runCtx.GasMeter())
+
 	return
 }
 

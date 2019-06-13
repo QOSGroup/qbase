@@ -1,8 +1,9 @@
 package mapper
 
 import (
-	"github.com/QOSGroup/qbase/types"
 	"reflect"
+
+	"github.com/QOSGroup/qbase/types"
 
 	"github.com/QOSGroup/qbase/store"
 	go_amino "github.com/tendermint/go-amino"
