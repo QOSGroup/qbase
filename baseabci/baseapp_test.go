@@ -3,15 +3,16 @@ package baseabci
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"testing"
+
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/store"
 	"github.com/QOSGroup/qbase/txs"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/stretchr/testify/require"
-	"math/rand"
-	"os"
-	"testing"
 
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -417,6 +418,11 @@ func TestCrossStdTx(t *testing.T) {
 
 	for i, stdTxBz := range txss {
 		res := app.DeliverTx(stdTxBz)
+
+		for _, p := range res.GetTags() {
+			fmt.Println(string(p.GetKey()), string(p.GetValue()))
+		}
+
 		if i >= 5 {
 			require.NotEqual(t, uint32(0), uint32(res.Code))
 		} else {

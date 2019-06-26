@@ -742,7 +742,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, txQcp.From).
 				AppendTag(qcp.QcpTo, txQcp.To).
 				AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
-				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
+				AppendTags(types.NewTags(qcp.QcpHash, qcp.GenQcpTxHash(txQcp)))
 		}
 	}
 
@@ -824,7 +824,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 			txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
 			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
-				AppendTags(types.NewTags(qcp.QcpHash, crypto.Sha256(txQcp.BuildSignatureBytes())))
+				AppendTags(types.NewTags(qcp.QcpHash, qcp.GenQcpTxHash(txQcp)))
 		}
 
 	}()
