@@ -25,8 +25,9 @@ type Result struct {
 	FeeAmount int64
 	FeeDenom  string
 
-	// Tags are used for transaction indexing and pubsub.
-	Tags Tags
+	// Events contains a slice of Event objects that were emitted during some
+	// execution.
+	Events Events
 }
 
 // TODO: In the future, more codes may be OK.

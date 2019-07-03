@@ -3,16 +3,15 @@ package baseabci
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"runtime/debug"
-	"strconv"
-	"strings"
-
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/consensus"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/version"
+	"io"
+	"runtime/debug"
+	"strconv"
+	"strings"
 
 	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/store"
@@ -382,17 +381,17 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // first decoding, then the ante handler (which checks signatures/fees/ValidateBasic),
 // then finally the route match to see whether a handler exists. CheckTx does not run the actual
 // Msg handler function(s).
-func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result types.Result
-	var tx, err = types.DecoderTx(app.cdc, txBytes)
+	var tx, err = types.DecoderTx(app.cdc, req.Tx)
 
 	if err != nil {
 		return toResponseCheckTx(err.Result())
 	}
 
 	// 初始化context相关数据
-	ctx := app.checkState.ctx.WithTxBytes(txBytes)
+	ctx := app.checkState.ctx.WithTxBytes(req.Tx)
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
 		ctx = setGasMeter(ctx, implTx)
@@ -414,7 +413,7 @@ func toResponseCheckTx(result types.Result) abci.ResponseCheckTx {
 		Log:       result.Log,
 		GasWanted: int64(result.GasWanted),
 		GasUsed:   int64(result.GasUsed),
-		Tags:      result.Tags,
+		Events:    result.Events.ToABCIEvents(),
 	}
 }
 
@@ -615,7 +614,7 @@ func (app *BaseApp) validateTxQcpSignature(ctx ctx.Context, qcpTx *txs.TxQcp) (r
 }
 
 // Implements ABCI
-func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
+func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	//deliverTx处理tx时，设置tx index
 	lastBlockTxIndex := app.deliverState.ctx.BlockTxIndex()
@@ -623,14 +622,14 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	// Decode the Tx.
 	var result types.Result
-	var tx, err = types.DecoderTx(app.cdc, txBytes)
+	var tx, err = types.DecoderTx(app.cdc, req.Tx)
 	if err != nil {
 		result = err.Result()
 		return toResponseDeliverTx(result)
 	}
 
 	//初始化context相关数据
-	ctx := app.deliverState.ctx.WithTxBytes(txBytes).WithVoteInfos(app.voteInfos)
+	ctx := app.deliverState.ctx.WithTxBytes(req.Tx).WithVoteInfos(app.voteInfos)
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
@@ -655,7 +654,7 @@ func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 		Log:       result.Log,
 		GasWanted: int64(result.GasWanted),
 		GasUsed:   int64(result.GasUsed),
-		Tags:      result.Tags,
+		Events:    result.Events.ToABCIEvents(),
 	}
 }
 
@@ -739,10 +738,16 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 
 		if crossTxQcp != nil {
 			txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, txQcp.From).
-				AppendTag(qcp.QcpTo, txQcp.To).
-				AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
-				AppendTags(types.NewTags(qcp.QcpHash, qcp.GenQcpTxHash(txQcp)))
+			result.Events = result.Events.AppendEvents(types.Events{
+				types.NewEvent(
+					types.EventTypeMessage,
+					types.NewAttribute(types.AttributeKeyModule, qcp.EventModule),
+					types.NewAttribute(qcp.From, ctx.ChainID()),
+					types.NewAttribute(qcp.To, txQcp.To),
+					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
+					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+				),
+			})
 		}
 	}
 
@@ -809,12 +814,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 
 		//6. txQcp不为result 且 result为txStd的执行结果时， 保存执行结果
 		if !tx.IsResult {
-			result.Tags = result.Tags.AppendTag(qcp.QcpFrom, ctx.ChainID()).
-				AppendTag(qcp.QcpTo, tx.From)
-
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
-			txQcpResult.Result.Tags = result.Tags
 			txStd := txs.NewTxStd(txQcpResult, tx.From, types.ZeroInt())
 
 			crossTxQcp := &txs.TxQcp{
@@ -823,8 +824,16 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 			}
 
 			txQcp := saveCrossChainResult(ctx, crossTxQcp, true, nil)
-			result.Tags = result.Tags.AppendTag(qcp.QcpSequence, strconv.FormatInt(txQcp.Sequence, 10)).
-				AppendTags(types.NewTags(qcp.QcpHash, qcp.GenQcpTxHash(txQcp)))
+
+			result.Events = result.Events.AppendEvents(types.Events{
+				types.NewEvent(
+					types.EventTypeMessage,
+					types.NewAttribute(types.AttributeKeyModule, qcp.EventModule),
+					types.NewAttribute(qcp.To, tx.From),
+					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
+					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+				),
+			})
 		}
 
 	}()

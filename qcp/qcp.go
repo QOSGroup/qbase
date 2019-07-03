@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	QcpFrom     = "qcp.from"
-	QcpTo       = "qcp.to"
-	QcpSequence = "qcp.sequence"
-	QcpHash     = "qcp.hash"
+	EventModule = "qcp"
+	From        = "qcp-from"
+	To          = "qcp-to"
+	Sequence    = "qcp-sequence"
+	Hash        = "qcp-hash"
 )
 
 func GenQcpTxHash(tx *txs.TxQcp) string {

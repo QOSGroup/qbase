@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/QOSGroup/qbase/baseabci"
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
@@ -105,9 +104,15 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	}
 	mapper.SetAccount(toAccount)
 
-	result.Tags = btypes.NewTags(btypes.TagAction, types.TagActionSend,
-		types.TagSender, fromAcc.GetAddress().String(),
-		types.TagReceiver, toAcc.GetAddress().String())
+	result.Events = result.Events.AppendEvents(btypes.Events{
+		btypes.NewEvent(
+			btypes.EventTypeMessage,
+			btypes.NewAttribute(btypes.EventTypeMessage, types.EventActionSend),
+			btypes.NewAttribute(types.AttributeKeySender, fromAcc.GetAddress().String()),
+			btypes.NewAttribute(types.AttributeKeyReceiver, toAcc.GetAddress().String()),
+		),
+	})
+
 	return
 }
 
