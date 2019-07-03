@@ -166,6 +166,7 @@ const (
 	contextKeyTxQcpResultHandler //处理TxQcpResult回调函数
 	contextKeyRegisteredMapper   //注册的mapper
 	contextKeyCurrentRegisteredMapper
+	contextKeyEventManager
 )
 
 //ContextKeySigners 用于保存tx中签名的账户
@@ -314,6 +315,12 @@ func (c Context) WithTxQcpResultHandler(txQcpResultHandler func(ctx Context, itx
 func (c Context) ResetBlockTxIndex() Context {
 	return c.withValue(contextKeyBlockTxIndex, int64(-1))
 }
+
+func (c Context) WithEventManager(em *types.EventManager) Context {
+	return c.WithValue(contextKeyEventManager, em)
+}
+
+func (c Context) EventManager() *types.EventManager { return c.Value(contextKeyEventManager).(*types.EventManager) }
 
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.

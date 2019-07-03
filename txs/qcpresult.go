@@ -82,7 +82,10 @@ func (tx *QcpTxResult) GetGasPayer() types.Address {
 func (tx *QcpTxResult) GetSignData() []byte {
 	ret := types.Int2Byte(int64(tx.Result.Code))
 	ret = append(ret, tx.Result.Data...)
-	ret = append(ret, Extends2Byte(tx.Result.Tags)...)
+	for _, event := range tx.Result.Events{
+		ret = append(ret, []byte(event.Type)...)
+		ret = append(ret, []byte(Extends2Byte(event.Attributes))...)
+	}
 	ret = append(ret, types.Int2Byte(int64(tx.Result.GasUsed))...)
 	ret = append(ret, types.Int2Byte(tx.QcpOriginalSequence)...)
 	ret = append(ret, []byte(tx.QcpOriginalExtends)...)
