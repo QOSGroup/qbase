@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"math"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -148,8 +149,8 @@ func BuildAndSignStdTx(ctx context.CLIContext, tXs []txs.ITx, fromChainID, toCha
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
 	maxGas := viper.GetInt64(cflags.FlagMaxGas)
-	if maxGas < 0 {
-		return nil, errors.New("max-gas flag not correct")
+	if maxGas <= 0 {
+		maxGas = math.MaxUint64 / 2
 	}
 
 	txStd := txs.NewTxsStd(toChainID, types.NewInt(maxGas), tXs...)
