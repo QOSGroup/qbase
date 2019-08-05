@@ -161,13 +161,11 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 
 	//开启cache执行ITx.ValidateData，在ITx.ValidateData中做数据保存操作将被忽略
 	newCtx, _ := ctx.CacheContext()
-	execGas := types.ZeroInt()
 	for _, itx := range tx.ITxs {
 		itxErr := itx.ValidateData(newCtx)
 		if itxErr != nil {
 			return types.ErrInternal(fmt.Sprintf("TxStd's ITx ValidateData error:  %s", itxErr.Error()))
 		}
-		execGas = execGas.Add(itx.CalcGas())
 	}
 
 	if tx.ChainID == "" {
@@ -180,10 +178,6 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 
 	if tx.MaxGas.LT(types.ZeroInt()) {
 		return types.ErrInternal("TxStd's MaxGas is less than zero")
-	}
-
-	if tx.MaxGas.LT(execGas) {
-		return types.ErrInternal(fmt.Sprintf("TxStd's MaxGas is less than itx exec gas. expect: %s , actual: %s", tx.MaxGas, execGas))
 	}
 
 	return

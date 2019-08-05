@@ -394,10 +394,8 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) 
 	ctx := app.checkState.ctx.WithTxBytes(req.Tx)
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		ctx = setGasMeter(ctx, implTx)
 		result, _ = app.checkTxStd(ctx, implTx, "")
 	case *txs.TxQcp:
-		ctx = setGasMeter(ctx, implTx.TxStd)
 		result = app.checkTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
@@ -435,6 +433,8 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID 
 		result.GasUsed = ctx.GasMeter().GasConsumed()
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
+
+	ctx = setGasMeter(ctx, tx)
 
 	//1. 校验txStd基础信息
 	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
@@ -560,6 +560,8 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 	}()
 
+	ctx = setGasMeter(ctx, tx.TxStd)
+
 	//1. 校验txQcp基础数据
 	err := tx.ValidateBasicData(true, ctx.ChainID())
 	if err != nil {
@@ -633,10 +635,8 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliv
 
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
-		ctx = setGasMeter(ctx, implTx)
 		result = app.deliverTxStd(ctx, implTx, "")
 	case *txs.TxQcp:
-		ctx = setGasMeter(ctx, implTx.TxStd)
 		result = app.deliverTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
@@ -659,16 +659,19 @@ func toResponseDeliverTx(result types.Result) abci.ResponseDeliverTx {
 }
 
 func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
+	var gm types.GasMeter
 	if ctx.BlockHeight() == 0 {
-		return ctx.WithGasMeter(types.NewInfiniteGasMeter())
+		gm = types.NewInfiniteGasMeter()
+	} else {
+		gm = types.NewGasMeter(uint64(tx.MaxGas.Int64()))
 	}
-
 	txsGas := types.ZeroInt()
 	for _, itx := range tx.ITxs {
 		txsGas = txsGas.Add(itx.CalcGas())
 	}
+	gm.ConsumeGas(uint64(txsGas.Int64()), "sum of itxs' CalcGas")
 
-	return ctx.WithGasMeter(types.NewGasMeter(uint64(tx.MaxGas.Add(txsGas).Int64())))
+	return ctx.WithGasMeter(gm)
 }
 
 //deliverTxStd: deliverTx阶段对TxStd进行业务处理
@@ -690,6 +693,8 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 		}
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
+
+	ctx = setGasMeter(ctx, tx)
 
 	result, newctx := app.runTxStd(ctx, tx, txStdFromChainID)
 
@@ -837,6 +842,8 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		}
 
 	}()
+
+	ctx = setGasMeter(ctx, tx.TxStd)
 
 	result = app.checkTxQcp(ctx, tx)
 	if !result.IsOK() {
