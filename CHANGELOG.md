@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.2
+2019.08.23
+
+**IMPROVEMENTS**
+* [tendermint] update tendermint v0.32.0
+* [txs] update txs search
+
+**BUG FIXES**
+* [txs] fix max gas bug
+
+
 ## v0.2.0
 2019.06.13
 
