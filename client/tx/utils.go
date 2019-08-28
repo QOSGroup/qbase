@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"math"
+	"runtime/debug"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -46,7 +47,7 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
@@ -89,7 +90,7 @@ func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx t
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
