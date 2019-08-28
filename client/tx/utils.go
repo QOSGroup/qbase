@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"math"
+	"runtime/debug"
 
 	"github.com/spf13/viper"
 
@@ -48,7 +49,7 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
@@ -91,7 +92,7 @@ func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx t
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
