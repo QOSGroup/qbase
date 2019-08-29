@@ -40,10 +40,16 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 			onlyExportPubkey := viper.GetBool(flagPubkey)
 
 			if onlyExportPubkey {
+
+				pk := ""
+				if info.GetPubKey() != nil {
+					pk = types.MustAccPubKeyString(info.GetPubKey())
+				}
+
 				eInfo = exportInfo{
 					Name:    name,
 					Address: info.GetAddress(),
-					Pubkey:  info.GetPubKey(),
+					Pubkey:  pk,
 				}
 			} else {
 				passwd, err := GetPassphrase(ctx, name)
@@ -58,7 +64,7 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 				eInfo = exportInfo{
 					Name:    name,
 					Address: info.GetAddress(),
-					Pubkey:  priv.PubKey(),
+					Pubkey:  types.MustAccPubKeyString(priv.PubKey()),
 					Privkey: priv,
 				}
 			}
@@ -77,8 +83,8 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 }
 
 type exportInfo struct {
-	Name    string         `json:'name'`
-	Address types.Address  `json:"address"`
-	Pubkey  crypto.PubKey  `json:"pubkey"`
-	Privkey crypto.PrivKey `json:"privkey"`
+	Name    string           `json:'name'`
+	Address types.AccAddress `json:"address"`
+	Pubkey  string           `json:"pubkey"`
+	Privkey crypto.PrivKey   `json:"privkey"`
 }

@@ -19,7 +19,7 @@ var (
 
 func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) {
 	path := account.BuildAccountStoreQueryPath()
-	res, err := ctx.Query(string(path), account.AddressStoreKey(addr))
+	res, err := ctx.Query(string(path), account.AddressStoreKey(types.AccAddress(addr)))
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func GetAccount(ctx context.CLIContext, address []byte) (account.Account, error)
 
 func GetAccountFromBech32Addr(ctx context.CLIContext, bech32Addr string) (account.Account, error) {
 
-	addrBytes, err := types.GetAddrFromBech32(bech32Addr)
+	addrBytes, err := types.AccAddressFromBech32(bech32Addr)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s is not a valid bech32Addr", bech32Addr)
@@ -76,23 +76,44 @@ func IsAccountExists(ctx context.CLIContext, address []byte) bool {
 	return true
 }
 
-func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
+func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.AccAddress, error) {
 	value := viper.GetString(flag)
 	return GetAddrFromValue(ctx, value)
 }
 
-func GetAddrFromValue(ctx context.CLIContext, value string) (types.Address, error) {
-	if strings.HasPrefix(value, types.PREF_ADD) {
-		addr, err := types.GetAddrFromBech32(value)
+func GetAddrFromValue(ctx context.CLIContext, value string) (types.AccAddress, error) {
+	prefix := types.GetAddressConfig().GetBech32AccountAddrPrefix()
+	if strings.HasPrefix(value, prefix) {
+		addr, err := types.AccAddressFromBech32(value)
 		if err == nil {
 			return addr, nil
+		} else {
+			return types.AccAddress{}, fmt.Errorf("Address:%s is not a valid bech32 address. Error: %s", value, err.Error())
 		}
 	}
 
 	info, err := keys.GetKeyInfo(ctx, value)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Name:%s not exsits in current keybase. Error: %s", value, err.Error())
 	}
 
 	return info.GetAddress(), nil
+}
+
+func GetValidatorAddrFromFlag(ctx context.CLIContext, flag string) (types.ValAddress, error) {
+	value := viper.GetString(flag)
+	return GetValidatorAddrFromValue(ctx,value)
+}
+
+func GetValidatorAddrFromValue(ctx context.CLIContext, value string) (types.ValAddress, error) {
+	prefix := types.GetAddressConfig().GetBech32ValidatorAddrPrefix()
+
+	if strings.HasPrefix(value, prefix) {
+		addr, err := types.ValAddressFromBech32(value)
+		if err == nil {
+			return addr, nil
+		}
+	}
+
+	return types.ValAddress{}, fmt.Errorf("%s is not a validator address. it must start with %s", value, prefix)
 }

@@ -474,7 +474,7 @@ type Info interface {
 	// Public key
 	GetPubKey() crypto.PubKey
 	// Address
-	GetAddress() types.Address
+	GetAddress() types.AccAddress
 }
 
 var _ Info = &localInfo{}
@@ -509,8 +509,8 @@ func (i importInfo) GetPubKey() crypto.PubKey {
 	return i.PubKey
 }
 
-func (i importInfo) GetAddress() types.Address {
-	return i.PubKey.Address().Bytes()
+func (i importInfo) GetAddress() types.AccAddress {
+	return types.AccAddress(i.GetPubKey().Address().Bytes())
 }
 
 // localInfo is the public information about a locally stored key
@@ -540,8 +540,8 @@ func (i localInfo) GetPubKey() crypto.PubKey {
 	return i.PubKey
 }
 
-func (i localInfo) GetAddress() types.Address {
-	return i.PubKey.Address().Bytes()
+func (i localInfo) GetAddress() types.AccAddress {
+	return types.AccAddress(i.GetPubKey().Address().Bytes())
 }
 
 // offlineInfo is the public information about an offline key
@@ -569,8 +569,8 @@ func (i offlineInfo) GetPubKey() crypto.PubKey {
 	return i.PubKey
 }
 
-func (i offlineInfo) GetAddress() types.Address {
-	return i.PubKey.Address().Bytes()
+func (i offlineInfo) GetAddress() types.AccAddress {
+	return types.AccAddress(i.GetPubKey().Address().Bytes())
 }
 
 // encoding info

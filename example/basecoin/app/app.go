@@ -55,6 +55,7 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
+
 	return app
 }
 
@@ -82,7 +83,7 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	return abci.ResponseInitChain{}
 }
 
-func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) (gasUsed uint64, err btypes.Error) {
+func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.AccAddress) (gasUsed uint64, err btypes.Error) {
 	gasFeeUsed := int64(ctx.GasMeter().GasConsumed()) / gasPerUnitCost
 
 	if gasFeeUsed > 0 {

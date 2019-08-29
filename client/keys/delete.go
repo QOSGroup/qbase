@@ -37,7 +37,7 @@ func runDeleteCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) err
 
 	buf := utils.BufferStdin()
 	oldpass, err := utils.GetPassword(
-		"DANGER - enter password to permanently delete key:", buf)
+		"DANGER - enter password to permanently delete Key:", buf)
 	if err != nil {
 		return err
 	}
@@ -46,6 +46,6 @@ func runDeleteCmd(ctx context.CLIContext, cmd *cobra.Command, args []string) err
 	if err != nil {
 		return err
 	}
-	fmt.Println("Password deleted forever (uh oh!)")
+	fmt.Println("Key deleted forever (uh oh!)")
 	return nil
 }

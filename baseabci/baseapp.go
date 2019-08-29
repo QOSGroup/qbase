@@ -3,15 +3,16 @@ package baseabci
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"runtime/debug"
+	"strconv"
+	"strings"
+
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/consensus"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/version"
-	"io"
-	"runtime/debug"
-	"strconv"
-	"strings"
 
 	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/store"
@@ -368,7 +369,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	valMapper := validator.GetValidatorMapper(app.deliverState.ctx)
-	valMapper.SetLastBlockProposer(req.Header.GetProposerAddress())
+	valMapper.SetLastBlockProposer(types.ConsAddress(req.Header.GetProposerAddress()))
 	valMapper.ClearValidatorUpdateSet()
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
@@ -496,8 +497,8 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		signature := signatures[i]
 
 		if signature.Pubkey != nil {
-			pubkeyAddress := types.Address(signature.Pubkey.Address())
-			if !bytes.Equal(pubkeyAddress, acc.GetAddress()) {
+			pubkeyAddress := types.AccAddress(signature.Pubkey.Address().Bytes())
+			if !acc.GetAddress().Equals(pubkeyAddress) {
 				result = types.ErrInternal(fmt.Sprintf("invalid address. expect: %s, got: %s", acc.GetAddress(), pubkeyAddress)).Result()
 				return
 			}
@@ -509,7 +510,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 			return
 		}
 
-		if acc.GetPubicKey() == nil {
+		if acc.GetPublicKey() == nil {
 			if signature.Pubkey == nil {
 				result = types.ErrInternal("txstd's pubkey is nil in signature").Result()
 				return
@@ -522,7 +523,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 	for i := 0; i < len(signatures); i++ {
 		acc := signerAccount[i]
 		signature := signatures[i]
-		pubkey := acc.GetPubicKey()
+		pubkey := acc.GetPublicKey()
 		//1. 根据账户nonce及txStd源chainID生成signData
 		signBytes := tx.BuildSignatureBytes(acc.GetNonce()+1, qcpFromChainID)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {

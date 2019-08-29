@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
+
 	"math"
+
+	"github.com/spf13/viper"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -225,18 +227,18 @@ func signData(ctx context.CLIContext, name string, data []byte) ([]byte, crypto.
 
 	keybase, err := keys.GetKeyBase(ctx)
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
 	}
 
 	sig, pubkey, err := keybase.Sign(name, pass, data)
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Errorf("Sign data error.err:%s", err.Error()))
 	}
 
 	return sig, pubkey
 }
 
-func getSigners(ctx context.CLIContext, txSignerAddrs []types.Address) []string {
+func getSigners(ctx context.CLIContext, txSignerAddrs []types.AccAddress) []string {
 
 	var sortNames []string
 
@@ -244,12 +246,12 @@ func getSigners(ctx context.CLIContext, txSignerAddrs []types.Address) []string 
 
 		keybase, err := keys.GetKeyBase(ctx)
 		if err != nil {
-			panic(err.Error())
+			panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
 		}
 
 		info, err := keybase.GetByAddress(addr)
 		if err != nil {
-			panic(fmt.Sprintf("signer addr: %s not in current keybase. err:%s", addr, err.Error()))
+			panic(fmt.Sprintf("Signer addr: %s not in current keybase. err:%s", addr, err.Error()))
 		}
 
 		sortNames = append(sortNames, info.GetName())

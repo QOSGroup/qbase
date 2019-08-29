@@ -16,10 +16,10 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.Address) {
+func keyPubAddr() (crypto.PrivKey, crypto.PubKey, types.AccAddress) {
 	key := ed25519.GenPrivKey()
 	pub := key.PubKey()
-	addr := types.Address(pub.Address())
+	addr := types.AccAddress(pub.Address())
 	return key, pub, addr
 }
 
@@ -80,7 +80,7 @@ func TestValidatorMapper(t *testing.T) {
 	addr, _ := valMapper.GetLastBlockProposer()
 	require.Equal(t, true, addr.Empty())
 
-	addr = types.Address{12, 20, 32}
+	addr = types.ConsAddress{12, 20, 32}
 	valMapper.SetLastBlockProposer(addr)
 
 	addr, _ = valMapper.GetLastBlockProposer()

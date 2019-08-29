@@ -217,9 +217,6 @@ func TestTxQcpResult(t *testing.T) {
 			Result: types.Result{
 				Code:    code,
 				GasUsed: types.OneUint().Uint64(),
-				Tags: types.Tags{
-					types.MakeTag("key", "value"),
-				},
 			},
 			QcpOriginalSequence: int64(i),
 		}
@@ -235,7 +232,7 @@ func TestTxQcpResult(t *testing.T) {
 	}
 
 	for _, txQcpByte := range txQcpBytes {
-		res := app.CheckTx(txQcpByte)
+		res := app.CheckTx(abci.RequestCheckTx{Tx: txQcpByte})
 		require.Equal(t, int64(0), int64(res.Code))
 	}
 
@@ -243,7 +240,7 @@ func TestTxQcpResult(t *testing.T) {
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	for _, txQcpByte := range txQcpBytes {
-		app.DeliverTx(txQcpByte)
+		app.DeliverTx(abci.RequestDeliverTx{Tx: txQcpByte})
 	}
 
 	app.EndBlock(abci.RequestEndBlock{})
@@ -301,7 +298,7 @@ func TestTxQcp(t *testing.T) {
 	}
 
 	for _, txQcpByte := range txQcpBytes {
-		res := app.CheckTx(txQcpByte)
+		res := app.CheckTx(abci.RequestCheckTx{Tx: txQcpByte})
 		require.Equal(t, int64(0), int64(res.Code))
 	}
 
@@ -309,7 +306,7 @@ func TestTxQcp(t *testing.T) {
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	for _, txQcpByte := range txQcpBytes {
-		app.DeliverTx(txQcpByte)
+		app.DeliverTx(abci.RequestDeliverTx{Tx: txQcpByte})
 	}
 
 	app.EndBlock(abci.RequestEndBlock{})
@@ -403,7 +400,7 @@ func TestCrossStdTx(t *testing.T) {
 		stdTx := createTransformTxWithNoQcpTx(acc, pidAccount4, 1000)
 		stdTxBz, _ := app.GetCdc().MarshalBinaryBare(stdTx)
 
-		res := app.CheckTx(stdTxBz)
+		res := app.CheckTx(abci.RequestCheckTx{Tx: stdTxBz})
 		require.Equal(t, uint32(0), res.Code)
 
 		txss = append(txss, stdTxBz)
@@ -417,10 +414,10 @@ func TestCrossStdTx(t *testing.T) {
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	for i, stdTxBz := range txss {
-		res := app.DeliverTx(stdTxBz)
+		res := app.DeliverTx(abci.RequestDeliverTx{Tx: stdTxBz})
 
-		for _, p := range res.GetTags() {
-			fmt.Println(string(p.GetKey()), string(p.GetValue()))
+		for _, p := range res.GetEvents() {
+			fmt.Println(p)
 		}
 
 		if i >= 5 {
@@ -494,7 +491,7 @@ func TestStdTx(t *testing.T) {
 		stdTx := createTransformTxWithNoQcpTx(acc, pidAccount2, 1000)
 		stdTxBz, _ := app.GetCdc().MarshalBinaryBare(stdTx)
 
-		res := app.CheckTx(stdTxBz)
+		res := app.CheckTx(abci.RequestCheckTx{Tx: stdTxBz})
 		require.Equal(t, uint32(0), res.Code)
 
 		txs = append(txs, stdTxBz)
@@ -508,7 +505,7 @@ func TestStdTx(t *testing.T) {
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	for i, stdTxBz := range txs {
-		res := app.DeliverTx(stdTxBz)
+		res := app.DeliverTx(abci.RequestDeliverTx{Tx: stdTxBz})
 
 		if i >= 5 {
 			require.NotEqual(t, uint32(0), uint32(res.Code))
@@ -547,8 +544,8 @@ func TestStdTx(t *testing.T) {
 
 func createTransformTxWithNoQcpTx(from, to account.Account, amount int64) *txs.TxStd {
 	tx := &transferTx{
-		FromUsers: []types.Address{from.GetAddress()},
-		ToUsers:   []types.Address{to.GetAddress()},
+		FromUsers: []types.AccAddress{from.GetAddress()},
+		ToUsers:   []types.AccAddress{to.GetAddress()},
 		Amount:    amount,
 	}
 
@@ -574,7 +571,7 @@ func createAccount(id int64, money int64, ctx context.Context) account.Account {
 	privkey := ed25519.GenPrivKey()
 	accMapper := GetAccountMapper(ctx)
 
-	pubkeyAddress := types.Address(privkey.PubKey().Address())
+	pubkeyAddress := types.AccAddress(privkey.PubKey().Address().Bytes())
 
 	account := accMapper.NewAccountWithAddress(pubkeyAddress)
 
@@ -648,8 +645,8 @@ type testAccount struct {
 
 type transferTx struct {
 	Amount    int64
-	FromUsers []types.Address
-	ToUsers   []types.Address
+	FromUsers []types.AccAddress
+	ToUsers   []types.AccAddress
 }
 
 var _ txs.ITx = (*transferTx)(nil)
@@ -690,8 +687,8 @@ func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps
 
 		ttx := &transferTx{
 			Amount:    t.Amount,
-			FromUsers: []types.Address{from.AccountAddress},
-			ToUsers:   []types.Address{to.AccountAddress},
+			FromUsers: []types.AccAddress{from.AccountAddress},
+			ToUsers:   []types.AccAddress{to.AccountAddress},
 		}
 
 		crossTxQcps.TxStd = txs.NewTxStd(ttx, crossTxQcps.To, types.OneInt())
@@ -710,7 +707,7 @@ func (t *transferTx) Exec(ctx context.Context) (result types.Result, crossTxQcps
 	return
 }
 
-func (t *transferTx) GetSigner() []types.Address {
+func (t *transferTx) GetSigner() []types.AccAddress {
 	return t.FromUsers
 }
 
@@ -718,7 +715,7 @@ func (t *transferTx) CalcGas() types.BigInt {
 	return types.ZeroInt()
 }
 
-func (t *transferTx) GetGasPayer() types.Address {
+func (t *transferTx) GetGasPayer() types.AccAddress {
 	return t.FromUsers[0]
 }
 
@@ -727,11 +724,11 @@ func (t *transferTx) GetSignData() []byte {
 	signData = append(signData, types.Int2Byte(t.Amount)...)
 
 	for _, addr := range t.FromUsers {
-		signData = append(signData, []byte(addr)...)
+		signData = append(signData, addr.Bytes()...)
 	}
 
 	for _, addr := range t.ToUsers {
-		signData = append(signData, []byte(addr)...)
+		signData = append(signData, addr.Bytes()...)
 	}
 
 	return signData

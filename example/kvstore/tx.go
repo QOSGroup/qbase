@@ -58,7 +58,7 @@ func (kv KvstoreTx) Exec(ctx context.Context) (result types.Result, crossTxQcps 
 	return
 }
 
-func (kv KvstoreTx) GetSigner() []types.Address {
+func (kv KvstoreTx) GetSigner() []types.AccAddress {
 	return nil
 }
 
@@ -66,8 +66,8 @@ func (kv KvstoreTx) CalcGas() types.BigInt {
 	return types.ZeroInt()
 }
 
-func (kv KvstoreTx) GetGasPayer() types.Address {
-	return types.Address{}
+func (kv KvstoreTx) GetGasPayer() types.AccAddress {
+	return types.AccAddress{}
 }
 
 func (kv KvstoreTx) GetSignData() []byte {

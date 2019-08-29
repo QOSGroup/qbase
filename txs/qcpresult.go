@@ -62,7 +62,7 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 
 // 功能：获取签名者
 // 备注：qos对QcpTxResult不做签名，故返回空
-func (tx *QcpTxResult) GetSigner() []types.Address {
+func (tx *QcpTxResult) GetSigner() []types.AccAddress {
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (tx *QcpTxResult) CalcGas() types.BigInt {
 
 // 功能：获取gas付费人
 // 备注：返回空(因暂时gas为0，无人需要付gas)
-func (tx *QcpTxResult) GetGasPayer() types.Address {
+func (tx *QcpTxResult) GetGasPayer() types.AccAddress {
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (tx *QcpTxResult) GetGasPayer() types.Address {
 func (tx *QcpTxResult) GetSignData() []byte {
 	ret := types.Int2Byte(int64(tx.Result.Code))
 	ret = append(ret, tx.Result.Data...)
-	for _, event := range tx.Result.Events{
+	for _, event := range tx.Result.Events {
 		ret = append(ret, []byte(event.Type)...)
 		ret = append(ret, []byte(Extends2Byte(event.Attributes))...)
 	}
