@@ -55,11 +55,11 @@ func (mapper *ValidatorMapper) SetValidatorUpdateSet(allValidatorUpdate []abci.V
 	mapper.Set(ValidatorUpdateSetKey, allValidatorUpdate)
 }
 
-func (mapper *ValidatorMapper) SetLastBlockProposer(address types.Address) {
+func (mapper *ValidatorMapper) SetLastBlockProposer(address types.ConsAddress) {
 	mapper.Set(LastBlockProposerKey, address)
 }
 
-func (mapper *ValidatorMapper) GetLastBlockProposer() (address types.Address, exsits bool) {
+func (mapper *ValidatorMapper) GetLastBlockProposer() (address types.ConsAddress, exsits bool) {
 	exsits = mapper.Get(LastBlockProposerKey, &address)
 	return
 }

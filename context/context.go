@@ -232,7 +232,7 @@ func (c Context) WithBlockTime(newTime time.Time) Context {
 	return c.WithBlockHeader(newHeader)
 }
 
-func (c Context) WithProposer(addr types.Address) Context {
+func (c Context) WithProposer(addr types.ConsAddress) Context {
 	newHeader := c.BlockHeader()
 	newHeader.ProposerAddress = addr.Bytes()
 	return c.WithBlockHeader(newHeader)
@@ -320,7 +320,9 @@ func (c Context) WithEventManager(em *types.EventManager) Context {
 	return c.WithValue(contextKeyEventManager, em)
 }
 
-func (c Context) EventManager() *types.EventManager { return c.Value(contextKeyEventManager).(*types.EventManager) }
+func (c Context) EventManager() *types.EventManager {
+	return c.Value(contextKeyEventManager).(*types.EventManager)
+}
 
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.

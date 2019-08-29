@@ -42,7 +42,7 @@ func (mapper *AccountMapper) Copy() mapper.IMapper {
 }
 
 // 用指定地址生成账户返回
-func (mapper *AccountMapper) NewAccountWithAddress(add types.Address) Account {
+func (mapper *AccountMapper) NewAccountWithAddress(add types.AccAddress) Account {
 	acc := mapper.proto()
 	err := acc.SetAddress(add)
 	if err != nil {
@@ -52,12 +52,12 @@ func (mapper *AccountMapper) NewAccountWithAddress(add types.Address) Account {
 }
 
 // 将地址转换成存储通用的key
-func AddressStoreKey(addr types.Address) []byte {
+func AddressStoreKey(addr types.AccAddress) []byte {
 	return append([]byte(accountStoreKey), addr.Bytes()...)
 }
 
 // 从存储中获得账户
-func (mapper *AccountMapper) GetAccount(addr types.Address) (acc Account) {
+func (mapper *AccountMapper) GetAccount(addr types.AccAddress) (acc Account) {
 	mapper.Get(AddressStoreKey(addr), &acc)
 	return acc
 }
@@ -85,16 +85,16 @@ func (mapper *AccountMapper) IterateAccounts(process func(Account) (stop bool)) 
 }
 
 // 获取地址代表账户的公钥
-func (mapper *AccountMapper) GetPubKey(addr types.Address) (crypto.PubKey, types.Error) {
+func (mapper *AccountMapper) GetPubKey(addr types.AccAddress) (crypto.PubKey, types.Error) {
 	acc := mapper.GetAccount(addr)
 	if acc == nil {
 		return nil, types.ErrUnknownAddress(addr.String())
 	}
-	return acc.GetPubicKey(), nil
+	return acc.GetPublicKey(), nil
 }
 
 // 获取地址代表账户的nonce
-func (mapper *AccountMapper) GetNonce(addr types.Address) (int64, types.Error) {
+func (mapper *AccountMapper) GetNonce(addr types.AccAddress) (int64, types.Error) {
 	acc := mapper.GetAccount(addr)
 	if acc == nil {
 		return 0, types.ErrUnknownAddress(addr.String())
@@ -103,7 +103,7 @@ func (mapper *AccountMapper) GetNonce(addr types.Address) (int64, types.Error) {
 }
 
 // 为特定账户设置新的nonce值
-func (mapper *AccountMapper) SetNonce(addr types.Address, nonce int64) types.Error {
+func (mapper *AccountMapper) SetNonce(addr types.AccAddress, nonce int64) types.Error {
 	acc := mapper.GetAccount(addr)
 	if acc == nil {
 		return types.ErrUnknownAddress(addr.String())

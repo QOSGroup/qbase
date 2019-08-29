@@ -21,7 +21,7 @@ $ basecoind init --chain-id basecoin --moniker basecoin-node
 {
  "moniker": "basecoin-node",
  "chain_id": "basecoin",
- "node_id": "0048c2db694c91b2b3b272ec901cce0636d13ff3",
+ "node_id": "2227601e0dfb1561977bf5877a7f7de6357bc183",
  "gentxs_dir": "",
  "app_message": {
   "qcps": [
@@ -36,7 +36,7 @@ $ basecoind init --chain-id basecoin --moniker basecoin-node
   ],
   "accounts": [
    {
-    "address": "address1y0nwp6hmxm0g0zhvuglr2jdgglns8tsdctdre6",
+    "address": "basecoin1pv085zl4scejgs3ns9xumk4eg5jdxwj7ydq34e",
     "coins": [
      {
       "coin_name": "qstar",
@@ -47,9 +47,10 @@ $ basecoind init --chain-id basecoin --moniker basecoin-node
   ]
  }
 }
+
 ```
 
-命令执行完成后,配置文件初始化完成并创建了创世账户“address1y0nwp6hmxm0g0zhvuglr2jdgglns8tsdctdre6”.
+命令执行完成后,配置文件初始化完成并创建了创世账户“basecoin1pv085zl4scejgs3ns9xumk4eg5jdxwj7ydq34e”.
 
 > 配置文件默认目录为$HOME/.basecoind/config
 
@@ -66,11 +67,12 @@ $ basecli keys add Liu
 ```
 Enter a passphrase for your key:
 Repeat the passphrase:
-NAME:	TYPE:	ADDRESS:						PUBKEY:
-Liu	local	address1q55ay4hdv33uplvvxpq0j8r7lpxunx8ytsvgkn	PubKeyEd25519{8329335BCB2B26E6D6B26854B72C4722B8740AE70A4454A499468E08D16DD29C}
+NAME:   TYPE:   ADDRESS:                                                PUBKEY:
+Liu     local   basecoin1sgp03a7l0jcuzeue2tzrucdfe8f0k9vtg269me basecoinpub1zcjduepqmcegq0pzuw6uaw7v3swpaxlt0f58hpht2d65tvax4quk5r73amvsme39q8
 **Important** write this seed phrase in a safe place.
 It is the only way to recover your account if you ever forget your password.
-book distance cart design another view olympic orbit leopard indoor tumble dutch random feel glad brother obvious sweet unlock degree eyebrow south final rather
+
+damage glimpse badge immense fix tent rebel excess news want base stone toddler decide warfare engine juice balance swing cup candy title fruit deposit
 ```
 4. 启动basecoin app
 ```
@@ -82,22 +84,8 @@ $ basecli query account Jia
 ```
 
 ```
-{
-  "type": "basecoin/AppAccount",
-  "value": {
-    "base_account": {
-      "account_address": "address10ly5e3qz3v3xy84ha46dylnyuuq773exa8xcxz",
-      "public_key": null,
-      "nonce": "0"
-    },
-    "coins": [
-      {
-        "coin_name": "qstar",
-        "amount": "100000000"
-      }
-    ]
-  }
-}
+{"type":"basecoin/AppAccount","value":{"base_account":{"account_address":"basecoin1pv085zl4scejgs3ns9xumk4eg5jdxwj7ydq34e","public_key":null,"nonce":"0"},"coins":[{"coin_name":"qstar","amount"
+:"100000000"}]}}
 ```
 
 ```
@@ -117,7 +105,8 @@ $ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10
 
 ```
 Password to sign with 'Jia':
-{"check_tx":{},"deliver_tx":{},"hash":"0677BB2E156496064960ED759BFEDBE6D09A8282","height":"22"}
+{"check_tx":{"gasWanted":"100000","gasUsed":"6958"},"deliver_tx":{"gasWanted":"100000","gasUsed":"17000","tags":[{"key":"YWN0aW9u","value":"c2VuZA=="},{"key":"c2VuZGVy","value":"YmFzZWNvaW4xcH
+YwODV6bDRzY2VqZ3MzbnM5eHVtazRlZzVqZHh3ajd5ZHEzNGU="},{"key":"cmVjZWl2ZXI=","value":"YmFzZWNvaW4xc2dwMDNhN2wwamN1emV1ZTJ0enJ1Y2RmZThmMGs5dnRnMjY5bWU="}]},"hash":"B904250C76C38F573A601C0E3E0C31485732808B936DE27098F09E3BDD3A4F59","height":"13"}
 ```
 7. 查询账户信息
 ```
@@ -125,26 +114,8 @@ $ basecli query account Jia
 ```
 
 ```
-{
-  "type": "basecoin/AppAccount",
-  "value": {
-    "base_account": {
-      "account_address": "address10ly5e3qz3v3xy84ha46dylnyuuq773exa8xcxz",
-      "public_key": {
-        "type": "tendermint/PubKeyEd25519",
-        "value": "8i28U4DmFV+szuTNyzOpOurAXmN9dAuPzzsvTDNHx54="
-      },
-      "nonce": "1"
-    },
-    "coins": [
-      {
-        "coin_name": "qstar",
-        "amount": "99999990"
-      }
-    ]
-  }
-}
-
+{"type":"basecoin/AppAccount","value":{"base_account":{"account_address":"basecoin1pv085zl4scejgs3ns9xumk4eg5jdxwj7ydq34e","public_key":{"type":"tendermint/PubKeyEd25519","value":"Nj2Kib7eYTaK
+0cxUFTkNn8ZbopG13z4Q5Et5/3ncEjE="},"nonce":"1"},"coins":[{"coin_name":"qstar","amount":"99999973"}]}}
 ```
 
 ```
@@ -152,64 +123,24 @@ $ basecli query account Liu
 ```
 
 ```
-{
-  "type": "basecoin/AppAccount",
-  "value": {
-    "base_account": {
-      "account_address": "address10j7njmfrfmfe5myr2scv4e8qw62027jw0kgtfu",
-      "public_key": null,
-      "nonce": "0"
-    },
-    "coins": [
-      {
-        "coin_name": "qstar",
-        "amount": "10"
-      }
-    ]
-  }
-}
+{"type":"basecoin/AppAccount","value":{"base_account":{"account_address":"basecoin1sgp03a7l0jcuzeue2tzrucdfe8f0k9vtg269me","public_key":null,"nonce":"0"},"coins":[{"coin_name":"qstar","amount"
+:"10"}]}}
+
 ```
 
 8. 查询交易
 
 ```
-$ basecli tendermint tx 0677BB2E156496064960ED759BFEDBE6D09A8282
+$ basecli tendermint tx B904250C76C38F573A601C0E3E0C31485732808B936DE27098F09E3BDD3A4F59
 ```
 
 ```
-{
-  "hash": "Bne7LhVklgZJYO11m/7b5tCagoI=",
-  "height": "22",
-  "tx": {
-    "type": "qbase/txs/stdtx",
-    "value": {
-      "itx": {
-        "type": "basecoin/SendTx",
-        "value": {
-          "from": "address10ly5e3qz3v3xy84ha46dylnyuuq773exa8xcxz",
-          "to": "address10j7njmfrfmfe5myr2scv4e8qw62027jw0kgtfu",
-          "coin": {
-            "coin_name": "qstar",
-            "amount": "10"
-          }
-        }
-      },
-      "sigature": [
-        {
-          "pubkey": {
-            "type": "tendermint/PubKeyEd25519",
-            "value": "8i28U4DmFV+szuTNyzOpOurAXmN9dAuPzzsvTDNHx54="
-          },
-          "signature": "oRb4JAXgUexpBrDuu0Ez/K9cq63rvaQMA4reL/nbt2OhwUrdHT3KoIEt1bOR00G/oo+STI1QdoDs0z+NGevACA==",
-          "nonce": "1"
-        }
-      ],
-      "chainid": "test-chain-vHi9Q2",
-      "maxgas": "0"
-    }
-  },
-  "result": {}
-} <nil>
+{"hash":"b904250c76c38f573a601c0e3e0c31485732808b936de27098f09e3bdd3a4f59","height":"13","tx":{"type":"qbase/txs/stdtx","value":{"itx":[{"type":"basecoin/SendTx","value":{"from":"basecoin1pv08
+5zl4scejgs3ns9xumk4eg5jdxwj7ydq34e","to":"basecoin1sgp03a7l0jcuzeue2tzrucdfe8f0k9vtg269me","coin":{"coin_name":"qstar","amount":"10"}}}],"sigature":[{"pubkey":{"type":"tendermint/PubKeyEd25519
+","value":"Nj2Kib7eYTaK0cxUFTkNn8ZbopG13z4Q5Et5/3ncEjE="},"signature":"WIl4t4vOJVwRFfaVqg/2r/q1Y7lRr/T3LtcZcTMYCS3wv+H9w0rABxFiztvuNkyntBaKHz3R4NSZ2QkdXVI8DA==","nonce":"1"}],"chainid":"baseco
+in","maxgas":"100000"}},"result":{"gas_wanted":"100000","gas_used":"17000","tags":[{"key":"YWN0aW9u","value":"c2VuZA=="},{"key":"c2VuZGVy","value":"YmFzZWNvaW4xcHYwODV6bDRzY2VqZ3MzbnM5eHVtazRl
+ZzVqZHh3ajd5ZHEzNGU="},{"key":"cmVjZWl2ZXI=","value":"YmFzZWNvaW4xc2dwMDNhN2wwamN1emV1ZTJ0enJ1Y2RmZThmMGs5dnRnMjY5bWU="}]}}
+
 ```
 
 9. QCP交易</br>
@@ -237,9 +168,10 @@ $ basecli keys list
 
 ```
 NAME:	TYPE:	ADDRESS:						PUBKEY:
-Jia	local	address1eujfrs74cptw8pzwq25a30ecd6nk8d5l97474h	pDJBH9pMnPMwaEpnvX3bqCV2kPTZSSdv4S97p7gsGOw=
-Liu	local	address1q55ay4hdv33uplvvxpq0j8r7lpxunx8ytsvgkn	gykzW8srJubWsmhUtyxHIrh0CucKRFSkmUaOCNFt0pw=
-qcpsigner	import	address103eak408d4yp944wv58epp3neyah8z5dlwyzg4	ish2+qpPsoHxf7m+uwi8FOAWw6iMaDZgLKl1la4yMAs=
+Jia     local   basecoin1pv085zl4scejgs3ns9xumk4eg5jdxwj7ydq34e basecoinpub1zcjduepqxc7c4zd7mesndzk3e32p2wgdnlr9hg53kh0nuy8yfdul77wuzgcsqhgez8
+Liu     local   basecoin1sgp03a7l0jcuzeue2tzrucdfe8f0k9vtg269me basecoinpub1zcjduepqmcegq0pzuw6uaw7v3swpaxlt0f58hpht2d65tvax4quk5r73amvsme39q8
+qcpsigner       import  basecoin103eak408d4yp944wv58epp3neyah8z5d899xvx basecoinpub1zcjduepq3ty8d742f7egrutlhxltkz9uznspdsag335rvcpv496ett3jxq9stcdtnh
+
 ```
 
 
@@ -254,7 +186,8 @@ $ basecli tx send --from=Jia --to=Liu --coin-name=qstar --coin-amount=10 --qcp -
 Password to sign with 'Jia':
 > step 2. build and sign TxQcp
 Password to sign with 'qcpsigner':
-{"check_tx":{},"deliver_tx":{"tags":[{"key":"cWNwLmZyb20=","value":"dGVzdC1jaGFpbi01OGczSTU="},{"key":"cWNwLnRv","value":"cXN0YXI="},{"key":"cWNwLnNlcXVlbmNl","value":"MQ=="},{"key":"cWNwLmhhc2g=","value":"DEfNVo/ucmSzIpc8rigKzxdPZ9tp8z85zOKn73zhBfg="}]},"hash":"D548E4E4173C25EE5FCBE5AB04F1FCA517F6A0A9","height":"517"}
+{"check_tx":{"gasWanted":"100000","gasUsed":"4141"},"deliver_tx":{"gasWanted":"100000","gasUsed":"21000","tags":[{"key":"YWN0aW9u","value":"c2VuZA=="},{"key":"c2VuZGVy","value":"cW9zYWNjMWowdjJzODl5NHpkamE3aDB5eWNjaHNlbmtmd3hhcjdkNmtxbTZk"},{"key":"cmVjZWl2ZXI=","value":"cW9zYWNjMTRhbWg1d213bDA2cHB2bXA3dHhkd2QzMGtsM3dndnI3OHloZzBr"},{"key":"cWNwLmZyb20=","value":"YmFzZWNvaW4="},{"key":"cWNwLnRv","value":"cXN0YXI="},{"key":"cWNwLnNlcXVlbmNl","value":"MQ=="},{"key":"cWNwLmhhc2g=","value":"y4aaWFIhIK6dhZOKUnnBovDaH0ZC5kcz0WIzLBs7l9k="}]},"hash":"4D0D07080DA9D1E78023DC6F47228A8106DAC5EA86D1938096259CC7C668F0B2","height":"44"}
+
 
 ```
 
@@ -294,55 +227,8 @@ $ basecli query qcp tx qstar  --seq 1
 ```
 
 ```
-{
-  "type": "qbase/txs/qcptx",
-  "value": {
-    "txstd": {
-      "itx": {
-        "type": "qbase/txs/qcpresult",
-        "value": {
-          "result": {
-            "Code": 0,
-            "Data": null,
-            "Log": "",
-            "GasWanted": "0",
-            "GasUsed": "0",
-            "FeeAmount": "0",
-            "FeeDenom": "",
-            "Tags": [
-              {
-                "key": "cWNwLmZyb20=",
-                "value": "dGVzdC1jaGFpbi12SGk5UTI="
-              },
-              {
-                "key": "cWNwLnRv",
-                "value": "cXN0YXI="
-              }
-            ]
-          },
-          "qcporiginalsequence": "1",
-          "qcpextends": "",
-          "info": ""
-        }
-      },
-      "sigature": null,
-      "chainid": "qstar",
-      "maxgas": "0"
-    },
-    "from": "test-chain-vHi9Q2",
-    "to": "qstar",
-    "sequence": "1",
-    "sig": {
-      "pubkey": null,
-      "signature": null,
-      "nonce": "0"
-    },
-    "blockheight": "83",
-    "txindex": "0",
-    "isresult": true,
-    "extends": ""
-  }
-} <nil>
+{"type":"qbase/txs/qcptx","value":{"txstd":{"itx":[{"type":"qbase/txs/qcpresult","value":{"result":{"Code":0,"Codespace":"","Data":null,"Log":"","GasWanted":"100000","GasUsed":"21000","FeeAmount":"0","FeeDenom":"","Tags":[{"key":"YWN0aW9u","value":"c2VuZA=="},{"key":"c2VuZGVy","value":"cW9zYWNjMWowdjJzODl5NHpkamE3aDB5eWNjaHNlbmtmd3hhcjdkNmtxbTZk"},{"key":"cmVjZWl2ZXI=","value":"cW9zYWNjMTRhbWg1d213bDA2cHB2bXA3dHhkd2QzMGtsM3dndnI3OHloZzBr"},{"key":"cWNwLmZyb20=","value":"YmFzZWNvaW4="},{"key":"cWNwLnRv","value":"cXN0YXI="}]},"qcporiginalsequence":"1","qcpextends":"","info":""}}],"sigature":null,"chainid":"qstar","maxgas":"0"},"from":"basecoin","to":"qstar","sequence":"1","sig":{"pubkey":null,"signature":null,"nonce":"0"},"blockheight":"44","txindex":"0","isresult":true,"extends":""}}
+
 ```
 
 更多命令，查阅

@@ -15,7 +15,8 @@ import (
 
 // BIP44Prefix is the parts of the BIP32 HD path that are fixed by what we used during the fundraiser.
 const (
-	BIP44Prefix        = "44'/118'/"
+	// see: https://github.com/satoshilabs/slips/blob/master/slip-0044.md#QOS
+	BIP44Prefix        = "44'/389'/"
 	FullFundraiserPath = BIP44Prefix + "0'/0/0"
 )
 
@@ -115,10 +116,10 @@ func isHardened(field string) bool {
 }
 
 // NewFundraiserParams creates a BIP 44 parameter object from the params:
-// m / 44' / 118' / account' / 0 / address_index
+// m / 44' / 389' / account' / 0 / address_index
 // The fixed parameters (purpose', coin_type', and change) are determined by what was used in the fundraiser.
 func NewFundraiserParams(account uint32, addressIdx uint32) *BIP44Params {
-	return NewParams(44, 118, account, false, addressIdx)
+	return NewParams(44, 389, account, false, addressIdx)
 }
 
 // Return the BIP44 fields as an array.

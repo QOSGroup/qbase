@@ -20,7 +20,7 @@ func QueryAccountCmd(cdc *amino.Codec) *cobra.Command {
 				return err
 			}
 
-			output, err := queryAccount(cliCtx, addr)
+			output, err := queryAccount(cliCtx, addr.Bytes())
 			if err != nil {
 				return err
 			}

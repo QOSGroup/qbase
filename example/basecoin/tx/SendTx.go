@@ -12,19 +12,19 @@ import (
 )
 
 type SendTx struct {
-	From btypes.Address  `json:"from"`
-	To   btypes.Address  `json:"to"`
-	Coin btypes.BaseCoin `json:"coin"`
+	From btypes.AccAddress `json:"from"`
+	To   btypes.AccAddress `json:"to"`
+	Coin btypes.BaseCoin   `json:"coin"`
 }
 
 var _ txs.ITx = (*SendTx)(nil)
 
-func NewSendTx(from btypes.Address, to btypes.Address, coin btypes.BaseCoin) SendTx {
+func NewSendTx(from btypes.AccAddress, to btypes.AccAddress, coin btypes.BaseCoin) SendTx {
 	return SendTx{From: from, To: to, Coin: coin}
 }
 
 func (tx *SendTx) ValidateData(ctx context.Context) error {
-	if len(tx.From) == 0 || len(tx.To) == 0 || btypes.NewInt(0).GT(tx.Coin.Amount) {
+	if tx.From.Empty() || tx.To.Empty() || btypes.NewInt(0).GT(tx.Coin.Amount) {
 		return errors.New("SendTx ValidateData error")
 	}
 
@@ -116,22 +116,22 @@ func (tx *SendTx) Exec(ctx context.Context) (result btypes.Result, crossTxQcps *
 	return
 }
 
-func (tx *SendTx) GetSigner() []btypes.Address {
-	return []btypes.Address{tx.From}
+func (tx *SendTx) GetSigner() []btypes.AccAddress {
+	return []btypes.AccAddress{tx.From}
 }
 
 func (tx *SendTx) CalcGas() btypes.BigInt {
 	return btypes.ZeroInt()
 }
 
-func (tx *SendTx) GetGasPayer() btypes.Address {
+func (tx *SendTx) GetGasPayer() btypes.AccAddress {
 	return tx.From
 }
 
 func (tx *SendTx) GetSignData() []byte {
 	var buf bytes.Buffer
-	buf.Write(tx.From)
-	buf.Write(tx.To)
+	buf.Write(tx.From.Bytes())
+	buf.Write(tx.To.Bytes())
 	buf.Write([]byte(tx.Coin.String()))
 	return buf.Bytes()
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 
 	go_amino "github.com/tendermint/go-amino"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -51,8 +51,9 @@ func TestKeyManagement(t *testing.T) {
 	_, err = cstore.Get(n3)
 	require.NotNil(t, err)
 	_, err = cstore.GetByAddress(accAddr(i2))
+
 	require.NoError(t, err)
-	addr, err := types.GetAddrFromBech32("address12dzudj77u3rz5uyd2yv5lavq94ftxaedrd6xqw")
+	addr, err := types.AccAddressFromBech32("qosacc1faqsrnne0yv4enad2emm5xwmj3quvg8rsc35y0")
 	require.NoError(t, err)
 	_, err = cstore.GetByAddress(addr)
 	require.NotNil(t, err)
@@ -383,8 +384,8 @@ func ExampleNew() {
 	// signed by Bob
 }
 
-func accAddr(info Info) types.Address {
-	return (types.Address)(info.GetPubKey().Address())
+func accAddr(info Info) types.AccAddress {
+	return types.AccAddress(info.GetPubKey().Address().Bytes())
 }
 
 func MakeCodec() *go_amino.Codec {

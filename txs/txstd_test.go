@@ -50,31 +50,31 @@ func (m *mockITX) Exec(ctx context.Context) (result types.Result, crossTxQcp *Tx
 	return types.Result{}, nil
 }
 
-func (m *mockITX) GetSigner() []types.Address {
+func (m *mockITX) GetSigner() []types.AccAddress {
 
 	if m.signerCount == 0 {
 		return nil
 	}
 
 	if m.signerCount == 1 {
-		return []types.Address{getAddress()}
+		return []types.AccAddress{getAddress()}
 	}
 
 	if m.signerCount == 2 {
 		fAddr := getAddress()
 		if m.hasDup {
-			return []types.Address{fAddr, fAddr}
+			return []types.AccAddress{fAddr, fAddr}
 		} else {
-			return []types.Address{fAddr, getAddress()}
+			return []types.AccAddress{fAddr, getAddress()}
 		}
 	}
 
 	if m.signerCount == 3 {
 		fAddr := getAddress()
 		if m.hasDup {
-			return []types.Address{fAddr, fAddr, getAddress()}
+			return []types.AccAddress{fAddr, fAddr, getAddress()}
 		} else {
-			return []types.Address{fAddr, getAddress(), getAddress()}
+			return []types.AccAddress{fAddr, getAddress(), getAddress()}
 		}
 	}
 
@@ -85,7 +85,7 @@ func (m *mockITX) CalcGas() types.BigInt {
 	return types.BigInt{}
 }
 
-func (m *mockITX) GetGasPayer() types.Address {
+func (m *mockITX) GetGasPayer() types.AccAddress {
 	return nil
 }
 
@@ -95,9 +95,9 @@ func (m *mockITX) GetSignData() []byte {
 
 var _ ITx = (*mockITX)(nil)
 
-func getAddress() types.Address {
+func getAddress() types.AccAddress {
 	key := ed25519.GenPrivKey()
 	pub := key.PubKey()
-	addr := types.Address(pub.Address())
+	addr := types.AccAddress(pub.Address())
 	return addr
 }

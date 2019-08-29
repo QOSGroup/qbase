@@ -19,7 +19,7 @@ func TestGetAccountFromBech32Addr(t *testing.T) {
 	ctx = ctx.WithCodec(cdc)
 	ctx = ctx.WithNodeIP("192.168.1.224")
 
-	addr := "address1k0m8ucnqug974maa6g36zw7g2wvfd4sug6uxay"
+	addr := "qos1mhvraeml8pjtm8fscyl7nmmrk2y372jpaw5sux"
 
 	acc, err := GetAccountFromBech32Addr(ctx, addr)
 

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"io"
+
 	"github.com/QOSGroup/qbase/example/basecoin/app"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	"github.com/QOSGroup/qbase/server"
+	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/QOSGroup/qbase/version"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
@@ -13,10 +16,16 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"io"
 )
 
 func main() {
+
+	addressConfig := btypes.GetAddressConfig()
+	addressConfig.SetBech32PrefixForAccount("basecoin", "basecoinpub")
+	addressConfig.SetBech32PrefixForConsensusNode("basecoincons", "basecoinconspub")
+	addressConfig.SetBech32PrefixForValidator("basecoinval", "basecoinalpub")
+	addressConfig.Seal()
+
 	cdc := app.MakeCodec()
 	ctx := server.NewDefaultContext()
 
