@@ -115,5 +115,5 @@ func GetValidatorAddrFromValue(ctx context.CLIContext, value string) (types.ValA
 		}
 	}
 
-	return types.ValAddress{}, fmt.Errorf("%s is not a validator address. it must start with %s", value, prefix)
+	return types.ValAddress{}, fmt.Errorf("%s is not a valid validator address.", value)
 }
