@@ -78,6 +78,9 @@ func IsAccountExists(ctx context.CLIContext, address []byte) bool {
 
 func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.AccAddress, error) {
 	value := viper.GetString(flag)
+	if len(strings.TrimSpace(value)) == 0 {
+		return types.AccAddress{}, fmt.Errorf("Flag --%s value is empty, are you forgot set this flag? ", flag)
+	}
 	return GetAddrFromValue(ctx, value)
 }
 
@@ -88,13 +91,13 @@ func GetAddrFromValue(ctx context.CLIContext, value string) (types.AccAddress, e
 		if err == nil {
 			return addr, nil
 		} else {
-			return types.AccAddress{}, fmt.Errorf("Address:%s is not a valid bech32 address. Error: %s", value, err.Error())
+			return types.AccAddress{}, fmt.Errorf("Address %s is not a valid bech32 address. Error: %s", value, err.Error())
 		}
 	}
 
 	info, err := keys.GetKeyInfo(ctx, value)
 	if err != nil {
-		return nil, fmt.Errorf("Name:%s not exsits in current keybase. Error: %s", value, err.Error())
+		return nil, fmt.Errorf("Name %s found is error in current keybase. Error: %s", value, err.Error())
 	}
 
 	return info.GetAddress(), nil
@@ -102,7 +105,10 @@ func GetAddrFromValue(ctx context.CLIContext, value string) (types.AccAddress, e
 
 func GetValidatorAddrFromFlag(ctx context.CLIContext, flag string) (types.ValAddress, error) {
 	value := viper.GetString(flag)
-	return GetValidatorAddrFromValue(ctx,value)
+	if len(strings.TrimSpace(value)) == 0 {
+		return types.ValAddress{}, fmt.Errorf("Flag --%s value is empty, are you forgot set this flag? ", flag)
+	}
+	return GetValidatorAddrFromValue(ctx, value)
 }
 
 func GetValidatorAddrFromValue(ctx context.CLIContext, value string) (types.ValAddress, error) {

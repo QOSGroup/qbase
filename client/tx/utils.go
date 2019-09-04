@@ -49,7 +49,7 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
+			log := fmt.Sprintf("buildAndSignTx error. error: %s \n recovered: %v\n", r, string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
