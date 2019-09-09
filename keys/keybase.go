@@ -17,7 +17,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 
 	go_amino "github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
