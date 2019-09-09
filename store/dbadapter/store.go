@@ -3,7 +3,7 @@ package dbadapter
 import (
 	"io"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/QOSGroup/qbase/store/cachekv"
 	"github.com/QOSGroup/qbase/store/tracekv"
