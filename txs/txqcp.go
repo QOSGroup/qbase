@@ -1,6 +1,7 @@
 package txs
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/QOSGroup/qbase/types"
@@ -105,4 +106,9 @@ func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChainID string) (err t
 	}
 
 	return
+}
+
+func (tx *TxQcp) GenTxHash() string {
+	bz := crypto.Sha256(tx.BuildSignatureBytes())
+	return hex.EncodeToString(bz)
 }

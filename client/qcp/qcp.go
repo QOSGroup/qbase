@@ -86,7 +86,7 @@ type qcpChainsResult struct {
 }
 
 func QueryQcpChainsInfo(ctx context.CLIContext) ([]qcpChainsResult, error) {
-	path := fmt.Sprintf("/store/%s/subspace", qcp.QcpMapperName)
+	path := fmt.Sprintf("/store/%s/subspace", qcp.MapperName)
 	data := "sequence/"
 
 	res, err := ctx.Query(path, []byte(data))

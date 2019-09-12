@@ -759,7 +759,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 					types.NewAttribute(qcp.From, ctx.ChainID()),
 					types.NewAttribute(qcp.To, txQcp.To),
 					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
-					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+					types.NewAttribute(qcp.Hash, txQcp.GenTxHash()),
 				),
 			})
 		}
@@ -845,7 +845,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 					types.NewAttribute(types.AttributeKeyModule, qcp.EventModule),
 					types.NewAttribute(qcp.To, tx.From),
 					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
-					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+					types.NewAttribute(qcp.Hash, txQcp.GenTxHash()),
 				),
 			})
 		}

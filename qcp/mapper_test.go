@@ -18,7 +18,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
+func Test_Mapper_GetMaxChainOutSequence(t *testing.T) {
 
 	cdc := defaultCdc()
 	qcpMapper := NewQcpMapper(cdc)
