@@ -10,35 +10,55 @@ import (
 )
 
 const (
-	QcpMapperName = "qcp"
+	MapperName = "qcp"
 	//需要输出到"chainId"的qcp tx最大序号
-	outSequenceKey = "sequence/out/%s"
+	outSequencePrefixKey = "sequence/out/"
+	outSequenceKey       = outSequencePrefixKey + "%s"
 	//需要输出到"chainId"的每个qcp tx
-	outSequenceTxKey = "tx/out/%s/%d"
+	outSequenceTxPrefixKey = "tx/out/"
+	outSequenceTxKey       = "outSequenceTxPrefixKey" + "%s/%d"
 	//已经接受到来自"chainId"的qcp 的合法公钥tx最大序号
-	inSequenceKey = "sequence/in/%s"
+	inSequencePrefixKey = "sequence/in/"
+	inSequenceKey       = inSequencePrefixKey + "%s"
 	//接受来自"chainId"
-	inPubkeyKey = "pubkey/in/%s"
+	inPubkeyPrefixKey = "pubkey/in/"
+	inPubkeyKey       = inPubkeyPrefixKey + "%s"
 )
 
 func BuildQcpStoreQueryPath() []byte {
-	return []byte(fmt.Sprintf("/store/%s/key", QcpMapperName))
+	return []byte(fmt.Sprintf("/store/%s/key", MapperName))
 }
 
 func BuildOutSequenceKey(outChainID string) []byte {
 	return []byte(fmt.Sprintf(outSequenceKey, outChainID))
 }
 
+func BuildOutSequencePrefixKey() []byte {
+	return []byte(outSequencePrefixKey)
+}
+
 func BuildOutSequenceTxKey(outChainID string, sequence int64) []byte {
 	return []byte(fmt.Sprintf(outSequenceTxKey, outChainID, sequence))
+}
+
+func BuildOutSequenceTxPrefixKey() []byte {
+	return []byte(outSequenceTxPrefixKey)
 }
 
 func BuildInSequenceKey(inChainID string) []byte {
 	return []byte(fmt.Sprintf(inSequenceKey, inChainID))
 }
 
+func BuildInSequencePrefixKey() []byte {
+	return []byte(inSequencePrefixKey)
+}
+
 func BuildInPubkeyKey(inChainID string) []byte {
 	return []byte(fmt.Sprintf(inPubkeyKey, inChainID))
+}
+
+func BuildInPubkeyPrefixKey() []byte {
+	return []byte(inPubkeyPrefixKey)
 }
 
 type QcpMapper struct {
@@ -49,7 +69,7 @@ var _ mapper.IMapper = (*QcpMapper)(nil)
 
 func NewQcpMapper(cdc *go_amino.Codec) *QcpMapper {
 	var qcpMapper = QcpMapper{}
-	qcpMapper.BaseMapper = mapper.NewBaseMapper(cdc, QcpMapperName)
+	qcpMapper.BaseMapper = mapper.NewBaseMapper(cdc, MapperName)
 	return &qcpMapper
 }
 
@@ -59,13 +79,11 @@ func (mapper *QcpMapper) Copy() mapper.IMapper {
 	return cpyMapper
 }
 
-//TODO: test case
 func (mapper *QcpMapper) GetChainInTrustPubKey(inChain string) (pubkey crypto.PubKey) {
 	mapper.Get(BuildInPubkeyKey(inChain), &pubkey)
 	return
 }
 
-//TODO: test case
 func (mapper *QcpMapper) SetChainInTrustPubKey(inChain string, pubkey crypto.PubKey) {
 	mapper.Set(BuildInPubkeyKey(inChain), pubkey)
 }
@@ -98,7 +116,6 @@ func (mapper *QcpMapper) SetMaxChainInSequence(inChain string, sequence int64) {
 	mapper.Set(BuildInSequenceKey(inChain), sequence)
 }
 
-//TODO: test case
 func (mapper *QcpMapper) SignAndSaveTxQcp(txQcp *txs.TxQcp, signer crypto.PrivKey) *txs.TxQcp {
 
 	toChainID := txQcp.To

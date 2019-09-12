@@ -222,13 +222,14 @@ func (c Context) WithMultiStore(ms store.MultiStore) Context {
 }
 
 func (c Context) WithBlockHeader(header abci.Header) Context {
-	var _ proto.Message = &header // for cloning.
+	var _ proto.Message = &header
+	header.Time = header.Time.UTC()
 	return c.withValue(contextKeyBlockHeader, header)
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
 	newHeader := c.BlockHeader()
-	newHeader.Time = newTime
+	newHeader.Time = newTime.UTC()
 	return c.WithBlockHeader(newHeader)
 }
 
