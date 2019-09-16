@@ -54,7 +54,6 @@ type BaseApp struct {
 
 	//--------------------------------------------------------------
 
-	//TODO: may be nil , 做校验
 	txQcpResultHandler TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
 	txQcpSigner        crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
 
@@ -456,6 +455,12 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID 
 
 //校验txstd用户签名，签名通过后，增加用户none
 func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd, qcpFromChainID string) (newctx ctx.Context, result types.Result) {
+	defer func() {
+		if newctx.IsZero() {
+			newctx = cctx
+		}
+	}()
+
 	//未注册accountProto时， 不做签名校验
 	//用户可以在itx.validate()中自定义签名校验逻辑
 	accounMapper := GetAccountMapper(cctx)

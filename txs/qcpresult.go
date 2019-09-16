@@ -56,7 +56,10 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 		return
 	}
 
-	handler(ctx, tx)
+	//执行handler不计算GAS
+	newCtx, writeCache := ctx.WithGasMeter(types.NewInfiniteGasMeter()).CacheContext()
+	handler(newCtx, tx)
+	writeCache()
 	return
 }
 
@@ -94,7 +97,7 @@ func (tx *QcpTxResult) GetSignData() []byte {
 	return ret
 }
 
-// 功能：构建 QcpTxReasult 结构体
+// 功能：构建 QcpTxResult 结构体
 func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info string) *QcpTxResult {
 	return &QcpTxResult{
 		Result:              result,
@@ -105,7 +108,6 @@ func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info str
 }
 
 // 功能：将common.KVPair转化成[]byte
-// todo: test（amino序列化及反序列化的正确性）
 func Extends2Byte(ext []tcommon.KVPair) (ret []byte) {
 	if ext == nil || len(ext) == 0 {
 		return nil
