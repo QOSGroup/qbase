@@ -10,6 +10,8 @@ import (
 	tcommon "github.com/tendermint/tendermint/libs/common"
 )
 
+var QCP_RESULT_DEFAULT_MAX_GAS = types.NewInt(200000)
+
 // qos端对TxQcp的执行结果
 type QcpTxResult struct {
 	Result              types.Result `json:"result"`              //对应TxQcp执行结果
@@ -85,7 +87,7 @@ func (tx *QcpTxResult) GetGasPayer() types.Address {
 func (tx *QcpTxResult) GetSignData() []byte {
 	ret := types.Int2Byte(int64(tx.Result.Code))
 	ret = append(ret, tx.Result.Data...)
-	for _, event := range tx.Result.Events{
+	for _, event := range tx.Result.Events {
 		ret = append(ret, []byte(event.Type)...)
 		ret = append(ret, []byte(Extends2Byte(event.Attributes))...)
 	}
