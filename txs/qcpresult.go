@@ -56,7 +56,10 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 		return
 	}
 
-	handler(ctx, tx)
+	//执行handler不计算GAS
+	newCtx, writeCache := ctx.WithGasMeter(types.NewInfiniteGasMeter()).CacheContext()
+	handler(newCtx, tx)
+	writeCache()
 	return
 }
 
