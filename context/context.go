@@ -320,7 +320,9 @@ func (c Context) WithEventManager(em *types.EventManager) Context {
 	return c.WithValue(contextKeyEventManager, em)
 }
 
-func (c Context) EventManager() *types.EventManager { return c.Value(contextKeyEventManager).(*types.EventManager) }
+func (c Context) EventManager() *types.EventManager {
+	return c.Value(contextKeyEventManager).(*types.EventManager)
+}
 
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.
