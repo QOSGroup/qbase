@@ -33,7 +33,7 @@ func mockApp() *BaseApp {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
 
-	app := NewBaseApp("test", logger, db, func(cdc *go_amino.Codec) {
+	app := NewBaseApp("test", nil, logger, db, func(cdc *go_amino.Codec) {
 		cdc.RegisterConcrete(&transferTx{}, "baseapp/test/transferTx", nil)
 		cdc.RegisterConcrete(&testAccount{}, "baseapp/test/testAccount", nil)
 	}, SetPruning(store.PruneSyncable))
@@ -66,7 +66,7 @@ func TestLoadVersion(t *testing.T) {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil)
+	app := NewBaseApp(name, nil, logger, db, nil)
 	app.cms.SetPruning(store.PruneSyncable)
 
 	capKey := types.NewKVStoreKey("main")
@@ -91,13 +91,13 @@ func TestLoadVersion(t *testing.T) {
 	res = app.Commit()
 	commitID2 := store.CommitID{2, res.Data}
 
-	app = NewBaseApp(name, logger, db, nil)
+	app = NewBaseApp(name, nil, logger, db, nil)
 	app.mountStoresIAVL(capKey)
 	err = app.LoadLatestVersion()
 	require.Nil(t, err)
 	testLoadVersionHelper(t, app, int64(2), commitID2)
 
-	app = NewBaseApp(name, logger, db, nil)
+	app = NewBaseApp(name, nil, logger, db, nil)
 	app.mountStoresIAVL(capKey)
 	err = app.LoadVersion(1)
 	require.Nil(t, err)
@@ -120,7 +120,7 @@ func TestInitChainer(t *testing.T) {
 	// we can reload the same  app later
 	db := dbm.NewMemDB()
 	logger := defaultLogger()
-	app := NewBaseApp(name, logger, db, nil)
+	app := NewBaseApp(name, nil, logger, db, nil)
 	capKey := types.NewKVStoreKey("main")
 	capKey2 := types.NewKVStoreKey("key2")
 	app.mountStoresIAVL(capKey, capKey2)
@@ -164,7 +164,7 @@ func TestInitChainer(t *testing.T) {
 	require.Equal(t, value, res.Value)
 
 	// reload app
-	app = NewBaseApp(name, logger, db, nil)
+	app = NewBaseApp(name, nil, logger, db, nil)
 	app.SetInitChainer(initChainer)
 	app.mountStoresIAVL(capKey, capKey2)
 	err = app.LoadLatestVersion() // needed to make stores non-nil

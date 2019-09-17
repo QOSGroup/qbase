@@ -12,6 +12,7 @@ import (
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -28,9 +29,9 @@ type BaseCoinApp struct {
 	*baseabci.BaseApp
 }
 
-func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
+func NewApp(cfg *cfg.Config, logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 
-	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec, baseabci.SetPruning(store.PruneSyncable))
+	baseApp := baseabci.NewBaseApp(appName, cfg, logger, db, RegisterCodec, baseabci.SetPruning(store.PruneSyncable))
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
 	//baseApp.

@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var baseapp = baseabci.NewBaseApp("kvstore", logger, db, func(cdc *go_amino.Codec) {
+	var baseapp = baseabci.NewBaseApp("kvstore", nil, logger, db, func(cdc *go_amino.Codec) {
 		kvstore.RegisterCodec(cdc)
 	})
 
