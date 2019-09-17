@@ -10,6 +10,8 @@ import (
 	tcommon "github.com/tendermint/tendermint/libs/common"
 )
 
+var QcpResultDefaultMaxGas = types.NewInt(100000)
+
 // qos端对TxQcp的执行结果
 type QcpTxResult struct {
 	Result              types.Result `json:"result"`              //对应TxQcp执行结果
