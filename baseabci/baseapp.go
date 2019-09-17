@@ -830,7 +830,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		if !tx.IsResult {
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
-			txStd := txs.NewTxStd(txQcpResult, tx.From, types.ZeroInt())
+			txStd := txs.NewTxStd(txQcpResult, tx.From, txs.QcpResultDefaultMaxGas)
 
 			crossTxQcp := &txs.TxQcp{
 				TxStd: txStd,
