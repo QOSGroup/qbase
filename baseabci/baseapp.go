@@ -22,6 +22,7 @@ import (
 
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -32,6 +33,7 @@ import (
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
+	Config *cfg.Config
 	Logger log.Logger
 	name   string                 // application name from abci.Info
 	db     dbm.DB                 // common DB backend
@@ -70,7 +72,7 @@ type BaseApp struct {
 var _ abci.Application = (*BaseApp)(nil)
 
 // NewBaseApp returns a reference to an initialized BaseApp.
-func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
+func NewBaseApp(name string, cfg *cfg.Config, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
 
 	cdc := MakeQBaseCodec()
 	if registerCodecFunc != nil {
@@ -78,6 +80,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	}
 
 	app := &BaseApp{
+		Config:          cfg,
 		Logger:          logger,
 		name:            name,
 		db:              db,

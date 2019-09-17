@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
@@ -51,8 +52,8 @@ func main() {
 	}
 }
 
-func newApp(logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Application {
-	return app.NewApp(logger, db, storeTracer)
+func newApp(cfg *cfg.Config, logger log.Logger, db dbm.DB, storeTracer io.Writer) abci.Application {
+	return app.NewApp(cfg, logger, db, storeTracer)
 }
 
 func genBaseCoindGenesisDoc(ctx *server.Context, cdc *go_amino.Codec, chainID string, nodeValidatorPubKey crypto.PubKey) (tmtypes.GenesisDoc, error) {
