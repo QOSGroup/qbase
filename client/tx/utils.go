@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"math"
 	"runtime/debug"
@@ -31,17 +32,51 @@ type ITxBuilder func(ctx context.CLIContext) (txs.ITx, error)
 func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
 	result, err := BroadcastTx(cdc, txBuilder)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	cliCtx.PrintResult(result)
+
+	if result != nil {
+		cliCtx.PrintResult(result)
+	}
+
 	return err
 }
 
 func BroadcastTx(cdc *amino.Codec, txBuilder ITxBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	isPrint := viper.GetBool(cflags.FlagPrintTx)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 	signedTx, err := buildAndSignTx(cliCtx, txBuilder)
 	if err != nil {
 		return nil, err
 	}
 
+	v := reflect.ValueOf(signedTx)
+	if v.IsNil() {
+		return nil, nil
+	}
+
+	//print signed tx details
+	if isPrint {
+		cliCtx.PrintResult(signedTx)
+	}
+	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+}
+
+func BroadcastTxs(cdc *amino.Codec, txsBuilder ITxsBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	isPrint := viper.GetBool(cflags.FlagPrintTx)
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	signedTx, err := buildAndSignTxs(cliCtx, txsBuilder)
+	if err != nil {
+		return nil, err
+	}
+
+	v := reflect.ValueOf(signedTx)
+	if v.IsNil() {
+		return nil, nil
+	}
+
+	//print signed tx details
+	if isPrint {
+		cliCtx.PrintResult(signedTx)
+	}
 	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
 }
 
@@ -74,18 +109,12 @@ type ITxsBuilder func(ctx context.CLIContext) ([]txs.ITx, error)
 func BroadcastTxsAndPrintResult(cdc *amino.Codec, txsBuilder ITxsBuilder) error {
 	result, err := BroadcastTxs(cdc, txsBuilder)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	cliCtx.PrintResult(result)
-	return err
-}
 
-func BroadcastTxs(cdc *amino.Codec, txsBuilder ITxsBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	signedTx, err := buildAndSignTxs(cliCtx, txsBuilder)
-	if err != nil {
-		return nil, err
+	if result != nil {
+		cliCtx.PrintResult(result)
 	}
 
-	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+	return err
 }
 
 func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx types.Tx, err error) {
@@ -109,6 +138,7 @@ func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx t
 func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxQcp, error) {
 
 	qcpSigner := viper.GetString(cflags.FlagQcpSigner)
+	isGenOnly := viper.GetBool(cflags.FlagGenerateOnly)
 
 	if qcpSigner == "" || fromChainID == "" {
 		return nil, errors.New("in qcp mode, --qcp-from and --qcp-signer flag must set")
@@ -127,9 +157,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 		return nil, err
 	}
 
-	fmt.Println("> step 2. build and sign TxQcp")
 	_, ok := tx.(*txs.QcpTxResult)
-
 	txQcp := txs.NewTxQCP(txStd, fromChainID,
 		toChainID,
 		qcpSeq+1,
@@ -139,6 +167,12 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 		viper.GetString(cflags.FlagQcpExtends),
 	)
 
+	if isGenOnly {
+		ctx.PrintResult(txQcp)
+		return nil, nil
+	}
+
+	fmt.Println("> step 2. build and sign TxQcp")
 	sig, pubkey := signData(ctx, qcpSignerInfo.GetName(), txQcp.BuildSignatureBytes())
 	txQcp.Sig = txs.Signature{
 		Pubkey:    pubkey,
@@ -152,11 +186,18 @@ func BuildAndSignStdTx(ctx context.CLIContext, tXs []txs.ITx, fromChainID, toCha
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
 	maxGas := viper.GetInt64(cflags.FlagMaxGas)
+	isGenOnly := viper.GetBool(cflags.FlagGenerateOnly)
+	qcpMode := viper.GetBool(cflags.FlagQcp)
+
 	if maxGas <= 0 {
 		maxGas = math.MaxUint64 / 2
 	}
 
 	txStd := txs.NewTxsStd(toChainID, types.NewInt(maxGas), tXs...)
+	if isGenOnly && !qcpMode {
+		ctx.PrintResult(txStd)
+		return nil, nil
+	}
 
 	signers := getSigners(ctx, txStd.GetSigners())
 
@@ -237,6 +278,20 @@ func signData(ctx context.CLIContext, name string, data []byte) ([]byte, crypto.
 	}
 
 	return sig, pubkey
+}
+
+func SignDataFromAddress(ctx context.CLIContext, addr types.AccAddress, data []byte) ([]byte, crypto.PubKey) {
+	keybase, err := keys.GetKeyBase(ctx)
+	if err != nil {
+		panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
+	}
+
+	info, err := keybase.GetByAddress(addr)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return signData(ctx, info.GetName(), data)
 }
 
 func getSigners(ctx context.CLIContext, txSignerAddrs []types.AccAddress) []string {

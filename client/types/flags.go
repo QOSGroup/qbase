@@ -10,7 +10,6 @@ const (
 	FlagNode      = "node"
 	FlagHeight    = "height"
 	FlagNonce     = "nonce"
-	FlagAsync     = "async"
 	FlagTrustNode = "trust-node"
 	FlagMaxGas    = "max-gas"
 	FlagJSONIndet = "indent"
@@ -24,6 +23,21 @@ const (
 	FlagQcpBlockHeight = "qcp-blockheight"
 	FlagQcpTxIndex     = "qcp-txindex"
 	FlagQcpExtends     = "qcp-extends"
+
+	FlagListenAddr         = "listen"
+	FlagMaxOpenConnections = "max-open"
+	FlagRPCReadTimeout     = "read-timeout"
+	FlagRPCWriteTimeout    = "write-timeout"
+
+	FlagSigOnly = "sig-only"
+	FlagOffline = "offline"
+	FlagSigner  = "signer"
+
+	FlagBroadcastMode      = "sync-mode"
+	FlagGenerateOnly       = "generate-only"
+	FlagPrintTx            = "print-tx"
+	FlagResultOutPut       = "result"
+	FlagResultOutPutAppend = "result-append"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -53,21 +67,26 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Int64(FlagMaxGas, 0, "gas limit to set per tx")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
-		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Bool(FlagQcp, false, "enable qcp mode. send qcp tx")
 		c.Flags().String(FlagQcpSigner, "", "qcp mode flag. qcp tx signer key name")
 		c.Flags().String(FlagQcpFrom, "", "qcp mode flag. qcp tx source chainID")
-		c.Flags().Int64(FlagQcpSequence, 0, "qcp mode flag.  qcp in sequence")
+		c.Flags().Int64(FlagQcpSequence, 0, "qcp mode flag. qcp in sequence")
 		c.Flags().Int64(FlagQcpBlockHeight, 0, "qcp mode flag. original tx blockheight, blockheight must greater than 0")
 		c.Flags().Int64(FlagQcpTxIndex, 0, "qcp mode flag. original tx index")
 		c.Flags().String(FlagQcpExtends, "", "qcp mode flag. qcp tx extends info")
 		c.Flags().Bool(FlagJSONIndet, false, "add indent to json response")
 		c.Flags().String(FlagNonceNode, "", "tcp://<host>:<port> to tendermint rpc interface for some chain to query account nonce")
+		c.Flags().Bool(FlagGenerateOnly, false, "only generate unsigned tx and exit ")
+		c.Flags().Bool(FlagPrintTx, false, "print actual signed tx if set true")
+		c.Flags().String(FlagResultOutPut, "", "result output file. Default is stdout ")
+		c.Flags().String(FlagBroadcastMode, "block", "transaction broadcasting mode (sync|async|block)")
+		c.Flags().Bool(FlagResultOutPutAppend, false, "append result to output file")
 
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagMaxGas, c.Flags().Lookup(FlagMaxGas))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
+		viper.BindPFlag(FlagBroadcastMode, c.Flags().Lookup(FlagBroadcastMode))
 	}
 	return cmds
 }
