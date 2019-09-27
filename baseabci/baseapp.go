@@ -750,7 +750,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 			app.Logger.Error("exsits cross txqcp, but signer is nil.if you forgot to set up signer?")
 		}
 
-		if crossTxQcp != nil {
+		if crossTxQcp != nil && crossTxQcp.TxStd != nil {
 			txQcp := saveCrossChainResult(runCtx, crossTxQcp, false, app.txQcpSigner)
 			result.Events = result.Events.AppendEvents(types.Events{
 				types.NewEvent(
@@ -802,6 +802,7 @@ func saveCrossChainResult(ctx ctx.Context, crossTxQcp *txs.TxQcp, isResult bool,
 
 //deliverTxQcp: devilerTx阶段对TxQcp进行业务处理
 func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Result) {
+
 	defer func() {
 		if r := recover(); r != nil {
 			log := fmt.Sprintf("deliverTxQcp recovered: %v\nstack:\n%v", r, string(debug.Stack()))
