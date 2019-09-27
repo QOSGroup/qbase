@@ -28,4 +28,5 @@ type CustomQueryHandler func(ctx ctx.Context, route []string, req abci.RequestQu
 type TxQcpResultHandler func(ctx ctx.Context, txQcpResult interface{})
 
 // gas-fee 处理
+type GasPreHandler func(ctx ctx.Context, payer types.AccAddress) types.Error
 type GasHandler func(ctx ctx.Context, payer types.AccAddress) (gasUsed uint64, err types.Error)

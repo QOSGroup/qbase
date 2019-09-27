@@ -44,7 +44,8 @@ type BaseApp struct {
 	beginBlocker BeginBlockHandler // logic to run before any txs
 	endBlocker   EndBlockHandler   // logic to run after all txs, and to determine valset changes
 
-	gasHandler GasHandler // gas fee handler
+	gasPreHandler GasPreHandler // gas fee pre handler
+	gasHandler    GasHandler    // gas fee handler
 
 	//--------------------
 	// Volatile
@@ -397,8 +398,10 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) 
 	ctx := app.checkState.ctx.WithTxBytes(req.Tx)
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
+		ctx = setGasMeter(ctx, implTx)
 		result, _ = app.checkTxStd(ctx, implTx, "")
 	case *txs.TxQcp:
+		ctx = setGasMeter(ctx, implTx.TxStd)
 		result = app.checkTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
@@ -436,8 +439,6 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID 
 		result.GasUsed = ctx.GasMeter().GasConsumed()
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
-
-	ctx = setGasMeter(ctx, tx)
 
 	//1. 校验txStd基础信息
 	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
@@ -569,8 +570,6 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 	}()
 
-	ctx = setGasMeter(ctx, tx.TxStd)
-
 	//1. 校验txQcp基础数据
 	err := tx.ValidateBasicData(true, ctx.ChainID())
 	if err != nil {
@@ -674,6 +673,7 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 	} else {
 		gm = types.NewGasMeter(uint64(tx.MaxGas.Int64()))
 	}
+
 	txsGas := types.ZeroInt()
 	for _, itx := range tx.ITxs {
 		txsGas = txsGas.Add(itx.CalcGas())
@@ -704,7 +704,12 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 	}()
 
 	ctx = setGasMeter(ctx, tx)
-
+	if nil != app.gasPreHandler {
+		err := app.gasPreHandler(ctx, tx.ITxs[0].GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
+	}
 	result, newctx := app.runTxStd(ctx, tx, txStdFromChainID)
 
 	if !newctx.IsZero() {
@@ -777,8 +782,6 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	if result.IsOK() {
 		msCache.Write()
 	}
-
-	newctx.WithGasMeter(runCtx.GasMeter())
 
 	return
 }
@@ -854,6 +857,12 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	}()
 
 	ctx = setGasMeter(ctx, tx.TxStd)
+	if nil != app.gasPreHandler {
+		err := app.gasPreHandler(ctx, tx.TxStd.ITxs[0].GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
+	}
 
 	result = app.checkTxQcp(ctx, tx)
 	if !result.IsOK() {

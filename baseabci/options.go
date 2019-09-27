@@ -109,6 +109,13 @@ func (app *BaseApp) SetGasHandler(handler GasHandler) {
 	app.gasHandler = handler
 }
 
+func (app *BaseApp) SetGasPreHandler(handler GasPreHandler) {
+	if app.sealed {
+		panic("SetGasPreHandler() on sealed BaseApp")
+	}
+	app.gasPreHandler = handler
+}
+
 // SetPruning sets a pruning option on the multistore associated with the app
 func SetPruning(opts store.PruningOptions) func(*BaseApp) {
 	return func(bap *BaseApp) { bap.cms.SetPruning(opts) }
