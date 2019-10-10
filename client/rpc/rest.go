@@ -34,17 +34,12 @@ type TxGenerateResponse struct {
 	Signer    types.AccAddress `json:"signer"`
 	PubKey    crypto.PubKey    `json:"pubkey"`
 	Nonce     int64            `json:"nonce"`
-	SignBytes string           `json:"signBytes"`
+	SignBytes string           `json:"sign_bytes"`
 }
 
 type ErrorResponse struct {
 	Code  int    `json:"code,omitempty"`
 	Error string `json:"error"`
-}
-
-type ResultResponse struct {
-	Code int    `json:"code"`
-	Data []byte `json:"data"`
 }
 
 func NewBaseRequest(from, chainId string, nonce, maxGas, height int64, indent bool, mode string) BaseRequest {
@@ -225,15 +220,8 @@ func PostProcessResponseBare(w http.ResponseWriter, ctx context.CLIContext, body
 		}
 	}
 
-	result := ResultResponse{
-		Code: http.StatusOK,
-		Data: resp,
-	}
-
-	bz, _ := cdc.MarshalJSON(result)
-
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(bz)
+	_, _ = w.Write(resp)
 }
 
 func WriteGenStdTxResponse(writer http.ResponseWriter, cliCtx context.CLIContext, req BaseRequest, tx txs.ITx) {
