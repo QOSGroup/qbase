@@ -740,14 +740,14 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 
 	runCtx := ctx.WithMultiStore(msCache)
 
-	var crossTxQcp *txs.TxQcp
-
 	for _, itx := range tx.ITxs {
-		result, crossTxQcp = itx.Exec(runCtx)
-
-		if !result.IsOK() {
+		singleResult, crossTxQcp := itx.Exec(runCtx)
+		result.Code = singleResult.Code
+		if !singleResult.IsOK() {
 			break
 		}
+
+		result.Events = result.Events.AppendEvents(singleResult.Events)
 
 		//4. 根据crossTxQcp结果判断是否保存跨链结果
 		// crossTxQcp 不为空时，需要将跨链结果保存
