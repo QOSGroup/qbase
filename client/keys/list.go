@@ -6,7 +6,7 @@ import (
 	go_amino "github.com/tendermint/go-amino"
 )
 
-func listKeysCmd(cdc *go_amino.Codec) *cobra.Command {
+func listKeysCommand(cdc *go_amino.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List all keys",

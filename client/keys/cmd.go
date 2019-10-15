@@ -18,13 +18,16 @@ func KeysCommand(cdc *go_amino.Codec) *cobra.Command {
 	}
 	cmd.AddCommand(
 		addKeyCommand(cdc),
-		listKeysCmd(cdc),
+		listKeysCommand(cdc),
+		showKeysCommand(cdc),
 		types.LineBreak,
 		deleteKeyCommand(cdc),
 		updateKeyCommand(cdc),
 		types.LineBreak,
 		exportCommand(cdc),
 		importCommand(cdc),
+		types.LineBreak,
+		covertPubkeyCommand(cdc),
 	)
 
 	return cmd
