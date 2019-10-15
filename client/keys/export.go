@@ -83,7 +83,7 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 }
 
 type exportInfo struct {
-	Name    string           `json:'name'`
+	Name    string           `json:"name"`
 	Address types.AccAddress `json:"address"`
 	Pubkey  string           `json:"pubkey"`
 	Privkey crypto.PrivKey   `json:"privkey"`
