@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"strings"
 	"sync"
 
@@ -440,7 +441,11 @@ func (ca ConsAddress) Format(s fmt.State, verb rune) {
 }
 
 func stringifyPubKey(pubkey crypto.PubKey, prefix string) (string, error) {
-	return bech32.ConvertAndEncode(prefix, pubkey.Bytes())
+	pk, ok := pubkey.(ed25519.PubKeyEd25519)
+	if !ok {
+		return "", errors.New("Not Support Pubkey Type")
+	}
+	return bech32.ConvertAndEncode(prefix, pk[:])
 }
 
 func AccPubKeyString(pubkey crypto.PubKey) (string, error) {
@@ -501,12 +506,22 @@ func GetConsensusPubKeyBech32(pubkey string) (pk crypto.PubKey, err error) {
 }
 
 func getPubKey(pubkey, prefix string) (crypto.PubKey, error) {
+	var pk crypto.PubKey
+	var err error
+
 	bz, err := GetFromBech32(pubkey, prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	pk, err := cryptoAmino.PubKeyFromBytes(bz)
+	if len(bz) == ed25519.PubKeyEd25519Size {
+		var b [ed25519.PubKeyEd25519Size]byte
+		copy(b[:], bz)
+		pk = ed25519.PubKeyEd25519(b)
+	} else {
+		pk, err = cryptoAmino.PubKeyFromBytes(bz)
+	}
+
 	if err != nil {
 		return nil, err
 	}
