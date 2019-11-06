@@ -2,8 +2,9 @@ package keys
 
 import (
 	"fmt"
-
 	"github.com/spf13/viper"
+	"io/ioutil"
+	"os"
 
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/types"
@@ -69,11 +70,24 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 				}
 			}
 
+			accFile, err := ioutil.TempFile(os.TempDir(), fmt.Sprintf("%s_*.acc", name))
+			if err != nil {
+				return err
+			}
+			defer accFile.Close()
+
+			bz, err := ctx.JSONResult(eInfo)
+			if err != nil {
+				return err
+			}
+
+			_, err = accFile.Write(bz)
+
 			fmt.Println("**Important** Don't leak your private key information to others.")
 			fmt.Println("Please keep your private key safely, otherwise your account will be attacked.")
-			fmt.Println()
+			fmt.Println("result file: ", accFile.Name())
 
-			return ctx.PrintResult(eInfo)
+			return err
 		},
 	}
 

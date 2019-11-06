@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/QOSGroup/qbase/client/context"
@@ -105,8 +104,6 @@ func showKeysCommand(cdc *amino.Codec) *cobra.Command {
 					Privkey: privKey,
 				})
 			}
-
-			fmt.Println(base64.StdEncoding.EncodeToString(info.GetPubKey().Bytes()))
 
 			return nil
 		},
