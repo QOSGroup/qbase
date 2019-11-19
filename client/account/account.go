@@ -1,7 +1,6 @@
 package account
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -13,10 +12,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	ErrAccountNotExsits = errors.New("account not exists")
-)
-
 func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) {
 	path := account.BuildAccountStoreQueryPath()
 	res, err := ctx.Query(string(path), account.AddressStoreKey(types.AccAddress(addr)))
@@ -25,7 +20,7 @@ func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) 
 	}
 
 	if len(res) == 0 {
-		return nil, ErrAccountNotExsits
+		return nil, context.RecordsNotFoundError
 	}
 
 	var acc account.Account
@@ -55,7 +50,7 @@ func GetAccountFromBech32Addr(ctx context.CLIContext, bech32Addr string) (accoun
 func GetAccountNonce(ctx context.CLIContext, address []byte) (int64, error) {
 	account, err := queryAccount(ctx, address)
 
-	if err == ErrAccountNotExsits {
+	if err == context.RecordsNotFoundError {
 		return 0, nil
 	}
 

@@ -40,6 +40,10 @@ const (
 	FlagResultOutPutAppend = "result-append"
 )
 
+const (
+	DefaultMaxGas int64 = 400000
+)
+
 // LineBreak can be included in a command list to provide a blank line
 // to help with readability
 var (
@@ -64,7 +68,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
 		c.Flags().Int64(FlagNonce, 0, "account nonce to sign the tx")
-		c.Flags().Int64(FlagMaxGas, 0, "gas limit to set per tx")
+		c.Flags().Int64(FlagMaxGas, DefaultMaxGas, "gas limit to set per tx")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")

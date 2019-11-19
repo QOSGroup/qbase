@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 	"os"
 	"path"
 	"regexp"
@@ -30,6 +31,10 @@ const (
 	BroadcastAsync
 )
 
+var (
+	RecordsNotFoundError = errors.New("records not found")
+)
+
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
@@ -42,6 +47,8 @@ type CLIContext struct {
 	NonceNodeURI string
 	JSONIndent   bool
 	ChainID      string
+	Logger       log.Logger
+	MaxGas       int64
 }
 
 // NewCLIContext returns a new initialized CLIContext with parameters from the
@@ -62,6 +69,10 @@ func NewCLIContext() CLIContext {
 		nonceNodeURI = nonceNodeValue
 	}
 
+	maxGas := viper.GetInt64(types.FlagMaxGas)
+	if maxGas <= int64(0) {
+		maxGas = types.DefaultMaxGas
+	}
 	return CLIContext{
 		Client:       rpc,
 		NodeURI:      nodeURI,
@@ -71,6 +82,7 @@ func NewCLIContext() CLIContext {
 		TrustNode:    viper.GetBool(types.FlagTrustNode),
 		JSONIndent:   viper.GetBool(types.FlagJSONIndet),
 		NonceNodeURI: nonceNodeURI,
+		MaxGas:       maxGas,
 	}
 }
 
@@ -125,6 +137,16 @@ func (ctx CLIContext) WithHeight(height int64) CLIContext {
 	return ctx
 }
 
+func (ctx CLIContext) WithMaxGas(maxGas int64) CLIContext {
+	ctx.MaxGas = maxGas
+	return ctx
+}
+
+func (ctx CLIContext) WithLogger(logger log.Logger) CLIContext {
+	ctx.Logger = logger
+	return ctx
+}
+
 func (ctx CLIContext) WithBroadcastMode(mode string) CLIContext {
 	ctx.Mode = parseMode(mode)
 	return ctx
@@ -150,6 +172,14 @@ func (ctx CLIContext) GetHeight() int64 {
 
 func (ctx CLIContext) GetMode() int64 {
 	return int64(ctx.Mode)
+}
+
+func (ctx CLIContext) GetMaxGas() int64 {
+	return ctx.MaxGas
+}
+
+func (ctx CLIContext) GetLogger() log.Logger {
+	return ctx.Logger
 }
 
 func (ctx CLIContext) GetNonceNodeURI() string {
