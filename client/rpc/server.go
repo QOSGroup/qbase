@@ -31,8 +31,9 @@ type Config struct {
 
 func NewRestServer(cdc *amino.Codec) *RestServer {
 	r := mux.NewRouter()
-	ctx := context.NewCLIContext().WithCodec(cdc)
 	log := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rpc-server")
+	ctx := context.NewCLIContext().WithCodec(cdc).WithLogger(log)
+
 	return &RestServer{
 		Mux:    r,
 		CliCtx: ctx,
@@ -67,10 +68,13 @@ func ServerCommand(cdc *amino.Codec, registerRoutesFn func(*RestServer)) *cobra.
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			rs := NewRestServer(cdc)
-			rs.CliCtx = rs.CliCtx.WithChainID(viper.GetString(types.FlagChainID))
+			rs.CliCtx = rs.CliCtx.
+				WithChainID(viper.GetString(types.FlagChainID))
 
+			registerTxRoutes(rs.CliCtx, rs.Mux)
 			registerTxsRoutes(rs.CliCtx, rs.Mux)
 			registerQueryRoutes(rs.CliCtx, rs.Mux)
+			registerTendermintRoutes(rs.CliCtx, rs.Mux)
 
 			registerRoutesFn(rs)
 
@@ -94,11 +98,13 @@ func ServerCommand(cdc *amino.Codec, registerRoutesFn func(*RestServer)) *cobra.
 	cmd.Flags().Uint(types.FlagMaxOpenConnections, 1000, "The number of maximum open connections")
 	cmd.Flags().Uint(types.FlagRPCReadTimeout, 10, "The RPC read timeout (in seconds)")
 	cmd.Flags().Uint(types.FlagRPCWriteTimeout, 10, "The RPC write timeout (in seconds)")
+	cmd.Flags().Uint(types.FlagMaxGas, uint(types.DefaultMaxGas), "Tx default max gas")
 
 	viper.BindPFlag(types.FlagListenAddr, cmd.Flags().Lookup(types.FlagListenAddr))
 	viper.BindPFlag(types.FlagMaxOpenConnections, cmd.Flags().Lookup(types.FlagMaxOpenConnections))
 	viper.BindPFlag(types.FlagRPCReadTimeout, cmd.Flags().Lookup(types.FlagRPCReadTimeout))
 	viper.BindPFlag(types.FlagRPCWriteTimeout, cmd.Flags().Lookup(types.FlagRPCWriteTimeout))
+	viper.BindPFlag(types.FlagMaxGas, cmd.Flags().Lookup(types.FlagMaxGas))
 
 	cmd.MarkFlagRequired(types.FlagChainID)
 

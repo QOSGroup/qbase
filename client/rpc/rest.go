@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/log"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -38,7 +39,7 @@ type TxGenerateResponse struct {
 }
 
 type ErrorResponse struct {
-	Code  int    `json:"code,omitempty"`
+	Code  int    `json:"code"`
 	Error string `json:"error"`
 }
 
@@ -93,6 +94,10 @@ func (br BaseRequest) Setup(ctx context.CLIContext) context.CLIContext {
 		ctx = ctx.WithHeight(br.Height)
 	}
 
+	if br.MaxGas > 0 {
+		ctx = ctx.WithMaxGas(br.MaxGas)
+	}
+
 	ctx = ctx.WithIndent(br.Indent)
 	ctx = ctx.WithBroadcastMode(br.Mode)
 
@@ -103,25 +108,25 @@ func BuildStdTxAndResponse(writer http.ResponseWriter, request *http.Request, cl
 	vars := mux.Vars(request)
 	rv := reflect.New(typ)
 
-	if !readRESTRequest(writer, request, cliCtx.Codec, rv.Interface()) {
+	if !readRESTRequest(writer, request, cliCtx.Codec, rv.Interface(), cliCtx.Logger) {
 		return
 	}
 
 	brRv := rv.Elem().FieldByName("BaseRequest")
 	if !brRv.IsValid() {
-		WriteErrorResponse(writer, http.StatusInternalServerError, fmt.Sprintf("find BaseRequest field error. check type: %+v ", typ))
+		WriteErrorResponse(writer, http.StatusBadRequest, fmt.Sprintf("find BaseRequest field error. check type: %+v ", typ))
 		return
 	}
 
 	br, ok := brRv.Interface().(BaseRequest)
 	if !ok {
-		WriteErrorResponse(writer, http.StatusInternalServerError, "covert BaseRequest type error")
+		WriteErrorResponse(writer, http.StatusBadRequest, "covert BaseRequest type error")
 		return
 	}
 
 	br, from, err := sanitizeBaseRequest(br)
 	if err != nil {
-		WriteErrorResponse(writer, http.StatusInternalServerError, err.Error())
+		WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -129,7 +134,12 @@ func BuildStdTxAndResponse(writer http.ResponseWriter, request *http.Request, cl
 
 	itx, err := fn(rv.Elem().Interface(), from, vars)
 	if err != nil {
-		WriteErrorResponse(writer, http.StatusInternalServerError, err.Error())
+		if err == context.RecordsNotFoundError {
+			WriteErrorResponse(writer, http.StatusNotFound, err.Error())
+		} else {
+			WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
+		}
+
 		return
 	}
 
@@ -162,7 +172,7 @@ func ParseURIPathAddress(request *http.Request, pathName string) (types.AccAddre
 	return addr, err
 }
 
-func readRESTRequest(w http.ResponseWriter, r *http.Request, cdc *amino.Codec, req interface{}) bool {
+func readRESTRequest(w http.ResponseWriter, r *http.Request, cdc *amino.Codec, req interface{}, logger log.Logger) bool {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -170,6 +180,7 @@ func readRESTRequest(w http.ResponseWriter, r *http.Request, cdc *amino.Codec, r
 		return false
 	}
 
+	logger.Debug("readRESTRequest", "body", string(body))
 	err = cdc.UnmarshalJSON(body, req)
 	if err != nil {
 		WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to decode JSON payload: %s", err))
@@ -188,6 +199,14 @@ func WriteErrorResponse(w http.ResponseWriter, status int, err string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, _ = w.Write(cdc.MustMarshalJSON(NewErrorResponse(status, err)))
+}
+
+func WriteBadRequestErrorResponse(w http.ResponseWriter, err error) {
+	if err == context.RecordsNotFoundError {
+		WriteErrorResponse(w, http.StatusNotFound, err.Error())
+	} else {
+		WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+	}
 }
 
 func PostProcessResponseBare(w http.ResponseWriter, ctx context.CLIContext, body interface{}) {
@@ -220,6 +239,7 @@ func PostProcessResponseBare(w http.ResponseWriter, ctx context.CLIContext, body
 		}
 	}
 
+	ctx.Logger.Debug("PostProcessResponseBare", "data", string(resp))
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(resp)
 }
@@ -234,9 +254,8 @@ func WriteGenStdTxResponse(writer http.ResponseWriter, cliCtx context.CLIContext
 	cliCtx = req.Setup(cliCtx)
 
 	maxGas := req.MaxGas
-	if maxGas == int64(0) {
-		//todo default max gas. context设置
-		maxGas = 2000000
+	if maxGas <= int64(0) {
+		maxGas = cliCtx.MaxGas
 	}
 
 	signer, _ := types.AccAddressFromBech32(req.From)
@@ -244,12 +263,12 @@ func WriteGenStdTxResponse(writer http.ResponseWriter, cliCtx context.CLIContext
 
 	nonce := int64(0)
 	if req.Nonce != 0 {
-		nonce = req.Nonce + 1
+		nonce = req.Nonce
 	} else if acc != nil {
-		nonce = acc.GetNonce() + 1
-	} else {
-		nonce = nonce + 1
+		nonce = acc.GetNonce()
 	}
+
+	nonce = nonce + 1
 
 	var pubkey crypto.PubKey
 	if acc != nil {
@@ -267,7 +286,7 @@ func WriteGenStdTxResponse(writer http.ResponseWriter, cliCtx context.CLIContext
 
 	bz, err := cliCtx.JSONResult(stdTx)
 	if err != nil {
-		WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
+		WriteErrorResponse(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -285,10 +304,11 @@ func WriteGenStdTxResponse(writer http.ResponseWriter, cliCtx context.CLIContext
 
 	bz, err = cliCtx.JSONResult(response)
 	if err != nil {
-		WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
+		WriteErrorResponse(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	cliCtx.Logger.Debug("WriteGenStdTxResponse result", "data", string(bz))
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_, _ = writer.Write(bz)

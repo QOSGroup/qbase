@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"math"
 	"runtime/debug"
 
 	"github.com/spf13/viper"
@@ -185,15 +184,10 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 func BuildAndSignStdTx(ctx context.CLIContext, tXs []txs.ITx, fromChainID, toChainID string) (*txs.TxStd, error) {
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
-	maxGas := viper.GetInt64(cflags.FlagMaxGas)
 	isGenOnly := viper.GetBool(cflags.FlagGenerateOnly)
 	qcpMode := viper.GetBool(cflags.FlagQcp)
 
-	if maxGas <= 0 {
-		maxGas = math.MaxUint64 / 2
-	}
-
-	txStd := txs.NewTxsStd(toChainID, types.NewInt(maxGas), tXs...)
+	txStd := txs.NewTxsStd(toChainID, types.NewInt(ctx.GetMaxGas()), tXs...)
 	if isGenOnly && !qcpMode {
 		ctx.PrintResult(txStd)
 		return nil, nil
