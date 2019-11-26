@@ -1,16 +1,18 @@
 package keys
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/types"
 	"github.com/spf13/cobra"
 	go_amino "github.com/tendermint/go-amino"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const (
@@ -62,11 +64,13 @@ func exportCommand(cdc *go_amino.Codec) *cobra.Command {
 					return err
 				}
 
+				bz := priv.(ed25519.PrivKeyEd25519)
+
 				eInfo = exportInfo{
 					Name:    name,
 					Address: info.GetAddress(),
 					Pubkey:  types.MustAccPubKeyString(priv.PubKey()),
-					Privkey: priv,
+					Privkey: strings.ToUpper(hex.EncodeToString(bz[:])),
 				}
 			}
 
@@ -100,5 +104,5 @@ type exportInfo struct {
 	Name    string           `json:"name"`
 	Address types.AccAddress `json:"address"`
 	Pubkey  string           `json:"pubkey"`
-	Privkey crypto.PrivKey   `json:"privkey"`
+	Privkey string           `json:"privkey"`
 }

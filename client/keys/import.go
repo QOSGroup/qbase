@@ -1,7 +1,7 @@
 package keys
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,7 +54,7 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 				}
 				prikStr = string(bz)
 			} else {
-				prikStr, err = utils.GetString("Enter ed25519 private key: ", buf)
+				prikStr, err = utils.GetString("Enter Hex private key: ", buf)
 				if err != nil {
 					return err
 				}
@@ -89,7 +89,7 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 }
 
 func readPrivateKey(content string) ([]byte, error) {
-	privBytes, err := base64.StdEncoding.DecodeString(content)
+	privBytes, err := hex.DecodeString(content)
 	if err == nil {
 		return privBytes, nil
 	}
@@ -101,13 +101,16 @@ func readPrivateKey(content string) ([]byte, error) {
 	}
 
 	value := ""
+	ok := true
 	pkInter, exists := m["privkey"]
 	if exists {
-		pkMap := pkInter.(map[string]interface{})
-		value = pkMap["value"].(string)
+		value, ok = pkInter.(string)
+		if !ok {
+			return nil, errors.New("content is not valid private key spec")
+		}
 	} else {
-		value = m["value"].(string)
+		return nil, errors.New("content is not valid private key spec")
 	}
 
-	return base64.StdEncoding.DecodeString(value)
+	return hex.DecodeString(value)
 }
