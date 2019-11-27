@@ -44,7 +44,7 @@ func queryAccountHandleFunc(cliContext context.CLIContext) func(http.ResponseWri
 
 		acc, err := account.GetAccount(ctx, addr)
 		if err != nil {
-			WriteBadRequestErrorResponse(writer, err)
+			Write40XErrorResponse(writer, err)
 			return
 		}
 

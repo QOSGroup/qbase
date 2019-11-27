@@ -201,7 +201,7 @@ func WriteErrorResponse(w http.ResponseWriter, status int, err string) {
 	_, _ = w.Write(cdc.MustMarshalJSON(NewErrorResponse(status, err)))
 }
 
-func WriteBadRequestErrorResponse(w http.ResponseWriter, err error) {
+func Write40XErrorResponse(w http.ResponseWriter, err error) {
 	if err == context.RecordsNotFoundError {
 		WriteErrorResponse(w, http.StatusNotFound, err.Error())
 	} else {
