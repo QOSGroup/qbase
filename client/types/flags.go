@@ -41,7 +41,7 @@ const (
 )
 
 const (
-	DefaultMaxGas int64 = 400000
+	DefaultMaxGas int64 = 2000000
 )
 
 // LineBreak can be included in a command list to provide a blank line
