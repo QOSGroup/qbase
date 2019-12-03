@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
+
+	"runtime/debug"
+
 	"github.com/spf13/viper"
-	"math"
 
 	"github.com/QOSGroup/qbase/client/account"
 	"github.com/QOSGroup/qbase/client/context"
@@ -28,17 +31,51 @@ type ITxBuilder func(ctx context.CLIContext) (txs.ITx, error)
 func BroadcastTxAndPrintResult(cdc *amino.Codec, txBuilder ITxBuilder) error {
 	result, err := BroadcastTx(cdc, txBuilder)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	cliCtx.PrintResult(result)
+
+	if result != nil {
+		cliCtx.PrintResult(result)
+	}
+
 	return err
 }
 
 func BroadcastTx(cdc *amino.Codec, txBuilder ITxBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	isPrint := viper.GetBool(cflags.FlagPrintTx)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 	signedTx, err := buildAndSignTx(cliCtx, txBuilder)
 	if err != nil {
 		return nil, err
 	}
 
+	v := reflect.ValueOf(signedTx)
+	if v.IsNil() {
+		return nil, nil
+	}
+
+	//print signed tx details
+	if isPrint {
+		cliCtx.PrintResult(signedTx)
+	}
+	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+}
+
+func BroadcastTxs(cdc *amino.Codec, txsBuilder ITxsBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
+	isPrint := viper.GetBool(cflags.FlagPrintTx)
+	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	signedTx, err := buildAndSignTxs(cliCtx, txsBuilder)
+	if err != nil {
+		return nil, err
+	}
+
+	v := reflect.ValueOf(signedTx)
+	if v.IsNil() {
+		return nil, nil
+	}
+
+	//print signed tx details
+	if isPrint {
+		cliCtx.PrintResult(signedTx)
+	}
 	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
 }
 
@@ -46,7 +83,7 @@ func buildAndSignTx(ctx context.CLIContext, txBuilder ITxBuilder) (signedTx type
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx error. error: %s \n recovered: %v\n", r, string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
@@ -71,25 +108,19 @@ type ITxsBuilder func(ctx context.CLIContext) ([]txs.ITx, error)
 func BroadcastTxsAndPrintResult(cdc *amino.Codec, txsBuilder ITxsBuilder) error {
 	result, err := BroadcastTxs(cdc, txsBuilder)
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	cliCtx.PrintResult(result)
-	return err
-}
 
-func BroadcastTxs(cdc *amino.Codec, txsBuilder ITxsBuilder) (*ctypes.ResultBroadcastTxCommit, error) {
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	signedTx, err := buildAndSignTxs(cliCtx, txsBuilder)
-	if err != nil {
-		return nil, err
+	if result != nil {
+		cliCtx.PrintResult(result)
 	}
 
-	return cliCtx.BroadcastTx(cdc.MustMarshalBinaryBare(signedTx))
+	return err
 }
 
 func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx types.Tx, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", r)
+			log := fmt.Sprintf("buildAndSignTx recovered: %v\n", string(debug.Stack()))
 			signedTx = nil
 			err = errors.New(log)
 		}
@@ -106,6 +137,7 @@ func buildAndSignTxs(ctx context.CLIContext, txsBuilder ITxsBuilder) (signedTx t
 func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainID string) (*txs.TxQcp, error) {
 
 	qcpSigner := viper.GetString(cflags.FlagQcpSigner)
+	isGenOnly := viper.GetBool(cflags.FlagGenerateOnly)
 
 	if qcpSigner == "" || fromChainID == "" {
 		return nil, errors.New("in qcp mode, --qcp-from and --qcp-signer flag must set")
@@ -124,9 +156,7 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 		return nil, err
 	}
 
-	fmt.Println("> step 2. build and sign TxQcp")
 	_, ok := tx.(*txs.QcpTxResult)
-
 	txQcp := txs.NewTxQCP(txStd, fromChainID,
 		toChainID,
 		qcpSeq+1,
@@ -136,6 +166,12 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 		viper.GetString(cflags.FlagQcpExtends),
 	)
 
+	if isGenOnly {
+		ctx.PrintResult(txQcp)
+		return nil, nil
+	}
+
+	fmt.Println("> step 2. build and sign TxQcp")
 	sig, pubkey := signData(ctx, qcpSignerInfo.GetName(), txQcp.BuildSignatureBytes())
 	txQcp.Sig = txs.Signature{
 		Pubkey:    pubkey,
@@ -148,12 +184,14 @@ func BuildAndSignQcpTx(ctx context.CLIContext, tx txs.ITx, fromChainID, toChainI
 func BuildAndSignStdTx(ctx context.CLIContext, tXs []txs.ITx, fromChainID, toChainID string) (*txs.TxStd, error) {
 
 	accountNonce := viper.GetInt64(cflags.FlagNonce)
-	maxGas := viper.GetInt64(cflags.FlagMaxGas)
-	if maxGas <= 0 {
-		maxGas = math.MaxUint64 / 2
-	}
+	isGenOnly := viper.GetBool(cflags.FlagGenerateOnly)
+	qcpMode := viper.GetBool(cflags.FlagQcp)
 
-	txStd := txs.NewTxsStd(toChainID, types.NewInt(maxGas), tXs...)
+	txStd := txs.NewTxsStd(toChainID, types.NewInt(ctx.GetMaxGas()), tXs...)
+	if isGenOnly && !qcpMode {
+		ctx.PrintResult(txStd)
+		return nil, nil
+	}
 
 	signers := getSigners(ctx, txStd.GetSigners())
 
@@ -225,18 +263,32 @@ func signData(ctx context.CLIContext, name string, data []byte) ([]byte, crypto.
 
 	keybase, err := keys.GetKeyBase(ctx)
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
 	}
 
 	sig, pubkey, err := keybase.Sign(name, pass, data)
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Errorf("Sign data error.err:%s", err.Error()))
 	}
 
 	return sig, pubkey
 }
 
-func getSigners(ctx context.CLIContext, txSignerAddrs []types.Address) []string {
+func SignDataFromAddress(ctx context.CLIContext, addr types.AccAddress, data []byte) ([]byte, crypto.PubKey) {
+	keybase, err := keys.GetKeyBase(ctx)
+	if err != nil {
+		panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
+	}
+
+	info, err := keybase.GetByAddress(addr)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return signData(ctx, info.GetName(), data)
+}
+
+func getSigners(ctx context.CLIContext, txSignerAddrs []types.AccAddress) []string {
 
 	var sortNames []string
 
@@ -244,12 +296,12 @@ func getSigners(ctx context.CLIContext, txSignerAddrs []types.Address) []string 
 
 		keybase, err := keys.GetKeyBase(ctx)
 		if err != nil {
-			panic(err.Error())
+			panic(fmt.Errorf("Open keybase error.err:%s", err.Error()))
 		}
 
 		info, err := keybase.GetByAddress(addr)
 		if err != nil {
-			panic(fmt.Sprintf("signer addr: %s not in current keybase. err:%s", addr, err.Error()))
+			panic(fmt.Sprintf("Signer addr: %s not in current keybase. err:%s", addr, err.Error()))
 		}
 
 		sortNames = append(sortNames, info.GetName())

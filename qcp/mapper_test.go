@@ -14,11 +14,11 @@ import (
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
-func Test_qcpMapper_GetMaxChainOutSequence(t *testing.T) {
+func Test_Mapper_GetMaxChainOutSequence(t *testing.T) {
 
 	cdc := defaultCdc()
 	qcpMapper := NewQcpMapper(cdc)

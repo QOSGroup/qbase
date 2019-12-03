@@ -1,10 +1,14 @@
 package block
 
 import (
+	"errors"
 	"github.com/QOSGroup/qbase/client/context"
 	"github.com/QOSGroup/qbase/client/types"
+	btypes "github.com/QOSGroup/qbase/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/p2p"
+	core_types "github.com/tendermint/tendermint/rpc/core/types"
 
 	go_amino "github.com/tendermint/go-amino"
 )
@@ -27,7 +31,23 @@ func statusCommand(cdc *go_amino.Codec) *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintResult(status)
+			if status == nil {
+				return errors.New("query status return empty response")
+			}
+
+			var sdi statusDisplayInfo
+			sdi.NodeInfo = status.NodeInfo
+			sdi.SyncInfo = status.SyncInfo
+
+			consPubKey, _ := btypes.ConsensusPubKeyString(status.ValidatorInfo.PubKey)
+
+			sdi.ValidatorInfo = consValidatorInfo{
+				Address:     btypes.ConsAddress(status.ValidatorInfo.Address.Bytes()).String(),
+				PubKey:      consPubKey,
+				VotingPower: status.ValidatorInfo.VotingPower,
+			}
+
+			return cliCtx.PrintResult(sdi)
 		},
 	}
 
@@ -36,4 +56,16 @@ func statusCommand(cdc *go_amino.Codec) *cobra.Command {
 	viper.BindPFlag(types.FlagNode, cmd.Flags().Lookup(types.FlagNode))
 
 	return cmd
+}
+
+type statusDisplayInfo struct {
+	NodeInfo      p2p.DefaultNodeInfo `json:"node_info"`
+	SyncInfo      core_types.SyncInfo `json:"sync_info"`
+	ValidatorInfo consValidatorInfo   `json:"validator_info"`
+}
+
+type consValidatorInfo struct {
+	Address     string `json:"address"`
+	PubKey      string `json:"pub_key"`
+	VotingPower int64  `json:"voting_power"`
 }

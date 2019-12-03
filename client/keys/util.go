@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/libs/cli"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // KeyDBName is the directory under root where we store the keys
@@ -116,21 +115,16 @@ func Bech32KeysOutput(ctx context.CLIContext, infos []keys.Info) ([]KeyOutput, e
 
 // create a KeyOutput in bech32 format
 func Bech32KeyOutput(ctx context.CLIContext, info keys.Info) (KeyOutput, error) {
-	accAddr := btypes.Address(info.GetPubKey().Address().Bytes())
-
-	pubkeyBz, err := ctx.Codec.MarshalJSON(info.GetPubKey())
+	accAddr := btypes.AccAddress(info.GetPubKey().Address().Bytes())
+	pk, err := btypes.AccPubKeyString(info.GetPubKey())
 	if err != nil {
-		return KeyOutput{}, err
+		panic(err)
 	}
-
-	var pubkeyMap map[string]interface{}
-	json.Unmarshal(pubkeyBz, &pubkeyMap)
-
 	return KeyOutput{
 		Name:    info.GetName(),
 		Type:    info.GetType().String(),
 		Address: accAddr.String(),
-		PubKey:  pubkeyMap["value"].(string),
+		PubKey:  pk,
 	}, nil
 }
 

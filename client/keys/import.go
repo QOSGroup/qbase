@@ -1,7 +1,9 @@
 package keys
 
 import (
-	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -43,32 +45,27 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 
 			var prikey ed25519.PrivKeyEd25519
 			priFile := viper.GetString(flagPriFile)
-			if priFile != "" {
-				//import from CA PRI FILE
 
+			prikStr := ""
+			if priFile != "" {
 				bz, err := ioutil.ReadFile(priFile)
 				if err != nil {
 					return err
 				}
-
-				err = ctx.Codec.UnmarshalJSON(bz, &prikey)
-				if err != nil {
-					return err
-				}
+				prikStr = string(bz)
 			} else {
-
-				prikStr, err := utils.GetString("Enter ed25519 private key: ", buf)
+				prikStr, err = utils.GetString("Enter Hex private key: ", buf)
 				if err != nil {
 					return err
 				}
-
-				privBytes, err := base64.StdEncoding.DecodeString(prikStr)
-				if err != nil {
-					return err
-				}
-
-				copy(prikey[:], privBytes)
 			}
+
+			privBytes, err := readPrivateKey(prikStr)
+			if err != nil {
+				return err
+			}
+
+			copy(prikey[:], privBytes)
 
 			encryptPassword, err := utils.GetCheckPassword(
 				"> Enter a passphrase for your key:",
@@ -86,7 +83,34 @@ func importCommand(cdc *go_amino.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagPriFile, "", "import private key from CA Pri File")
+	cmd.Flags().String(flagPriFile, "", "import private key from acc File")
 
 	return cmd
+}
+
+func readPrivateKey(content string) ([]byte, error) {
+	privBytes, err := hex.DecodeString(content)
+	if err == nil {
+		return privBytes, nil
+	}
+
+	var m map[string]interface{}
+	err = json.Unmarshal([]byte(content), &m)
+	if err != nil {
+		return nil, errors.New("content is invalid:" + err.Error())
+	}
+
+	value := ""
+	ok := true
+	pkInter, exists := m["privkey"]
+	if exists {
+		value, ok = pkInter.(string)
+		if !ok {
+			return nil, errors.New("content is not valid private key spec")
+		}
+	} else {
+		return nil, errors.New("content is not valid private key spec")
+	}
+
+	return hex.DecodeString(value)
 }

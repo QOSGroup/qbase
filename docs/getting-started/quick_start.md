@@ -64,9 +64,9 @@
 type ITx interface {
 	ValidateData(ctx context.Context) error // 校验业务数据
 	Exec(ctx context.Context) (result types.Result, crossTxQcp *TxQcp)
-	GetSigner() []types.Address //签名者
+	GetSigner() []types.AccAddress //签名者
 	CalcGas() types.BigInt      //计算gas
-	GetGasPayer() types.Address //gas付费人
+	GetGasPayer() types.AccAddress //gas付费人
 	GetSignData() []byte        //获取签名字段
 }
 

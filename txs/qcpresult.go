@@ -10,7 +10,7 @@ import (
 	tcommon "github.com/tendermint/tendermint/libs/common"
 )
 
-var QCP_RESULT_DEFAULT_MAX_GAS = types.NewInt(200000)
+var QcpResultDefaultMaxGas = types.NewInt(100000)
 
 // qos端对TxQcp的执行结果
 type QcpTxResult struct {
@@ -67,7 +67,7 @@ func (tx *QcpTxResult) Exec(ctx context.Context) (result types.Result, crossTxQc
 
 // 功能：获取签名者
 // 备注：qos对QcpTxResult不做签名，故返回空
-func (tx *QcpTxResult) GetSigner() []types.Address {
+func (tx *QcpTxResult) GetSigner() []types.AccAddress {
 	return nil
 }
 
@@ -79,7 +79,7 @@ func (tx *QcpTxResult) CalcGas() types.BigInt {
 
 // 功能：获取gas付费人
 // 备注：返回空(因暂时gas为0，无人需要付gas)
-func (tx *QcpTxResult) GetGasPayer() types.Address {
+func (tx *QcpTxResult) GetGasPayer() types.AccAddress {
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (tx *QcpTxResult) GetSignData() []byte {
 	return ret
 }
 
-// 功能：构建 QcpTxReasult 结构体
+// 功能：构建 QcpTxResult 结构体
 func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info string) *QcpTxResult {
 	return &QcpTxResult{
 		Result:              result,
@@ -110,7 +110,6 @@ func NewQcpTxResult(result types.Result, qcpSequence int64, qcpExtends, info str
 }
 
 // 功能：将common.KVPair转化成[]byte
-// todo: test（amino序列化及反序列化的正确性）
 func Extends2Byte(ext []tcommon.KVPair) (ret []byte) {
 	if ext == nil || len(ext) == 0 {
 		return nil

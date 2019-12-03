@@ -1,6 +1,7 @@
 package txs
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/QOSGroup/qbase/types"
@@ -50,12 +51,12 @@ func (tx *TxQcp) BuildSignatureBytes() []byte {
 	return tx.getSigData()
 }
 
-func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
+func (tx *TxQcp) SignTx(privateKey crypto.PrivKey) (signByte []byte, err error) {
 	data := tx.BuildSignatureBytes()
 	if data == nil {
 		return nil, errors.New("Signature txQcp err!")
 	}
-	signedbyte, err = prvkey.Sign(data)
+	signByte, err = privateKey.Sign(data)
 	if err != nil {
 		return nil, err
 	}
@@ -64,17 +65,17 @@ func (tx *TxQcp) SignTx(prvkey crypto.PrivKey) (signedbyte []byte, err error) {
 }
 
 // 构建TxQCP结构体
-func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
-	blockheigh int64, txindex int64, isResult bool, extends string) (rTx *TxQcp) {
+func NewTxQCP(txStd *TxStd, from string, to string, sequence int64,
+	blockHeight int64, txIndex int64, isResult bool, extends string) (rTx *TxQcp) {
 
 	rTx = &TxQcp{
 		txStd,
 		from,
 		to,
-		seqence,
+		sequence,
 		Signature{},
-		blockheigh,
-		txindex,
+		blockHeight,
+		txIndex,
 		isResult,
 		extends,
 	}
@@ -83,22 +84,31 @@ func NewTxQCP(txStd *TxStd, from string, to string, seqence int64,
 }
 
 // ValidateBasicData 校验txQcp基础数据是否合法
-func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChaindID string) (err types.Error) {
+func (tx *TxQcp) ValidateBasicData(isCheckTx bool, currentChainID string) (err types.Error) {
 	// 1. From To Sequence Sig 不为空
 	// 2. to == current.chainId
 
 	if tx.From == "" || tx.To == "" || tx.Sequence <= 0 || tx.BlockHeight <= 0 || tx.TxIndex < 0 {
-		return types.ErrInternal(fmt.Sprintf("txQcp's basic data is not valid. basic data: from: %s , to: %s , seq: %d , height: %d,index:%d ",
+		return types.ErrInternal(fmt.Sprintf("TxQcp's Basic data is not valid. basic data: from: %s , to: %s , seq: %d , height: %d,index:%d ",
 			tx.From, tx.To, tx.Sequence, tx.BlockHeight, tx.TxIndex))
 	}
 
-	if tx.Sig.Signature == nil {
-		return types.ErrInternal("txQcp's Signature is nil")
+	if len(tx.Sig.Signature) == 0 {
+		return types.ErrInternal("TxQcp's Signature is empty")
 	}
 
-	if tx.To != currentChaindID {
-		return types.ErrInternal(fmt.Sprintf("txQcp's To chainID is not match current chainID. expect: %s, actual: %s", currentChaindID, tx.To))
+	if tx.Sig.Nonce < 0 {
+		return types.ErrInternal("TxQcp's Signature nonce is not valid.")
+	}
+
+	if tx.To != currentChainID {
+		return types.ErrInternal(fmt.Sprintf("TxQcp's ToChainID is not match current chainID. expect: %s, actual: %s", currentChainID, tx.To))
 	}
 
 	return
+}
+
+func (tx *TxQcp) GenTxHash() string {
+	bz := crypto.Sha256(tx.BuildSignatureBytes())
+	return hex.EncodeToString(bz)
 }

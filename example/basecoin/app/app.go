@@ -12,9 +12,10 @@ import (
 	"github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/example/basecoin/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
@@ -28,9 +29,9 @@ type BaseCoinApp struct {
 	*baseabci.BaseApp
 }
 
-func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
+func NewApp(cfg *cfg.Config, logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 
-	baseApp := baseabci.NewBaseApp(appName, logger, db, RegisterCodec, baseabci.SetPruning(store.PruneSyncable))
+	baseApp := baseabci.NewBaseApp(appName, cfg, logger, db, RegisterCodec, baseabci.SetPruning(store.PruneSyncable))
 	baseApp.SetCommitMultiStoreTracer(traceStore)
 
 	//baseApp.
@@ -55,6 +56,7 @@ func NewApp(logger log.Logger, db dbm.DB, traceStore io.Writer) *BaseCoinApp {
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
+
 	return app
 }
 
@@ -82,7 +84,7 @@ func (app *BaseCoinApp) initChainer(ctx context.Context, req abci.RequestInitCha
 	return abci.ResponseInitChain{}
 }
 
-func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.Address) (gasUsed uint64, err btypes.Error) {
+func (app *BaseCoinApp) gasHandler(ctx context.Context, payer btypes.AccAddress) (gasUsed uint64, err btypes.Error) {
 	gasFeeUsed := int64(ctx.GasMeter().GasConsumed()) / gasPerUnitCost
 
 	if gasFeeUsed > 0 {

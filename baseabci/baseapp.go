@@ -3,15 +3,16 @@ package baseabci
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"runtime/debug"
+	"strconv"
+	"strings"
+
 	"github.com/QOSGroup/qbase/account"
 	"github.com/QOSGroup/qbase/consensus"
 	"github.com/QOSGroup/qbase/mapper"
 	"github.com/QOSGroup/qbase/qcp"
 	"github.com/QOSGroup/qbase/version"
-	"io"
-	"runtime/debug"
-	"strconv"
-	"strings"
 
 	ctx "github.com/QOSGroup/qbase/context"
 	"github.com/QOSGroup/qbase/store"
@@ -21,16 +22,18 @@ import (
 
 	go_amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
+	Config *cfg.Config
 	Logger log.Logger
 	name   string                 // application name from abci.Info
 	db     dbm.DB                 // common DB backend
@@ -41,7 +44,8 @@ type BaseApp struct {
 	beginBlocker BeginBlockHandler // logic to run before any txs
 	endBlocker   EndBlockHandler   // logic to run after all txs, and to determine valset changes
 
-	gasHandler GasHandler // gas fee handler
+	gasPreHandler GasPreHandler // gas fee pre handler
+	gasHandler    GasHandler    // gas fee handler
 
 	//--------------------
 	// Volatile
@@ -53,7 +57,6 @@ type BaseApp struct {
 
 	//--------------------------------------------------------------
 
-	//TODO: may be nil , 做校验
 	txQcpResultHandler TxQcpResultHandler // exec方法中回调，执行具体的业务逻辑
 	txQcpSigner        crypto.PrivKey     //对跨链TxQcp签名的私钥， 由app在启动时初始化
 
@@ -70,7 +73,7 @@ type BaseApp struct {
 var _ abci.Application = (*BaseApp)(nil)
 
 // NewBaseApp returns a reference to an initialized BaseApp.
-func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
+func NewBaseApp(name string, cfg *cfg.Config, logger log.Logger, db dbm.DB, registerCodecFunc func(*go_amino.Codec), options ...func(*BaseApp)) *BaseApp {
 
 	cdc := MakeQBaseCodec()
 	if registerCodecFunc != nil {
@@ -78,6 +81,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, registerCodecFunc fun
 	}
 
 	app := &BaseApp{
+		Config:          cfg,
 		Logger:          logger,
 		name:            name,
 		db:              db,
@@ -368,7 +372,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	valMapper := validator.GetValidatorMapper(app.deliverState.ctx)
-	valMapper.SetLastBlockProposer(req.Header.GetProposerAddress())
+	valMapper.SetLastBlockProposer(types.ConsAddress(req.Header.GetProposerAddress()))
 	valMapper.ClearValidatorUpdateSet()
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
@@ -394,8 +398,10 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) 
 	ctx := app.checkState.ctx.WithTxBytes(req.Tx)
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
+		ctx = setGasMeter(ctx, implTx)
 		result, _ = app.checkTxStd(ctx, implTx, "")
 	case *txs.TxQcp:
+		ctx = setGasMeter(ctx, implTx.TxStd)
 		result = app.checkTxQcp(ctx, implTx)
 	default:
 		result = types.ErrInternal("not support itx type").Result()
@@ -434,8 +440,6 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID 
 		result.GasWanted = uint64(tx.MaxGas.Int64())
 	}()
 
-	ctx = setGasMeter(ctx, tx)
-
 	//1. 校验txStd基础信息
 	err := tx.ValidateBasicData(ctx, true, ctx.ChainID())
 	if err != nil {
@@ -455,6 +459,12 @@ func (app *BaseApp) checkTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID 
 
 //校验txstd用户签名，签名通过后，增加用户none
 func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs.TxStd, qcpFromChainID string) (newctx ctx.Context, result types.Result) {
+	defer func() {
+		if newctx.IsZero() {
+			newctx = cctx
+		}
+	}()
+
 	//未注册accountProto时， 不做签名校验
 	//用户可以在itx.validate()中自定义签名校验逻辑
 	accounMapper := GetAccountMapper(cctx)
@@ -496,8 +506,8 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 		signature := signatures[i]
 
 		if signature.Pubkey != nil {
-			pubkeyAddress := types.Address(signature.Pubkey.Address())
-			if !bytes.Equal(pubkeyAddress, acc.GetAddress()) {
+			pubkeyAddress := types.AccAddress(signature.Pubkey.Address().Bytes())
+			if !acc.GetAddress().Equals(pubkeyAddress) {
 				result = types.ErrInternal(fmt.Sprintf("invalid address. expect: %s, got: %s", acc.GetAddress(), pubkeyAddress)).Result()
 				return
 			}
@@ -509,7 +519,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 			return
 		}
 
-		if acc.GetPubicKey() == nil {
+		if acc.GetPublicKey() == nil {
 			if signature.Pubkey == nil {
 				result = types.ErrInternal("txstd's pubkey is nil in signature").Result()
 				return
@@ -522,7 +532,7 @@ func (app *BaseApp) validateTxStdUserSignatureAndNonce(cctx ctx.Context, tx *txs
 	for i := 0; i < len(signatures); i++ {
 		acc := signerAccount[i]
 		signature := signatures[i]
-		pubkey := acc.GetPubicKey()
+		pubkey := acc.GetPublicKey()
 		//1. 根据账户nonce及txStd源chainID生成signData
 		signBytes := tx.BuildSignatureBytes(acc.GetNonce()+1, qcpFromChainID)
 		if !pubkey.VerifyBytes(signBytes, signature.Signature) {
@@ -559,8 +569,6 @@ func (app *BaseApp) checkTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.Res
 		result.GasUsed = ctx.GasMeter().GasConsumed()
 		result.GasWanted = uint64(tx.TxStd.MaxGas.Int64())
 	}()
-
-	ctx = setGasMeter(ctx, tx.TxStd)
 
 	//1. 校验txQcp基础数据
 	err := tx.ValidateBasicData(true, ctx.ChainID())
@@ -665,6 +673,7 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 	} else {
 		gm = types.NewGasMeter(uint64(tx.MaxGas.Int64()))
 	}
+
 	txsGas := types.ZeroInt()
 	for _, itx := range tx.ITxs {
 		txsGas = txsGas.Add(itx.CalcGas())
@@ -695,7 +704,12 @@ func (app *BaseApp) deliverTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainI
 	}()
 
 	ctx = setGasMeter(ctx, tx)
-
+	if nil != app.gasPreHandler {
+		err := app.gasPreHandler(ctx, tx.ITxs[0].GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
+	}
 	result, newctx := app.runTxStd(ctx, tx, txStdFromChainID)
 
 	if !newctx.IsZero() {
@@ -726,14 +740,14 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 
 	runCtx := ctx.WithMultiStore(msCache)
 
-	var crossTxQcp *txs.TxQcp
-
 	for _, itx := range tx.ITxs {
-		result, crossTxQcp = itx.Exec(runCtx)
-
-		if !result.IsOK() {
+		singleResult, crossTxQcp := itx.Exec(runCtx)
+		result.Code = singleResult.Code
+		if !singleResult.IsOK() {
 			break
 		}
+
+		result.Events = result.Events.AppendEvents(singleResult.Events)
 
 		//4. 根据crossTxQcp结果判断是否保存跨链结果
 		// crossTxQcp 不为空时，需要将跨链结果保存
@@ -750,7 +764,7 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 					types.NewAttribute(qcp.From, ctx.ChainID()),
 					types.NewAttribute(qcp.To, txQcp.To),
 					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
-					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+					types.NewAttribute(qcp.Hash, txQcp.GenTxHash()),
 				),
 			})
 		}
@@ -768,8 +782,6 @@ func (app *BaseApp) runTxStd(ctx ctx.Context, tx *txs.TxStd, txStdFromChainID st
 	if result.IsOK() {
 		msCache.Write()
 	}
-
-	newctx.WithGasMeter(runCtx.GasMeter())
 
 	return
 }
@@ -822,7 +834,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 		if !tx.IsResult {
 			//类型为TxQcp时，将所有结果进行保存
 			txQcpResult := txs.NewQcpTxResult(result, tx.Sequence, tx.Extends, "")
-			txStd := txs.NewTxStd(txQcpResult, tx.From, txs.QCP_RESULT_DEFAULT_MAX_GAS)
+			txStd := txs.NewTxStd(txQcpResult, tx.From, txs.QcpResultDefaultMaxGas)
 
 			crossTxQcp := &txs.TxQcp{
 				TxStd: txStd,
@@ -837,7 +849,7 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 					types.NewAttribute(types.AttributeKeyModule, qcp.EventModule),
 					types.NewAttribute(qcp.To, tx.From),
 					types.NewAttribute(qcp.Sequence, strconv.FormatInt(txQcp.Sequence, 10)),
-					types.NewAttribute(qcp.Hash, qcp.GenQcpTxHash(txQcp)),
+					types.NewAttribute(qcp.Hash, txQcp.GenTxHash()),
 				),
 			})
 		}
@@ -845,6 +857,12 @@ func (app *BaseApp) deliverTxQcp(ctx ctx.Context, tx *txs.TxQcp) (result types.R
 	}()
 
 	ctx = setGasMeter(ctx, tx.TxStd)
+	if nil != app.gasPreHandler {
+		err := app.gasPreHandler(ctx, tx.TxStd.ITxs[0].GetGasPayer())
+		if err != nil {
+			return err.Result()
+		}
+	}
 
 	result = app.checkTxQcp(ctx, tx)
 	if !result.IsOK() {

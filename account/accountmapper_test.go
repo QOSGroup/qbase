@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 func defaultContext(key store.StoreKey, mapperMap map[string]mapper.IMapper) context.Context {
@@ -45,7 +45,7 @@ func TestAccountMapperGetSet(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		pubkey := ed25519.GenPrivKey().PubKey()
-		addr := types.Address(pubkey.Address())
+		addr := types.AccAddress(pubkey.Address())
 
 		// 没有存过该addr，取出来应为nil
 		acc := mapper.GetAccount(addr)
@@ -54,7 +54,7 @@ func TestAccountMapperGetSet(t *testing.T) {
 		acc = mapper.NewAccountWithAddress(addr)
 		require.NotNil(t, acc)
 		require.Equal(t, addr, acc.GetAddress())
-		require.EqualValues(t, nil, acc.GetPubicKey())
+		require.EqualValues(t, nil, acc.GetPublicKey())
 		require.EqualValues(t, 0, acc.GetNonce())
 
 		// 新的account尚未存储，依然取出nil

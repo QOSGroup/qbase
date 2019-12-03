@@ -17,10 +17,10 @@ type ITx interface {
 	// crossTxQcp: 需要进行跨链处理的TxQcp。
 	// 业务端实现中crossTxQcp只需包含`to` 和 `txStd`
 	Exec(ctx context.Context) (result types.Result, crossTxQcp *TxQcp)
-	GetSigner() []types.Address //签名者
-	CalcGas() types.BigInt      //计算gas
-	GetGasPayer() types.Address //gas付费人
-	GetSignData() []byte        //获取签名字段
+	GetSigner() []types.AccAddress //签名者
+	CalcGas() types.BigInt         //计算gas
+	GetGasPayer() types.AccAddress //gas付费人
+	GetSignData() []byte           //获取签名字段
 }
 
 // 标准Tx结构体
@@ -45,13 +45,13 @@ func (tx *TxStd) Type() string {
 	return "txstd"
 }
 
-func (tx *TxStd) GetSigners() []types.Address {
+func (tx *TxStd) GetSigners() []types.AccAddress {
 
 	if len(tx.ITxs) == 0 {
 		panic("ITx shouldn't be nil in TxStd.GetSigners()")
 	}
 
-	var originSigners []types.Address
+	var originSigners []types.AccAddress
 	for _, itx := range tx.ITxs {
 		originSigners = append(originSigners, itx.GetSigner()...)
 	}
@@ -60,7 +60,7 @@ func (tx *TxStd) GetSigners() []types.Address {
 		return originSigners
 	}
 
-	signers := make([]types.Address, 0, len(originSigners))
+	signers := make([]types.AccAddress, 0, len(originSigners))
 	m := make(map[string]struct{})
 
 	for _, signer := range originSigners {
@@ -104,17 +104,17 @@ func (tx *TxStd) getSignData() []byte {
 
 // 签名：每个签名者外部调用此方法
 // 当tx不包含在跨链交易中时,fromChainID为 ""
-func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID, toChainID string) (signedbyte []byte, err error) {
+func (tx *TxStd) SignTx(privateKey crypto.PrivKey, nonce int64, fromChainID, toChainID string) (signByte []byte, err error) {
 	if len(tx.ITxs) == 0 {
-		return nil, errors.New("Signature txstd err(itx is nil)")
+		return nil, errors.New("Signature TxStd err(itx is nil)")
 	}
 
 	if tx.ChainID != toChainID {
-		return nil, errors.New("toChainID not match txStd's chainID")
+		return nil, errors.New("toChainID not match TxStd's chainID")
 	}
 
 	bz := tx.BuildSignatureBytes(nonce, fromChainID)
-	signedbyte, err = privkey.Sign(bz)
+	signByte, err = privateKey.Sign(bz)
 	if err != nil {
 		return nil, err
 	}
@@ -124,18 +124,18 @@ func (tx *TxStd) SignTx(privkey crypto.PrivKey, nonce int64, fromChainID, toChai
 
 // 构建结构体
 // 调用 NewTxStd后，需调用TxStd.SignTx填充TxStd.Signature(每个TxStd.Signer())
-func NewTxStd(itx ITx, cid string, mgas types.BigInt) (rTx *TxStd) {
-	rTx = NewTxsStd(cid, mgas, itx)
+func NewTxStd(itx ITx, cid string, maxGas types.BigInt) (rTx *TxStd) {
+	rTx = NewTxsStd(cid, maxGas, itx)
 
 	return
 }
 
-func NewTxsStd(cid string, mgas types.BigInt, itx ...ITx) (rTx *TxStd) {
+func NewTxsStd(cid string, maxGas types.BigInt, itx ...ITx) (rTx *TxStd) {
 	rTx = &TxStd{
 		itx,
 		[]Signature{},
 		cid,
-		mgas,
+		maxGas,
 	}
 
 	return
@@ -154,7 +154,7 @@ func Sig2Byte(sgn Signature) (ret []byte) {
 }
 
 //ValidateBasicData  对txStd进行基础的数据校验
-func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChaindID string) (err types.Error) {
+func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentChainID string) (err types.Error) {
 	if len(tx.ITxs) == 0 {
 		return types.ErrInternal("TxStd's ITx is nil")
 	}
@@ -172,8 +172,8 @@ func (tx *TxStd) ValidateBasicData(ctx context.Context, isCheckTx bool, currentC
 		return types.ErrInternal("TxStd's ChainID is empty")
 	}
 
-	if tx.ChainID != currentChaindID {
-		return types.ErrInternal(fmt.Sprintf("chainId not match. expect: %s , actual: %s", currentChaindID, tx.ChainID))
+	if tx.ChainID != currentChainID {
+		return types.ErrInternal(fmt.Sprintf("TxStd's ChainID not match. expect: %s , actual: %s", currentChainID, tx.ChainID))
 	}
 
 	if tx.MaxGas.LT(types.ZeroInt()) {

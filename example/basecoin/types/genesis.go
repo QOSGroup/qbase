@@ -13,7 +13,7 @@ import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
@@ -34,8 +34,8 @@ type GenesisState struct {
 
 // 初始账户
 type GenesisAccount struct {
-	Address types.Address   `json:"address"`
-	Coins   types.BaseCoins `json:"coins"`
+	Address types.AccAddress `json:"address"`
+	Coins   types.BaseCoins  `json:"coins"`
 }
 
 // 给定 AppAccpunt 创建 GenesisAccount
@@ -80,7 +80,7 @@ func BaseCoinAppGenState(cdc *amino.Codec, appGenTxs BaseCoinGenTx) (appState js
       			}
 			]
   		}]
-	}`, appGenTxs.Addr))
+	}`, appGenTxs.Addr.String()))
 	return
 }
 
@@ -88,15 +88,15 @@ func GenerateCoinKey(cdc *amino.Codec, clientRoot string) (addr types.Address, m
 
 	db, err := dbm.NewGoLevelDB(clikeys.KeyDBName, filepath.Join(clientRoot, "keys"))
 	if err != nil {
-		return types.Address([]byte{}), "", err
+		return types.AccAddress([]byte{}), "", err
 	}
 	keybase := keys.New(db, cdc)
 
 	info, secret, err := keybase.CreateEnMnemonic(DefaultAccountName, DefaultAccountPass)
 	if err != nil {
-		return types.Address([]byte{}), "", err
+		return types.AccAddress([]byte{}), "", err
 	}
 
-	addr = types.Address(info.GetPubKey().Address())
+	addr = types.AccAddress(info.GetPubKey().Address().Bytes())
 	return addr, secret, nil
 }

@@ -18,7 +18,7 @@ func GetAccountMapper(ctx context.Context) *account.AccountMapper {
 }
 
 func GetQcpMapper(ctx context.Context) *qcp.QcpMapper {
-	mapper := ctx.Mapper(qcp.QcpMapperName)
+	mapper := ctx.Mapper(qcp.MapperName)
 	if mapper == nil {
 		return nil
 	}

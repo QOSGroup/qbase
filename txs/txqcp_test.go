@@ -13,8 +13,8 @@ import (
 	"github.com/QOSGroup/qbase/store"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 func newQcpTxResult() (txqcpresult *QcpTxResult) {

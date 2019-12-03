@@ -1,7 +1,6 @@
 package account
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -13,19 +12,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	ErrAccountNotExsits = errors.New("account not exists")
-)
-
 func queryAccount(ctx context.CLIContext, addr []byte) (account.Account, error) {
 	path := account.BuildAccountStoreQueryPath()
-	res, err := ctx.Query(string(path), account.AddressStoreKey(addr))
+	res, err := ctx.Query(string(path), account.AddressStoreKey(types.AccAddress(addr)))
 	if err != nil {
 		return nil, err
 	}
 
 	if len(res) == 0 {
-		return nil, ErrAccountNotExsits
+		return nil, context.RecordsNotFoundError
 	}
 
 	var acc account.Account
@@ -43,7 +38,7 @@ func GetAccount(ctx context.CLIContext, address []byte) (account.Account, error)
 
 func GetAccountFromBech32Addr(ctx context.CLIContext, bech32Addr string) (account.Account, error) {
 
-	addrBytes, err := types.GetAddrFromBech32(bech32Addr)
+	addrBytes, err := types.AccAddressFromBech32(bech32Addr)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s is not a valid bech32Addr", bech32Addr)
@@ -55,7 +50,7 @@ func GetAccountFromBech32Addr(ctx context.CLIContext, bech32Addr string) (accoun
 func GetAccountNonce(ctx context.CLIContext, address []byte) (int64, error) {
 	account, err := queryAccount(ctx, address)
 
-	if err == ErrAccountNotExsits {
+	if err == context.RecordsNotFoundError {
 		return 0, nil
 	}
 
@@ -76,23 +71,50 @@ func IsAccountExists(ctx context.CLIContext, address []byte) bool {
 	return true
 }
 
-func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.Address, error) {
+func GetAddrFromFlag(ctx context.CLIContext, flag string) (types.AccAddress, error) {
 	value := viper.GetString(flag)
+	if len(strings.TrimSpace(value)) == 0 {
+		return types.AccAddress{}, fmt.Errorf("Flag --%s value is empty, are you forgot set this flag? ", flag)
+	}
 	return GetAddrFromValue(ctx, value)
 }
 
-func GetAddrFromValue(ctx context.CLIContext, value string) (types.Address, error) {
-	if strings.HasPrefix(value, types.PREF_ADD) {
-		addr, err := types.GetAddrFromBech32(value)
+func GetAddrFromValue(ctx context.CLIContext, value string) (types.AccAddress, error) {
+	prefix := types.GetAddressConfig().GetBech32AccountAddrPrefix()
+	if strings.HasPrefix(value, prefix) {
+		addr, err := types.AccAddressFromBech32(value)
 		if err == nil {
 			return addr, nil
+		} else {
+			return types.AccAddress{}, fmt.Errorf("Address %s is not a valid bech32 address. Error: %s", value, err.Error())
 		}
 	}
 
 	info, err := keys.GetKeyInfo(ctx, value)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Name %s found is error in current keybase. Error: %s", value, err.Error())
 	}
 
 	return info.GetAddress(), nil
+}
+
+func GetValidatorAddrFromFlag(ctx context.CLIContext, flag string) (types.ValAddress, error) {
+	value := viper.GetString(flag)
+	if len(strings.TrimSpace(value)) == 0 {
+		return types.ValAddress{}, fmt.Errorf("Flag --%s value is empty, are you forgot set this flag? ", flag)
+	}
+	return GetValidatorAddrFromValue(ctx, value)
+}
+
+func GetValidatorAddrFromValue(ctx context.CLIContext, value string) (types.ValAddress, error) {
+	prefix := types.GetAddressConfig().GetBech32ValidatorAddrPrefix()
+
+	if strings.HasPrefix(value, prefix) {
+		addr, err := types.ValAddressFromBech32(value)
+		if err == nil {
+			return addr, nil
+		}
+	}
+
+	return types.ValAddress{}, fmt.Errorf("%s is not a valid validator address.", value)
 }

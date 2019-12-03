@@ -76,9 +76,9 @@ func ExampleSomeBIP32TestVecs() {
 	seed := mnemonicToSeed("barrel original fuel morning among eternal " +
 		"filter ball stove pluck matrix mechanic")
 	master, ch := ComputeMastersFromSeed(seed)
-	fmt.Println("keys from fundraiser test-vector (cosmos, bitcoin, ether)")
+	fmt.Println("keys from fundraiser test-vector (qos, bitcoin, ether)")
 	fmt.Println()
-	// cosmos
+	// qos
 	priv, _ := DerivePrivateKeyForPath(master, ch, FullFundraiserPath)
 	fmt.Println(hex.EncodeToString(priv[:]))
 	// bitcoin
@@ -115,9 +115,9 @@ func ExampleSomeBIP32TestVecs() {
 	priv, _ = DerivePrivateKeyForPath(master, ch, "0/7")
 	fmt.Println(hex.EncodeToString(priv[:]))
 
-	// Output: keys from fundraiser test-vector (cosmos, bitcoin, ether)
+	// Output: keys from fundraiser test-vector (qos, bitcoin, ether)
 	//
-	// bfcb217c058d8bbafd5e186eae936106ca3e943889b0b4a093ae13822fd3170c
+	// b3571a734ec89166abdf90ffbaa49338a2c370e14db56d4528203d46ffd9c0e6
 	// e77c3de76965ad89997451de97b95bb65ede23a6bf185a55d80363d92ee37c3d
 	// 7fc4d8a8146dea344ba04c593517d3f377fa6cded36cd55aee0a0bb968e651bc
 	//

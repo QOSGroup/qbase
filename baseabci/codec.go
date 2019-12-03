@@ -5,8 +5,9 @@ import (
 	"github.com/QOSGroup/qbase/consensus"
 	"github.com/QOSGroup/qbase/keys"
 	"github.com/QOSGroup/qbase/txs"
+	"github.com/QOSGroup/qbase/types"
 	go_amino "github.com/tendermint/go-amino"
-	"github.com/tendermint/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 func MakeQBaseCodec() *go_amino.Codec {
@@ -23,4 +24,5 @@ func RegisterCodec(cdc *go_amino.Codec) {
 	account.RegisterCodec(cdc)
 	keys.RegisterCodec(cdc)
 	consensus.RegisterCodec(cdc)
+	types.RegisterCodec(cdc)
 }
