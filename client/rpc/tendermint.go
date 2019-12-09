@@ -8,6 +8,7 @@ import (
 	"github.com/QOSGroup/qbase/types"
 	"github.com/gorilla/mux"
 	types2 "github.com/tendermint/tendermint/types"
+	types3 "github.com/tendermint/tendermint/abci/types"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -39,10 +40,27 @@ type TxsSearchItem struct {
 	GasUsed int64  `json:"gas_used"`
 }
 
+type EventKeyPair struct {
+	Key string `json:"key"`
+	Value string `json:"value"`
+}
+
+type Event struct {
+	Type string `json:"type"`
+	Pairs []EventKeyPair `json:"pairs"`
+}
+
+type EventResult struct {
+	BeginBlockEvents []Event `json:"begin_block_events"`
+	TxEvents  []Event `json:"tx_events"`
+	EndBlockEvents []Event `json:"end_block_events"`
+}
+
 func registerTendermintRoutes(ctx context.CLIContext, m *mux.Router) {
 	m.HandleFunc("/node_status", queryNodeStatusHandleFn(ctx)).Methods("GET")
 	m.HandleFunc("/blocks/latest", queryLatestBlockHandleFn(ctx)).Methods("GET")
 	m.HandleFunc("/blocks/{height}", queryBlockHandleFn(ctx)).Methods("GET")
+	m.HandleFunc("/blocks/{height}/events", queryBlockEventsHandleFn(ctx)).Methods("GET")
 	m.HandleFunc("/blocks/txs/{height}", queryBlockTxsHandleFn(ctx)).Methods("GET")
 	m.HandleFunc("/validators/latest", queryLatestValidatorsHandleFn(ctx)).Methods("GET")
 	m.HandleFunc("/validators/{height}", queryValidatorsHandleFn(ctx)).Methods("GET")
@@ -58,6 +76,53 @@ func registerTendermintRoutes(ctx context.CLIContext, m *mux.Router) {
 	}).Methods("GET")
 
 	m.HandleFunc("/txs/search", queryTxsByCondition(ctx)).Methods("POST")
+}
+
+func queryBlockEventsHandleFn(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		m := mux.Vars(request)
+
+		height, err := strconv.ParseInt(m["height"], 10, 64)
+		if err != nil {
+			WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		blockResults, err := cliContext.Client.BlockResults(&height)
+		if err != nil {
+			WriteErrorResponse(writer, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		eventResult := EventResult{}
+
+		for _ , tx := range blockResults.Results.DeliverTx {
+			for _ , event := range tx.Events {
+				eventResult.TxEvents = append(eventResult.TxEvents, covertToEvent(event))
+			}
+		}
+
+		for _, event := range blockResults.Results.BeginBlock.Events {
+			eventResult.BeginBlockEvents = append(eventResult.BeginBlockEvents, covertToEvent(event))
+		}
+
+		for _, event := range blockResults.Results.EndBlock.Events {
+			eventResult.EndBlockEvents = append(eventResult.EndBlockEvents, covertToEvent(event))
+		}
+
+		PostProcessResponseBare(writer, cliContext, eventResult)
+	}
+}
+
+func covertToEvent(event2 types3.Event) (e Event) {
+	e.Type = event2.Type
+	for _ , pair := range event2.Attributes {
+		e.Pairs = append(e.Pairs , EventKeyPair{
+			Key:   string(pair.Key),
+			Value: string(pair.Value),
+		})
+	}
+	return
 }
 
 func queryTxsByCondition(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
