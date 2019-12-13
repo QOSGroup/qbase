@@ -66,9 +66,21 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 
 // PostCommands adds common flags for commands to post tx
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
-	for _, c := range cmds {
+	return PostCustomMaxGasCommands(cmds, make([]int64, 0, len(cmds)))
+}
+
+func PostCustomMaxGasCommands(cmds []*cobra.Command, defaultGases []int64) []*cobra.Command {
+
+	for len(defaultGases) < len(cmds) {
+		defaultGases = append(defaultGases, DefaultMaxGas)
+	}
+
+	for i, c := range cmds {
+
+		defaultGas :=  defaultGases[i]
+
 		c.Flags().Int64(FlagNonce, 0, "account nonce to sign the tx")
-		c.Flags().Int64(FlagMaxGas, DefaultMaxGas, "gas limit to set per tx")
+		c.Flags().Int64(FlagMaxGas, defaultGas, "gas limit to set per tx")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
