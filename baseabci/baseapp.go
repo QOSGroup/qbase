@@ -394,8 +394,26 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) 
 		return toResponseCheckTx(err.Result())
 	}
 
+
+
+	defer func() {
+		if r := recover(); r != nil {
+			switch r.(type) {
+			case types.ErrorOutOfGas:
+				log := "checkTxStd out of gas"
+				result = types.ErrOutOfGas(log).Result()
+			default:
+				log := fmt.Sprintf("checkTxStd recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+				result = types.ErrInternal(log).Result()
+			}
+
+			res = toResponseCheckTx(result)
+		}
+	}()
+
 	// 初始化context相关数据
 	ctx := app.checkState.ctx.WithTxBytes(req.Tx)
+
 	switch implTx := tx.(type) {
 	case *txs.TxStd:
 		ctx = setGasMeter(ctx, implTx)
@@ -678,7 +696,7 @@ func setGasMeter(ctx ctx.Context, tx *txs.TxStd) ctx.Context {
 	for _, itx := range tx.ITxs {
 		txsGas = txsGas.Add(itx.CalcGas())
 	}
-	gm.ConsumeGas(uint64(txsGas.Int64()), "sum of itxs' CalcGas")
+	gm.ConsumeGas(uint64(txsGas.Int64()), "exceeded limit gas or overflow")
 
 	return ctx.WithGasMeter(gm)
 }
